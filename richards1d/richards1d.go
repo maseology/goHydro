@@ -11,6 +11,8 @@ import (
 	"github.com/maseology/mmaths"
 )
 
+// Maxter: maximum iterations;
+// NsubLay: number of profile sublayers
 const (
 	waterDensity = 1000.0
 	area         = 1.0
