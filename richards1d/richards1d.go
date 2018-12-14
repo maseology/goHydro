@@ -18,7 +18,7 @@ const (
 	tolerance    = 1e-6
 	NsubLay      = 50
 	g            = 9.8065
-	geom         = true
+	geomSubLay   = true
 )
 
 // RPM is an alias for PorousMedium needed
@@ -60,7 +60,7 @@ func (t *ProfileState) buildSubLayers(depth float64, geom bool) {
 
 // InitializeWater used to initialize profile state
 func (t *ProfileState) InitializeWater(p Profile, se float64) {
-	t.buildSubLayers(p.D[len(p.D)], geom)
+	t.buildSubLayers(p.D[len(p.D)], geomSubLay)
 	t.v, t.dz, t.cz = make(map[int]float64), make(map[int]float64), make(map[int]float64)
 	t.v[0] = 0.0
 	for i := 0; i <= NsubLay; i++ {
