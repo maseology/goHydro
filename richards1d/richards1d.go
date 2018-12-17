@@ -33,6 +33,7 @@ type RPM struct {
 // ProfileState holds the dynamic state for a profile
 type ProfileState struct {
 	z, v, dz, cz, T, Tl, Psi, H, K map[int]float64
+	b3, mfpHe                      map[int]float64
 	PM                             map[int]RPM
 }
 
@@ -61,7 +62,7 @@ func (t *ProfileState) buildSubLayers(depth float64, geom bool) {
 }
 
 // InitializeWater used to initialize profile state
-func (t *ProfileState) InitializeWater(p Profile, se float64) {
+func (t *ProfileState) InitializeWater(p Profile, se float64, solver int) {
 	t.buildSubLayers(p.D[len(p.D)], geomSubLay)
 	t.v, t.dz, t.cz = make(map[int]float64), make(map[int]float64), make(map[int]float64)
 	t.v[0] = 0.0
@@ -75,30 +76,41 @@ func (t *ProfileState) InitializeWater(p Profile, se float64) {
 		t.cz[i] = t.z[i] + t.dz[i]*0.5 // cell center (as depth from top), adding ghost cell below model for boundary conditions
 	}
 
-	// adjust cell centered finite volume nodal distances at boundaries
-	for i := 0; i <= NsubLay; i++ {
-		t.dz[i] = t.cz[i+1] - t.cz[i]
+	if solver == 1 {
+		// adjust cell centered finite volume nodal distances at boundaries
+		for i := 0; i <= NsubLay; i++ {
+			t.dz[i] = t.cz[i+1] - t.cz[i]
+		}
 	}
 
 	// inital conditions
-	t.PM, t.T, t.Tl, t.Psi, t.H, t.K = make(map[int]RPM), make(map[int]float64), make(map[int]float64), make(map[int]float64), make(map[int]float64), make(map[int]float64)
+	t.PM, t.T, t.Tl, t.Psi, t.H, t.K, t.b3, t.mfpHe = make(map[int]RPM), make(map[int]float64), make(map[int]float64), make(map[int]float64), make(map[int]float64), make(map[int]float64), make(map[int]float64), make(map[int]float64)
 	t.Psi[0] = 0.0
 	t.PM[0] = RPM{p.GetPorousMedium(0.0)}
+	t.b3[0] = (2.0*t.PM[0].B + 3.0) / (t.PM[0].B + 3.0)
+	t.mfpHe[0] = t.PM[0].mfpHe()
 	for i := 1; i <= NsubLay+1; i++ {
 		pm := RPM{p.GetPorousMedium(t.cz[i])}
 		t.PM[i] = pm
 		t.T[i] = pm.GetThetaSe(se)
 		t.Tl[i] = t.T[i]
-		t.Psi[i] = pm.GetPsi(t.T[i])
-		t.K[i] = pm.GetK(t.T[i])
+		if solver == 3 { // matric flux potential linearization
+			t.Psi[i] = pm.MFPfromTheta(t.T[i])
+			t.K[i] = pm.hydraulicConductivityFromMFP(t.Psi[i])
+		} else {
+			t.Psi[i] = pm.GetPsi(t.T[i])
+			t.K[i] = pm.GetK(t.T[i])
+		}
 		t.H[i] = t.Psi[i] - t.cz[i]*g // could set t.H[NsubLay+1] for bottom constant head bc
+		t.b3[i] = (2.0*pm.B + 3.0) / (pm.B + 3.0)
+		t.mfpHe[i] = pm.mfpHe()
 	}
 }
 
 // CellCentFiniteVolWater solver
-func (t *ProfileState) CellCentFiniteVolWater(p Profile, dt, ubPotential float64, isFreeDrainage bool) (bool, int, float64) {
+func (t *ProfileState) CellCentFiniteVolWater(dt, ubPotential float64, isFreeDrainage bool) (bool, int, float64) {
 	// apply upper boundary condition
-	t.Psi[0] = math.Min(ubPotential, p.P[1].He)
+	t.Psi[0] = math.Min(ubPotential, t.PM[1].He)
 	t.T[0] = t.PM[1].GetTheta(t.Psi[0])
 	t.T[1] = t.T[0]
 	t.Psi[1] = t.Psi[0]
@@ -181,7 +193,72 @@ func (t *ProfileState) CellCentFiniteVolWater(p Profile, dt, ubPotential float64
 	return false, nIter, 0.0
 }
 
-// returns Capacity pg.120
+// NewtonRapsonMFP Matric Flux Potential method
+func (t *ProfileState) NewtonRapsonMFP(dt, ubPotential float64, isFreeDrainage bool) (bool, int, float64) {
+	// apply upper boundary condition
+	t.Psi[1] = t.PM[0].mfpFromPsi(math.Min(ubPotential, t.PM[0].He))
+	t.Tl[1] = t.PM[0].thetaFromMFP(t.Psi[1])
+	t.T[1] = t.Tl[1]
+	t.K[1] = t.PM[0].hydraulicConductivityFromMFP(t.Psi[1])
+	t.Psi[0] = t.Psi[1]
+	t.K[0] = 0.0
+
+	if isFreeDrainage {
+		t.Psi[NsubLay+1] = t.Psi[NsubLay]
+		t.T[NsubLay+1] = t.T[NsubLay]
+		t.K[NsubLay+1] = t.K[NsubLay]
+	}
+
+	u, cp, f := make(map[int]float64), make(map[int]float64), make(map[int]float64)
+	a, b, c, d, dpsi := make(map[int]float64), make(map[int]float64), make(map[int]float64), make(map[int]float64), make(map[int]float64)
+
+	nIter := 0
+	massBalance := 1.0
+	for massBalance > tolerance && nIter < MaxIter {
+		massBalance = 0.0
+		for i := 1; i <= NsubLay; i++ {
+			t.K[i] = t.PM[i].hydraulicConductivityFromMFP(t.Psi[i])
+			cap := t.T[i] / ((t.PM[i].B + 3.0) * t.Psi[i])
+			cp[i] = waterDensity * t.v[i] * cap / dt
+			u[i] = g * t.K[i]
+			f[i] = (t.Psi[i+1]-t.Psi[i])/t.dz[i] - u[i]
+			b3 := (2.0*t.PM[i].B + 3.0) / (t.PM[i].B + 3.0)
+			if i == 1 {
+				a[i] = 0.0
+				c[i] = 0.0
+				b[i] = 1.0/t.dz[i] + cp[i] + g*b3*t.K[i]/t.Psi[i]
+				d[i] = 0.0
+			} else {
+				b3m1 := (2.0*t.PM[i-1].B + 3.0) / (t.PM[i-1].B + 3.0)
+				a[i] = -1.0/t.dz[i-1] - g*b3m1*t.K[i-1]/t.Psi[i-1]
+				c[i] = -1.0 / t.dz[i]
+				b[i] = 1.0/t.dz[i-1] + 1.0/t.dz[i] + cp[i] + g*b3*t.K[i]/t.Psi[i]
+				d[i] = f[i-1] - f[i] + (waterDensity * t.v[i] * (t.T[i] - t.Tl[i]) / dt)
+				massBalance += math.Abs(d[i])
+			}
+		}
+		mmaths.ThomasBoundaryCondition(a, b, c, d, dpsi, 1, NsubLay)
+
+		for i := 1; i <= NsubLay; i++ {
+			t.Psi[i] -= dpsi[i]
+			t.Psi[i] = math.Min(t.Psi[i], t.PM[i].mfpHe())
+			t.T[i] = t.PM[i].thetaFromMFP(t.Psi[i])
+		}
+
+		if isFreeDrainage {
+			t.Psi[NsubLay+1] = t.Psi[NsubLay]
+			t.T[NsubLay+1] = t.T[NsubLay]
+			t.K[NsubLay+1] = t.K[NsubLay]
+		}
+		nIter++
+	}
+	if massBalance < tolerance {
+		return true, nIter, -f[1]
+	}
+	return false, nIter, 0.0
+}
+
+// returns specific moisture apacity pg.120
 func (pm RPM) dThetadH(h0, h1, z float64) float64 {
 	psi0 := h0 + g*z
 	psi1 := h1 + g*z
@@ -200,9 +277,35 @@ func (pm RPM) dThetadPsi(psi float64) float64 {
 	return -pm.GetTheta(psi) / (pm.B * psi)
 }
 
+func (pm RPM) mfpHe() float64 {
+	return pm.Ks * pm.He / (-3.0/pm.B - 1.0)
+}
+
+// MFPfromTheta is needed to determine the matrix
+// flux potential from water content.
+func (pm RPM) MFPfromTheta(theta float64) float64 {
+	return pm.mfpHe() * math.Pow(theta/pm.Ts, pm.B+3.0)
+}
+
+func (pm RPM) mfpFromPsi(psi float64) float64 {
+	return pm.mfpHe() * math.Pow(psi/pm.He, -3.0/pm.B-1.0)
+}
+
+func (pm RPM) thetaFromMFP(MFP float64) float64 {
+	mfphe := pm.mfpHe()
+	if MFP > mfphe {
+		return pm.Ts
+	}
+	return pm.Ts * math.Pow(MFP/mfphe, 1.0/(pm.B+3.0))
+}
+
 func meanK(k1, k2 float64) float64 {
 	if k1 != k2 {
 		return (k1 - k2) / math.Log(k1/k2) // logarithmic mean
 	}
 	return k1
+}
+
+func (pm RPM) hydraulicConductivityFromMFP(MFP float64) float64 {
+	return pm.Ks * math.Pow(MFP/pm.mfpHe(), (2.0*pm.B+3.0)/(pm.B+3.0))
 }
