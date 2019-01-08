@@ -27,7 +27,7 @@ const (
 	Unspecified23
 	HeadStage
 	Flux
-	VolumetricDischarge
+	UnitDischarge
 	Unspecified27
 	Unspecified28
 	Unspecified29
@@ -146,8 +146,8 @@ func WBcodeToMap(wdcb uint64) map[uint64]string {
 	if wdcb&Flux == Flux {
 		s[Flux] = "Flux"
 	}
-	if wdcb&VolumetricDischarge == VolumetricDischarge {
-		s[VolumetricDischarge] = "VolumetricDischarge"
+	if wdcb&UnitDischarge == UnitDischarge {
+		s[UnitDischarge] = "UnitDischarge"
 	}
 	if wdcb&Unspecified27 == Unspecified27 {
 		s[Unspecified27] = "Unspecified27"
