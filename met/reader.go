@@ -11,19 +11,7 @@ import (
 	"github.com/maseology/mmio"
 )
 
-type header struct {
-	locations  map[int][]interface{}
-	v          uint16            // version
-	uc, tc, lc uint8             // unit code, time code, location code
-	wbdc       uint64            // waterbalance data code
-	wbl        map[uint64]string // waterbalance data map
-	prc        int8              // precision
-	intvl      uint64
-	dtb, dte   time.Time
-	espg, nloc uint32
-}
-
-func (h *header) Read(b *bytes.Reader) {
+func (h *Header) Read(b *bytes.Reader) {
 	// version 0001
 	h.v = mmio.ReadUInt16(b)
 	h.uc = mmio.ReadUInt8(b)
@@ -45,11 +33,19 @@ func (h *header) Read(b *bytes.Reader) {
 		h.nloc = mmio.ReadUInt32(b)
 	} else if h.lc > 0 {
 		h.nloc = mmio.ReadUInt32(b)
-		h.locations = make(map[int][]interface{})
-		if h.lc == 12 {
+		h.Locations = make(map[int][]interface{})
+		if h.lc == 1 {
+			if h.nloc == 1 {
+				h.Locations[0] = []interface{}{mmio.ReadInt32(b)}
+			} else {
+				for i := 0; i < int(h.nloc); i++ {
+					h.Locations[int(mmio.ReadInt32(b))] = []interface{}{mmio.ReadInt32(b)}
+				}
+			}
+		} else if h.lc == 12 {
 			log.Panicln("h.locations-build: CODE NOT CHECKED YET")
 			for i := 0; i < int(h.nloc); i++ {
-				h.locations[int(mmio.ReadInt32(b))] = []interface{}{mmio.ReadFloat64(b), mmio.ReadFloat64(b)}
+				h.Locations[int(mmio.ReadInt32(b))] = []interface{}{mmio.ReadFloat64(b), mmio.ReadFloat64(b)}
 			}
 		} else {
 			log.Panicf("location code %d currently not supported\n", h.lc)
@@ -57,7 +53,7 @@ func (h *header) Read(b *bytes.Reader) {
 	}
 }
 
-func (h *header) Check() error {
+func (h *Header) check() error {
 	cver := uint16(1) // current version
 	if h.v != cver {
 		return fmt.Errorf("Error: not the current supported .met version--found: %04d; want: %04d", h.v, cver)
@@ -65,37 +61,14 @@ func (h *header) Check() error {
 	return nil
 }
 
-func (h *header) Print() {
-	fmt.Printf("\nVersion %04d\n", h.v)
-	fmt.Printf("unit code %d\n", h.uc)
-	fmt.Printf("time code %d\n", h.tc)
-	fmt.Printf("water-balance types: %v\n", h.wbl)
-	fmt.Printf("data precision %d\n", h.prc)
-	fmt.Printf("interval %d\n", h.intvl)
-	if h.intvl > 0 {
-		fmt.Println("start date " + h.dtb.Format("2006-01-02"))
-		fmt.Println("end date " + h.dte.Format("2006-01-02")) // 15:04:05"))
-	}
-	fmt.Printf("location code %d\n", h.lc)
-	fmt.Printf("coordinate projection (ESPG) %d\n", h.espg)
-	if h.lc == 0 {
-		fmt.Printf("n cells %d\n\n", h.nloc)
-	} else if h.lc > 0 {
-		fmt.Printf("n locations %d\n", h.nloc)
-		for i, c := range h.locations {
-			fmt.Println(i, c)
-		}
-	}
-}
-
 // ReadMET reads a .met blob, returning a map
-func ReadMET(fp string) (map[time.Time]map[int]float64, error) {
+func ReadMET(fp string) (*Header, map[time.Time]map[int]float64, error) {
 	b := mmio.OpenBinary(fp)
-	var h header
+	var h Header
 	h.Read(b)
 	h.Print()
-	if err := h.Check(); err != nil {
-		return nil, err
+	if err := h.check(); err != nil {
+		return nil, nil, err
 	}
 
 	// read data
@@ -134,5 +107,5 @@ func ReadMET(fp string) (map[time.Time]map[int]float64, error) {
 		panic("unknown data type")
 	}
 
-	return dc, nil
+	return &h, dc, nil
 }

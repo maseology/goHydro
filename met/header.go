@@ -1,0 +1,57 @@
+package met
+
+import (
+	"fmt"
+	"time"
+)
+
+// Header contains metadata for the .met file
+type Header struct {
+	Locations  map[int][]interface{}
+	v          uint16            // version
+	uc, tc, lc uint8             // unit code, time code, location code
+	wbdc       uint64            // waterbalance data code
+	wbl        map[uint64]string // waterbalance data map
+	prc        int8              // precision
+	intvl      uint64
+	dtb, dte   time.Time
+	espg, nloc uint32
+}
+
+// IntervalSec returns the time interval of the .met file
+func (h *Header) IntervalSec() float64 {
+	return float64(h.intvl)
+}
+
+// BeginEndInterval returns the begining and end dates
+func (h *Header) BeginEndInterval() (time.Time, time.Time, int64) {
+	return h.dtb, h.dte, int64(h.intvl)
+}
+
+// Print .met metadata
+func (h *Header) Print() {
+	fmt.Printf("\n Version %04d\n", h.v)
+	fmt.Printf(" unit code %d\n", h.uc)
+	fmt.Printf(" time code %d\n", h.tc)
+	fmt.Printf(" water-balance types: %v\n", h.wbl)
+	fmt.Printf(" data precision %d\n", h.prc)
+	fmt.Printf(" interval %d\n", h.intvl)
+	if h.intvl > 0 {
+		fmt.Println(" start date " + h.dtb.Format("2006-01-02"))
+		fmt.Println(" end date " + h.dte.Format("2006-01-02")) // 15:04:05"))
+	}
+	fmt.Printf(" location code %d\n", h.lc)
+	fmt.Printf(" coordinate projection (ESPG) %d\n", h.espg)
+	if h.lc == 0 {
+		fmt.Printf(" n cells %d\n\n", h.nloc)
+	} else if h.lc > 0 {
+		if h.nloc == 1 {
+			fmt.Printf(" outlet cell id %d\n\n", h.Locations[0][0])
+		} else {
+			fmt.Printf(" n locations %d\n\n", h.nloc)
+			for i, c := range h.Locations {
+				fmt.Printf("  %d %v\n", i, c)
+			}
+		}
+	}
+}
