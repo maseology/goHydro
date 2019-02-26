@@ -5,6 +5,8 @@ import (
 	"encoding/binary"
 	"fmt"
 	"log"
+
+	"github.com/maseology/mmaths"
 )
 
 type uhdemReader struct {
@@ -19,10 +21,11 @@ func (u *uhdemReader) uhdemRead(b *bytes.Reader) {
 	}
 }
 
-func (u *uhdemReader) toTEC() TEC {
+func (u *uhdemReader) toTEC() (mmaths.Point, TEC) {
 	var t TEC
 	t.New(u.Z, u.S, u.A, -1)
-	return t
+	xy := mmaths.Point{X: u.X, Y: u.Y}
+	return xy, t
 }
 
 type fpReader struct {

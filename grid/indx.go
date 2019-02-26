@@ -104,13 +104,13 @@ func (r *Indx) getBinaryShort(fp string, rowmajor bool) {
 		r.a = make(map[int]int, r.gd.nr*r.gd.nc)
 		if rowmajor {
 			for i := 0; i < n; i++ {
-				r.a[i] = int(b[i][0])
+				r.a[i] = int(b[0][i])
 			}
 		} else {
 			c, nr, nc := 0, r.gd.nr, r.gd.nc
 			for j := 0; j < nc; j++ {
 				for i := 0; i < nr; i++ {
-					r.a[i*nc+j] = int(b[c][0])
+					r.a[i*nc+j] = int(b[0][c])
 					c++
 				}
 			}
@@ -132,12 +132,12 @@ func (r *Indx) ToASC(fp string, ignoreActives bool) error {
 	}
 	defer t.Close()
 	r.gd.ToASCheader(t)
-	if r.gd.na > 0 && !ignoreActives {
+	if r.gd.na > 0 && ignoreActives {
 		c := 0
 		for i := 0; i < r.gd.nr; i++ {
 			for j := 0; j < r.gd.nc; j++ {
 				if r.gd.act[c] {
-					t.Write("1 ")
+					t.Write(fmt.Sprintf("%d ", r.a[c]))
 				} else {
 					t.Write("-9999 ")
 				}

@@ -28,7 +28,7 @@ func (h *Header) Read(b *bytes.Reader) {
 		h.dte = time.Unix(mmio.ReadInt64(b), 0).UTC()
 	}
 	h.lc = mmio.ReadUInt8(b)
-	h.espg = mmio.ReadUInt32(b)
+	h.ESPG = mmio.ReadUInt32(b)
 	if h.lc == 0 {
 		h.nloc = mmio.ReadUInt32(b)
 	} else if h.lc > 0 {

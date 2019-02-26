@@ -9,7 +9,7 @@ package hru
 // )
 
 // Basin is an alias for a set of HRUs
-type Basin = map[int]HRU
+type Basin = map[int]*HRU
 
 // HRU the Hydrologic Response Unit
 type HRU struct {

@@ -2,6 +2,7 @@ package grid
 
 import (
 	"bufio"
+	"encoding/binary"
 	"fmt"
 	"io"
 	"os"
@@ -54,52 +55,103 @@ func ReadGDEF(fp string) (*Definition, error) {
 	}
 	nc /= 8
 
-	for {
-		b1 := make([]byte, nc)
-		n1, err := reader.Read(b1)
-		if err == io.EOF {
-			if gd.na == 0 {
-				fmt.Println(" no active cells")
+	b1 := make([]byte, nc)
+	if err := binary.Read(reader, binary.LittleEndian, b1); err != nil {
+		return nil, fmt.Errorf("Fatal error: read actives failed: %v", err)
+	}
+	t := make([]byte, 1)
+	if v, _ := reader.Read(t); v != 0 {
+		return nil, fmt.Errorf("Fatal error: EOF not reached when expected")
+	}
+	for _, b := range b1 {
+		for i := uint(0); i < 8; i++ {
+			if b&(1<<i)>>i == 1 {
+				gd.act[cn] = true
+				gd.na++
 			}
-			break
-		} else if err != nil {
-			return nil, fmt.Errorf("Fatal error(s): ReadGDEF:\n   failed to read 'actives': %v", err)
-		} else {
-			for i := 0; i < n1; i++ {
-				// fmt.Println(i, b1[i], mmio.BitArray1(b1[i]))
-				if b1[i] == 0 {
-					for p := 0; p < 8; p++ {
-						gd.act[cn] = false
-						cn++
-						if cn >= cx {
-							break
-						}
-					}
-				} else if b1[i] == 255 {
-					for p := 0; p < 8; p++ {
-						gd.act[cn] = true
-						gd.na++
-						cn++
-						if cn >= cx {
-							break
-						}
-					}
-				} else {
-					ba := mmio.BitArray1(b1[i])
-					for p := 0; p < 8; p++ {
-						gd.act[cn] = ba[p]
-						if ba[p] {
-							gd.na++
-						}
-						cn++
-						if cn >= cx {
-							break
-						}
-					}
-				}
+			cn++
+			if cn >= cx {
+				break
 			}
 		}
+
+		// if b == 0 {
+		// 	for p := 0; p < 8; p++ {
+		// 		gd.act[cn] = false
+		// 		cn++
+		// 		if cn >= cx {
+		// 			break
+		// 		}
+		// 	}
+		// } else if b == 255 {
+		// 	for p := 0; p < 8; p++ {
+		// 		gd.act[cn] = true
+		// 		gd.na++
+		// 		cn++
+		// 		if cn >= cx {
+		// 			break
+		// 		}
+		// 	}
+		// } else {
+		// 	ba := mmio.BitArray1(b)
+		// 	for p := 0; p < 8; p++ {
+		// 		gd.act[cn] = ba[p]
+		// 		if ba[p] {
+		// 			gd.na++
+		// 		}
+		// 		cn++
+		// 		if cn >= cx {
+		// 			break
+		// 		}
+		// 	}
+		// }
 	}
+	// for {
+	// 	b1 := make([]byte, nc)
+	// 	n1, err := reader.Read(b1)
+	// 	if err == io.EOF {
+	// 		if gd.na == 0 {
+	// 			fmt.Println(" no active cells")
+	// 		}
+	// 		break
+	// 	} else if err != nil {
+	// 		return nil, fmt.Errorf("Fatal error(s): ReadGDEF:\n   failed to read 'actives': %v", err)
+	// 	} else {
+	// 		for i := 0; i < n1; i++ {
+	// 			// fmt.Println(i, b1[i], mmio.BitArray1(b1[i]))
+	// 			if b1[i] == 0 {
+	// 				for p := 0; p < 8; p++ {
+	// 					gd.act[cn] = false
+	// 					cn++
+	// 					if cn >= cx {
+	// 						break
+	// 					}
+	// 				}
+	// 			} else if b1[i] == 255 {
+	// 				for p := 0; p < 8; p++ {
+	// 					gd.act[cn] = true
+	// 					gd.na++
+	// 					cn++
+	// 					if cn >= cx {
+	// 						break
+	// 					}
+	// 				}
+	// 			} else {
+	// 				ba := mmio.BitArray1(b1[i])
+	// 				for p := 0; p < 8; p++ {
+	// 					gd.act[cn] = ba[p]
+	// 					if ba[p] {
+	// 						gd.na++
+	// 					}
+	// 					cn++
+	// 					if cn >= cx {
+	// 						break
+	// 					}
+	// 				}
+	// 			}
+	// 		}
+	// 	}
+	// }
 	if cn != cx {
 		return nil, fmt.Errorf("Fatal error(s): ReadGDEF:\n   number of cells found (%d) not equal to total (%d): %v", cn, cx, err)
 	}

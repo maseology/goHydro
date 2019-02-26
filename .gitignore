@@ -12,4 +12,6 @@
 *.out
 
 # mm
+bak/
 old/
+doc/latex/

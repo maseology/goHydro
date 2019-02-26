@@ -12,7 +12,7 @@ type Profile struct {
 	T float64         // top of profile
 }
 
-// New : constuctor for Profile
+// New constuctor for Profile
 func (p *Profile) New() {
 	// single homogenous soil layer
 	p.D = make(map[int]float64)

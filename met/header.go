@@ -15,12 +15,18 @@ type Header struct {
 	prc        int8              // precision
 	intvl      uint64
 	dtb, dte   time.Time
-	espg, nloc uint32
+	ESPG, nloc uint32
 }
 
 // IntervalSec returns the time interval of the .met file
 func (h *Header) IntervalSec() float64 {
 	return float64(h.intvl)
+}
+
+// Nstep returns the number of timesteps in the .met file
+func (h *Header) Nstep() int {
+	n := h.dte.Add(time.Second*time.Duration(h.intvl)).Sub(h.dtb).Seconds() / float64(h.intvl)
+	return int(n)
 }
 
 // BeginEndInterval returns the begining and end dates
@@ -41,7 +47,7 @@ func (h *Header) Print() {
 		fmt.Println(" end date " + h.dte.Format("2006-01-02")) // 15:04:05"))
 	}
 	fmt.Printf(" location code %d\n", h.lc)
-	fmt.Printf(" coordinate projection (ESPG) %d\n", h.espg)
+	fmt.Printf(" coordinate projection (ESPG) %d\n", h.ESPG)
 	if h.lc == 0 {
 		fmt.Printf(" n cells %d\n\n", h.nloc)
 	} else if h.lc > 0 {

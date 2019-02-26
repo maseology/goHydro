@@ -35,12 +35,12 @@ func (r *Real) getBinary(fp string) {
 	if n != r.gd.na {
 		log.Fatalf(" grid does not match definition length")
 	}
-	cnt := 0
+	c := 0
 	if len(r.gd.act) > 0 {
 		for i, a := range r.gd.act {
 			if a {
-				r.a[i] = b[cnt][0]
-				cnt++
+				r.a[i] = b[0][c]
+				c++
 			}
 		}
 	}
