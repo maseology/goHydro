@@ -3,7 +3,7 @@ package swat
 import "math"
 
 // Update state (all in [mm])
-func (bsn *SubBasin) Update(p, ep float64) (r, i, a, g, b float64) {
+func (bsn *SubBasin) Update(vin, p, ep float64) (r, i, a, g, b, o float64) {
 	r, i, a, g = 0., 0., 0., 0.
 	for _, m := range bsn.hru {
 		swprfl := 0. // soil water content of the entire profile excluding the water held in the profile at wilting point [mm] (pg.104)
@@ -17,7 +17,8 @@ func (bsn *SubBasin) Update(p, ep float64) (r, i, a, g, b float64) {
 		a += m.evap(ep)                                     // actual et
 		g += m.percolate()                                  // gw recharge
 	}
-	b = bsn.baseflow(g) // baseflow
+	b = bsn.baseflow(g)                        // baseflow
+	o = bsn.chn.Route(vin + (r+b)*bsn.ca/86.4) // SubBasin daily average outflow [m³/s]
 	return
 }
 
@@ -77,7 +78,7 @@ func (m *HRU) percolate() float64 {
 	return w
 }
 
-// baseflow is the shallow groundwater aqqounting (deep aquifer not included here)
+// baseflow is the shallow groundwater accounting (deep aquifer not included here)
 func (bsn *SubBasin) baseflow(g float64) float64 {
 	// note: no bypass flow; no partioning to deep aquifer (pg.173)
 	d1 := math.Exp(-1. / bsn.dgw)
@@ -88,5 +89,5 @@ func (bsn *SubBasin) baseflow(g float64) float64 {
 	} else {
 		bsn.qbf = 0.
 	}
-	return bsn.qbf
+	return bsn.qbf // [mm]
 }

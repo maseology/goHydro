@@ -7,9 +7,10 @@ ref: Neitsch, S.L., J.G. Arnold, J.R., Kiniry, J.R. Williams, 2011. Soil and Wat
 
 // SubBasin SWAT subbasin
 type SubBasin struct {
-	hru               []*HRU  // hydrologic response unit (state variable)
-	ca, dgw, aqt, agw float64 // parameters
-	aq, wrch, qbf     float64 // state variables
+	hru               []*HRU   // hydrologic response unit (state variable)
+	chn               *Channel // channel unit (state variable)
+	ca, dgw, aqt, agw float64  // parameters
+	aq, wrch, qbf     float64  // state variables
 }
 
 // HRU SWAT hydrologic response unit

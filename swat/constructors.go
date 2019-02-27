@@ -24,7 +24,8 @@ specifications:
 		- lateral flow (pg.160)
 		- no evaporation or pumping from shallow gw reservoirs (pg.176)
 		- no percolation to deep aquifers (i.e., no gw sink) (pg.178)
-		- no shallow aquifer baseflow threshold (GWQMIN/aqt) (pg.)
+		- no shallow aquifer baseflow threshold (GWQMIN/aqt) (pg.174)
+		- using (HYMO) variable storage routing method (pg.433)
 
 */
 
@@ -34,16 +35,19 @@ specifications:
 // CHL: (L) longest tributary channel length in subbasin [km]
 // CHS: (slp_ch) average slope of tributary channels [m/m]
 // CHN: (n) Manning's n value for tributary channels
+// CHW: (W_bankfull) width of channel top at bank [m]
+// CHD: (depth_bankfull) depth of water wht filled to bank [m]
 // GWDELAY: (delta_gw) delay time for aquifer recharge [days]
 // GWQMN: (aq_shthr) threshold water level in aquifer for baseflow [mm]
 // ALPHABF: (alpha_bf) baseflow recession coeficient (1/k)
-func (b *SubBasin) New(HRUs []HRU, SUBKM, SLSUBBSN, CHL, CHS, CHN, GWDELAY, ALPHABF float64) {
+func (b *SubBasin) New(HRUs []HRU, Chn Channel, SUBKM, SLSUBBSN, CHL, CHS, CHN, GWDELAY, ALPHABF float64) {
 	b.ca = SUBKM // subbasin contributing area [km²]
 	b.dgw = GWDELAY
-	b.aqt = 0. // GWQMN
+	b.aqt = 0. // GWQMN (no shallow aquifer baseflow threshold (GWQMIN/aqt))
 	b.agw = ALPHABF
 
-	// build HRUs and tconc
+	// build HRUs and tconc, add channel element
+	b.chn = &Chn
 	ftot := 0.
 	b.hru = make([]*HRU, len(HRUs))
 	for i, u := range HRUs {
@@ -105,4 +109,31 @@ func (sl *SoilLayer) New(CLAY, SOLBD, SOLAWC, SOLK float64) {
 	sl.fc *= lythick                // the amount of water in the soil profile at field capacity [mm]
 	sl.wp *= lythick                // [mm]
 	sl.tt = (sl.sat - sl.fc) / SOLK // pg.151 percolation time of travel; Ksat saturated hydraulic conductivity [mm/hr]
+}
+
+// New variable storage routing method channel constructor
+// CHW: (W_bankfull) width of channel top at bank [m]
+// CHD: (depth_bankfull) depth of water filled to bank [m]
+// CHL: (L_ch) length of main channel [km]
+// CHS: (slp_ch) length of main channel [-]
+// CHN: (n) Manning's n value for the main channel
+func (c *Channel) New(CHW, CHD, CHL, CHS, CHN float64) {
+	c.zch = zch
+	c.len = CHL
+	c.sqlp = math.Sqrt(CHS) // square root of channel slope fraction (rise/run)
+	c.wbf = CHW             // channel width at bankfull [m]
+	c.n = CHN               // channel Mannings roughness
+	c.wfld = 5. * CHW
+	c.dbf = CHD
+
+	c.wbtm = CHW - 2.*zch*CHD
+	if c.wbtm <= 0. {
+		c.wbtm = CHW / 2.
+		c.zch = (CHW - c.wbtm) / 2. / CHD
+	}
+
+	c.d = CHD                                           // initial conditions
+	c.vstr = 1000. * c.len * (c.wbtm + c.zch*CHD) * CHD // initial conditions
+	c.zch2 = math.Sqrt(1. + c.zch*c.zch)
+	c.zfld2 = math.Sqrt(1. + zfld*zfld)
 }
