@@ -26,6 +26,7 @@ specifications:
 		- no percolation to deep aquifers (i.e., no gw sink) (pg.178)
 		- no shallow aquifer baseflow threshold (GWQMIN/aqt) (pg.174)
 		- using (HYMO) variable storage routing method (pg.433)
+		- no in-line transmission losses, evaporation, bank storage Sec7 Ch1
 
 */
 
@@ -96,7 +97,7 @@ func (m *HRU) New(sz SoilLayer, HRUFR, HRUSLP, OVN, CN2, SURLAG, CV float64, IWA
 
 // New SWAT soil zone layer constructor
 // CLAY: (m_c) percent clay content
-// SOLBD: bulk density of soil (Mg/m3)
+// SOLBD: bulk density of soil (Mg/m³=g/cm³)
 // SOLAWC: available water capacity as fraction of total soil volume [-]
 // SOLK: (ksat) saturated hydraulic conductivity [mm/hr]
 func (sl *SoilLayer) New(CLAY, SOLBD, SOLAWC, SOLK float64) {

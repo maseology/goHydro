@@ -1,28 +1,34 @@
 package porousmedia
 
-import (
-	"math"
-)
+import "math"
 
 // PorousMedium contains a set of parameters that
 // describe the transport properties of porour media
 // Currently only supporting Campbell (1974) parameterization
 // ref: Campbell, G.S., 1974. A simple method for determining unsaturated conductivity from moisture retention data. Soil Science, 117: 311-387.
-// b: shape parameter
+// b: shape parameter, He: air-entry potential [J/kg]
 type PorousMedium struct {
 	Ts, Tr, Ks, He, B float64
 }
 
-// New : default constructor for testing
-func (pm *PorousMedium) New() {
-	*pm = PorousMedium{
-		Ts: 0.44,
-		Tr: 0.01,
-		Ks: 0.001,
-		He: -2.08,
-		B:  4.74,
-	}
-}
+// // New default constructor for testing
+// // Note: residual soil moisture is not in the Campbell model
+// func (pm *PorousMedium) New() {
+// 	// *pm = PorousMedium{
+// 	// 	Ts: 0.44,
+// 	// 	Tr: 0.01,
+// 	// 	Ks: 0.001,
+// 	// 	He: -2.08,
+// 	// 	B:  4.74,
+// 	// }
+// 	*pm = PorousMedium{ //silt loam
+// 		Ts: 0.43,
+// 		Tr: 0.05,
+// 		Ks: 0.003,
+// 		He: -2.08,
+// 		B:  4.74,
+// 	}
+// }
 
 // GetK returns the hydraulic conductivity for a given
 // volumetric water content (Campbell, 1974).

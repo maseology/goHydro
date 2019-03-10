@@ -33,7 +33,8 @@ func (c *Channel) Route(vin float64) (vout float64) {
 	qout := math.Pow(a, fivethird) * c.sqlp / c.n / math.Pow(p, twothird) // qout,1 [m³/s]
 	sc := 2. * secperday / (2.*c.vstr/qout + secperday)                   // sc: storage coefficient (pg.434); tt=Vstored,1/qout,1 travel time [s] pg.434
 
-	vout = sc * (vin + c.vstr) // Vout,2 [m³]
+	c.vstr += vin
+	vout = sc * c.vstr         // Vout,2 [m³] pg.434
 	c.vstr -= vout             // Vstored,2
 	a = c.vstr / 1000. / c.len // update FlowArea [m²]
 
