@@ -1,6 +1,8 @@
 package profile
 
 import (
+	"math"
+
 	"github.com/maseology/goHydro/porousmedia"
 )
 
@@ -21,6 +23,18 @@ func (pm *rPM) dtdp(psi float64) float64 {
 		return 0.
 	}
 	return -pm.GetTheta(psi) / (pm.B * psi) // capacity (Campbell, 1974)
+}
+
+// returns specific moisture capacity pg.120
+func (pm *rPM) dtdh(h0, h1, z float64) float64 {
+	psi0 := h0 + g*z
+	psi1 := h1 + g*z
+	if math.Abs(psi1-psi0) < 1e-5 {
+		return pm.dtdp(psi0)
+	}
+	theta0 := pm.GetTheta(psi0)
+	theta1 := pm.GetTheta(psi1)
+	return (theta1 - theta0) / (psi1 - psi0)
 }
 
 // vapour exchange

@@ -11,13 +11,16 @@ type Profile struct {
 }
 
 // New constuctor for Profile
-func (p *Profile) New(pm porousmedia.PorousMedium) {
-	// single homogenous soil layer
-	p.D = make(map[int]float64)
-	p.P = make(map[int]*porousmedia.PorousMedium)
-	p.P[1] = &pm
+func (p *Profile) New(pm []porousmedia.PorousMedium, depths []float64) {
 	p.T = ztop
-	p.D[1] = pdpth
+	p.D = make(map[int]float64, len(pm))
+	p.P = make(map[int]*porousmedia.PorousMedium, len(pm))
+	for i, v := range pm {
+		s := v
+		p.P[i+1] = &s
+		p.D[i+1] = depths[i]
+	}
+	println("asfd")
 }
 
 // GetPorousMedium returns the PorousMedium type from depth
@@ -26,14 +29,8 @@ func (p *Profile) GetPorousMedium(depth float64) *porousmedia.PorousMedium {
 		return p.P[1]
 	}
 	for k := 1; k <= len(p.D); k++ {
-		if k == 1 {
-			if depth < p.D[1] {
-				return p.P[1]
-			}
-		} else {
-			if depth < p.D[k] {
-				return p.P[k]
-			}
+		if depth < p.D[k] {
+			return p.P[k]
 		}
 	}
 	if depth == p.D[len(p.D)] {

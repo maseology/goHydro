@@ -17,7 +17,7 @@ import (
 const (
 	maxTimeStep = 3600. // [s]
 	maxIter     = 100
-	tolerance   = 1e-9
+	tolerance   = 1e-6
 
 	// physical constants
 	rhow = 1000.   // density of water [kg/m³]
@@ -30,17 +30,17 @@ const (
 
 	// variables kept costant
 	// pa = 101325.0     // 1 atm: standard pressure [Pa = N/m² = J/m³ = kg/m/s²]
-	wa = 0.5          // relative humidity of the atmosphere [-]
-	ta = 293.         // air temperature [K] (~20°C)
-	ts = 293.         // soil temperature [K]
-	qp = 1.43e-2      // saturated specific humidity (moisture content) of pore-space air [kg/kg] at temperature ts [°C], pressure pa [kPa]
-	qa = 7.16e-3      // specific humidity (moisture content) of air [kg/kg] at temperature ta, pressure pa and relative humidity wa
-	da = 2.12e-5      // coefficient of molecular diffusion of water vapour in air [m²/s] (pg.43 Bittelli)
-	kv = 1 / 100.     // water vapour turbulent transport coefficient [m/s] =1/ra
-	ep = 0.21 / 3600. // potential evaportation rate [mm/s]
+	wa = 0.5      // relative humidity of the atmosphere [-]
+	ta = 293.     // air temperature [K] (~20°C)
+	ts = 293.     // soil temperature [K]
+	qp = 1.43e-2  // saturated specific humidity (moisture content) of pore-space air [kg/kg] at temperature ts [°C], pressure pa [kPa]
+	qa = 7.16e-3  // specific humidity (moisture content) of air [kg/kg] at temperature ta, pressure pa and relative humidity wa
+	da = 2.12e-5  // coefficient of molecular diffusion of water vapour in air [m²/s] (pg.43 Bittelli)
+	kv = 1 / 100. // water vapour turbulent transport coefficient [m/s] =1/ra
+	// ep = 0.21 / 3600. // potential evaportation rate [mm/s]
 
 	isFreeDrainage = true
-	isInfiltrating = false // set to false to active evaporation
+	isInfiltrating = true // set to false to active evaporation
 )
 
 // Solve vertical variable-timestep Newton-Raphson solution to richards equation with vapour flux
@@ -66,7 +66,8 @@ func (ps *State) Solve(simLenHr float64) (t, f []float64, ok bool) {
 	t, f = []float64{}, []float64{}
 	for time < endTime {
 		dt = math.Min(dt, endTime-time)
-		ok, initer, flx := ps.newtonRaphson(dt) // tends to work only for single material profiles
+		ok, initer, flx := ps.cellCenteredFiniteVolume(dt)
+		// ok, initer, flx := ps.newtonRaphson(dt) // tends to work only for single material profiles
 		totiter += initer
 		if ok {
 			for i := 0; i <= nsl+1; i++ {
@@ -175,76 +176,82 @@ func (ps *State) newtonRaphson(dt float64) (bool, int, float64) {
 	return false, nIter, 0.
 }
 
-// finiteVolume is a a cell-centered finite volume solution to richards equation
-func (ps *State) finiteVolume(dt float64) (bool, int, float64) {
+// cellCenteredFiniteVolume is a a cell-centered finite volume solution to richards equation
+func (ps *State) cellCenteredFiniteVolume(dt float64) (bool, int, float64) {
 
-	h0, cp, f := make(map[int]float64, nsl), make(map[int]float64), make(map[int]float64)
+	h, h0, cp, f := make(map[int]float64, nsl), make(map[int]float64, nsl), make(map[int]float64), make(map[int]float64)
 	a, b, c, d := make(map[int]float64), make(map[int]float64), make(map[int]float64), make(map[int]float64)
 
 	sum0 := 0.0
 	for i := 1; i <= nsl; i++ {
 		h0[i] = ps.p[i] - ps.cz[i]*g
-		ps.h[i] = h0[i]
+		h[i] = h0[i]
 		sum0 += rhow * ps.vol[i] * ps.t[i]
 	}
 
 	massBalance := sum0
 	nIter := 0
-	// for massBalance > tolerance && nIter < MaxIter {
-	// 	for i := 1; i <= NsubLay; i++ {
-	// 		t.K[i] = t.PM[i].GetK(t.T[i])
-	// 		cap := t.PM[i].dThetadH(h0[i], t.H[i], t.cz[i])
-	// 		cp[i] = (waterDensity * t.vol[i] * cap) / dt
-	// 	}
+	for massBalance > tolerance && nIter < maxIter {
+		for i := 1; i <= nsl; i++ {
+			ps.K[i] = ps.PM[i].GetK(ps.t[i])
+			dtdh := ps.PM[i].dtdh(h0[i], h[i], ps.cz[i])
+			cp[i] = (rhow * ps.vol[i] * dtdh) / dt
+		}
 
-	// 	f[0] = 0
-	// 	for i := 1; i <= NsubLay; i++ {
-	// 		f[i] = area * meanK(t.K[i], t.K[i+1]) / t.dz[i]
-	// 	}
+		f[0] = 0
+		for i := 1; i <= nsl; i++ {
+			km := func(k1, k2 float64) float64 {
+				if k1 == k2 {
+					return k1
+				}
+				return (k1 - k2) / math.Log(k1/k2)
+			}(ps.K[i], ps.K[i+1])
+			f[i] = carea * km / ps.dz[i] // logarithmic mean
+		}
 
-	// 	for i := 1; i <= NsubLay; i++ {
-	// 		a[i] = -f[i-1]
-	// 		if i == 1 {
-	// 			b[i] = 1.0
-	// 			c[i] = 0.0
-	// 			d[i] = h0[i]
-	// 		} else if i < NsubLay {
-	// 			b[i] = cp[i] + f[i-1] + f[i]
-	// 			c[i] = -f[i]
-	// 			d[i] = cp[i] * h0[i]
-	// 		} else {
-	// 			b[NsubLay] = cp[NsubLay] + f[NsubLay-1]
-	// 			c[NsubLay] = 0.0
-	// 			if isFreeDrainage {
-	// 				d[NsubLay] = cp[NsubLay]*h0[NsubLay] - area*t.K[NsubLay]*g
-	// 			} else {
-	// 				d[NsubLay] = cp[NsubLay]*h0[NsubLay] - f[NsubLay]*(t.H[NsubLay]-t.H[NsubLay+1])
-	// 			}
-	// 		}
-	// 	}
+		for i := 1; i <= nsl; i++ {
+			a[i] = -f[i-1]
+			if i == 1 {
+				b[i] = 1.
+				c[i] = 0.
+				d[i] = h0[i]
+			} else if i < nsl {
+				b[i] = cp[i] + f[i-1] + f[i]
+				c[i] = -f[i]
+				d[i] = cp[i] * h0[i]
+			} else {
+				b[nsl] = cp[nsl] + f[nsl-1]
+				c[nsl] = 0.
+				if isFreeDrainage {
+					d[nsl] = cp[nsl]*h0[nsl] - carea*ps.K[nsl]*g
+				} else {
+					d[nsl] = cp[nsl]*h0[nsl] - f[nsl]*(h[nsl]-h[nsl+1])
+				}
+			}
+		}
 
-	// 	mmaths.ThomasBoundaryCondition(a, b, c, d, t.H, 1, NsubLay)
+		mmaths.ThomasBoundaryCondition(a, b, c, d, h, 1, nsl)
 
-	// 	newSum := 0.0
-	// 	for i := 1; i <= NsubLay; i++ {
-	// 		t.Psi[i] = t.H[i] + g*t.cz[i]
-	// 		t.T[i] = t.PM[i].GetTheta(t.Psi[i])
-	// 		newSum += waterDensity * t.vol[i] * t.T[i]
-	// 	}
+		newSum := 0.
+		for i := 1; i <= nsl; i++ {
+			ps.p[i] = h[i] + g*ps.cz[i]
+			ps.t[i] = ps.PM[i].GetTheta(ps.p[i])
+			newSum += rhow * ps.vol[i] * ps.t[i]
+		}
 
-	// 	if isFreeDrainage {
-	// 		t.Psi[NsubLay+1] = t.Psi[NsubLay]
-	// 		t.T[NsubLay+1] = t.T[NsubLay]
-	// 		t.K[NsubLay+1] = t.K[NsubLay]
-	// 		massBalance = math.Abs(newSum - (sum0 + f[1]*(t.H[1]-t.H[2])*dt - area*t.K[NsubLay]*g*dt))
-	// 	} else {
-	// 		massBalance = math.Abs(newSum - (sum0 + f[1]*(t.H[1]-t.H[2])*dt - f[NsubLay]*(t.H[NsubLay]-t.H[NsubLay+1])*dt))
-	// 	}
-	// 	nIter++
-	// }
+		if isFreeDrainage {
+			ps.p[nsl+1] = ps.p[nsl]
+			ps.t[nsl+1] = ps.t[nsl]
+			ps.K[nsl+1] = ps.K[nsl]
+			massBalance = math.Abs(newSum - (sum0 + f[1]*(h[1]-h[2])*dt - carea*ps.K[nsl]*g*dt))
+		} else {
+			massBalance = math.Abs(newSum - (sum0 + f[1]*(h[1]-h[2])*dt - f[nsl]*(h[nsl]-h[nsl+1])*dt))
+		}
+		nIter++
+	}
 
-	// if massBalance < tolerance {
-	// 	return true, nIter, f[1] * (t.H[1] - t.H[2])
-	// }
-	return false, nIter, 0.0
+	if massBalance < tolerance {
+		return true, nIter, f[1] * (h[1] - h[2])
+	}
+	return false, nIter, 0.
 }

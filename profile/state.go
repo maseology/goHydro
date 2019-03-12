@@ -5,17 +5,15 @@ import "math"
 const (
 	carea = 1.   // area of profile [m²]
 	ztop  = 0.   // elevation of top of profile [m]
-	pdpth = 1.   // depth of profile [m]
 	nsl   = 50   // number of profile  sublayers
 	geom  = true // use geometric layering
 )
 
 // State holds the dynamic state for a profile, that can be subdivided into multiple layers for numerical applications
 type State struct {
-	PM              map[int]*rPM    // material properties
-	t, tl, q, ql, p map[int]float64 // state variables t (theta) soil moisture content; q specific humdity (gas-filled pore space moiture content); p (psi) matric potential
-	z, dz, vol, K   map[int]float64 // structure
-	h, cz map[int]float64 // cell-centered finite volume
+	PM                map[int]*rPM    // material properties
+	t, tl, q, ql, p   map[int]float64 // state variables t (theta) soil moisture content; q specific humdity (gas-filled pore space moiture content); p (psi) matric potential
+	z, dz, cz, vol, K map[int]float64 // structure
 }
 
 // WaterContentProfile returns the State's water content with depth
@@ -29,12 +27,12 @@ func (ps *State) WaterContentProfile() (t, z []float64) {
 }
 
 // Initialize state
-func (ps *State) Initialize(p Profile, initSe float64) {
+func (ps *State) Initialize(p Profile, initSe float64, cellCenter bool) {
 
 	// set dimensions
 	ps.buildSubLayers(p.D[len(p.D)], geom)
 	ps.vol, ps.dz = make(map[int]float64, nsl+1), make(map[int]float64, nsl+1)
-	cz := make(map[int]float64, nsl+1)
+	ps.cz = make(map[int]float64, nsl+1)
 	ps.vol[0] = 0.
 	for i := 0; i <= nsl; i++ {
 		ps.dz[i] = ps.z[i+1] - ps.z[i]
@@ -43,7 +41,13 @@ func (ps *State) Initialize(p Profile, initSe float64) {
 		}
 	}
 	for i := 1; i <= nsl+1; i++ {
-		cz[i] = ps.z[i] + ps.dz[i]*0.5 // cell center (as depth from top), adding ghost cell below model for boundary conditions
+		ps.cz[i] = ps.z[i] + ps.dz[i]/2. // cell center (as depth from top), adding ghost cell below model for boundary conditions
+	}
+	if cellCenter {
+		// adjust cell centered finite volume nodal distances at boundaries
+		for i := 0; i <= nsl; i++ {
+			ps.dz[i] = ps.cz[i+1] - ps.cz[i]
+		}
 	}
 
 	// inital conditions
@@ -52,7 +56,7 @@ func (ps *State) Initialize(p Profile, initSe float64) {
 	ps.p[0] = 0.
 	ps.PM[0] = newPM(p.GetPorousMedium(0.))
 	for i := 1; i <= nsl+1; i++ {
-		pm := newPM(p.GetPorousMedium(cz[i]))
+		pm := newPM(p.GetPorousMedium(ps.cz[i]))
 		ps.PM[i] = pm
 		ps.t[i] = pm.GetThetaSe(initSe)
 		ps.tl[i] = ps.t[i]
@@ -60,7 +64,7 @@ func (ps *State) Initialize(p Profile, initSe float64) {
 		ps.K[i] = pm.GetK(ps.t[i])
 		ps.q[i] = qp * math.Exp(mw*ps.p[i]/r/ts) // ps.PM[i].GetSpecificHumidity(ps.p[i])
 		ps.ql[i] = ps.q[i]
-		// ps.H[i] = ps.Psi[i] - cz[i]*g // could set ps.H[nsl+1] for bottom constant head bc
+		// ps.h[i] = ps.p[i] - ps.cz[i]*g // could set ps.h[nsl+1] for bottom constant head bc (not used in Newton Raphson)
 	}
 }
 
@@ -89,6 +93,7 @@ func (ps *State) buildSubLayers(depth float64, geom bool) {
 func (ps *State) reset() {
 	for i := range ps.t {
 		ps.t[i] = ps.tl[i]
+		ps.p[i] = ps.PM[i].GetPsi(ps.t[i])
 		ps.q[i] = ps.ql[i]
 	}
 }
@@ -111,7 +116,7 @@ func (ps *State) setToInfiltrating() {
 
 func (ps *State) setToFreeDraining() {
 	ps.p[nsl+1] = ps.p[nsl]
-	// 	ps.h[nsl+1] = ps.p[nsl+1] - ps.cz[nsl+1]*g
+	// ps.h[nsl+1] = ps.p[nsl+1] - ps.cz[nsl+1]*g
 	ps.t[nsl+1] = ps.t[nsl]
 	ps.K[nsl+1] = ps.K[nsl]
 	ps.q[nsl+1] = ps.q[nsl]
