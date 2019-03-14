@@ -27,7 +27,7 @@ When combined with the mass conservation equation, the result yields the transie
 	\rho_l\frac{\partial\theta}{\partial t}=\frac{\partial}{\partial z}\left[K(\psi)\left(\frac{\partial\psi}{\partial z}+g\right)\right],
 \]
 
-\noindent which is often expressed in its so-called $\psi$--based form (liquid flow only):
+\noindent which is often expressed in its so-called $\psi$--based form:
 
 \[
 	\rho_lC(\psi)\frac{\partial\psi}{\partial t}=\frac{\partial}{\partial z}\left[K(\psi)\left(\frac{\partial\psi}{\partial z}+g\right)\right],
@@ -69,7 +69,52 @@ When combined with the mass conservation equation, the result yields the transie
 	\end{cases}
 \]
 
-\noindent where $\theta_s$ is the water content at saturation.
+\noindent where $\theta_s$ is the water content at saturation. The water balance for cell $i$ can be solved using the its finite-difference form: % linear method
+\[
+	\frac{\rho_l\left(\theta_i^{j+1}-\theta_i^j\right)\left(z_{i+1}-z_{i-1}\right)}{2\Delta t}=\frac{\overline{K}_i\left(\psi_{i+1}-\psi_i\right)}{z_{i+1}-z_i}-\frac{\overline{K}_{i-1}\left(\psi_i-\psi_{i-1}\right)}{z_i-z_{i-1}}+u_i
+\]
+
+\noindent or in its $\psi$-based form:
+\[
+	\frac{\rho_lC_i\left(\psi_i^{j+1}-\psi_i^j\right)\left(z_{i+1}-z_{i-1}\right)}{2\Delta t}=\frac{\overline{K}_i\left(\psi_{i+1}-\psi_i\right)}{z_{i+1}-z_i}-\frac{\overline{K}_{i-1}\left(\psi_i-\psi_{i-1}\right)}{z_i-z_{i-1}}+u_i
+\]
+
+The source term $u_i$ could include extraction by roots, evaporation, etc. In most cases, for vertical simulations, the source term represents gravitational flux, where:
+\[
+	u_i=g\left(\overline{K}_{i-1}-\overline{K}_i\right).
+\]
+
+% The solution to the above equation is done implicitly, by solving a system equations. Transforming the above to:
+% \begin{align*}
+	% \varrho(i) &=\rho_lC_i\frac{\left(z_{i+1}-z_{i-1}\right)}{2\Delta t} \\
+	% k(i) &=\frac{K_i}{z_{i+1}-z_i} \\
+	% c(i) &= a(i+1) = k(i) \\
+	% b(i) &= k(i-1)+k(i)+\varrho(i) \\
+	% d(i) &= \varrho(i)\psi_i^j+u(i)
+% \end{align*}
+
+% \noindent the finite-difference scheme for $4$ layers is put in matrix form:
+% \[
+	% \begin{bmatrix}
+		% b(1) & c(1) & 0 & 0 \\
+		% a(2) & b(2) & c(2) & 0 \\
+		% 0 & a(3) & b(3) & c(3) \\
+		% 0 & 0 & a(4) & b(4)
+	% \end{bmatrix}
+	% \begin{bmatrix}
+		% \psi^{j+1}(1) \\
+		% \psi^{j+1}(2) \\
+		% \psi^{j+1}(3) \\
+		% \psi^{j+1}(4)
+	% \end{bmatrix}
+	% =
+	% \begin{bmatrix}
+		% d(1) \\
+		% d(2) \\
+		% d(3) \\
+		% d(4)
+	% \end{bmatrix}
+% \]
 
 
 
@@ -79,12 +124,11 @@ When combined with the mass conservation equation, the result yields the transie
 \subsubsection*{Vapour phase within the soil matrix}
 
 Vapour flux density [kg\,m$^{-2}$\,s$^{-1}$] (i.e., molecular diffusion flux of water vapour in the air) is defined using Fick's Law: %pg.70 Novak
-
 \[
 	f_v=-\rho_a D(\theta) \frac{dq}{dz},
 \]
 
-\noindent where $\rho_a$ is the density of air, [kg m$^{-3}$], $D(\theta)$ is the effective coefficient of turbulent diffusion of water vapour in pore-space air, often given the form attributed to Penman (1940):
+\noindent where $\rho_a$ is the density of air, [kg m$^{-3}$], $D(\theta)$ is the effective coefficient of turbulent diffusion of water vapour in pore-space air [m$^2$\,s$^{-1}$], often given the form attributed to Penman (1940):
 \[
 	D(\theta)=D_a\eta\left(\theta_s-\theta\right),
 \]
@@ -202,32 +246,40 @@ Lastly, the effective mass flux evaporating from the soil surface must account f
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection*{Numerical solution to the Richards equation}
 
-A finite-difference solution to the 1D Richards equation is solved using a cell-centered finite volume solution scheme following Bittelli et.al.\,(2015). The water balance in cell $i$ is:
-% linear method
+One solution to the 1D Richards equation is the cell-centered finite volume solution scheme following Bittelli et.al.\,(2015). The cell-centered finite-volume form to the above equations gives the mass-balance at node $i$ as:
 \[
-	\frac{\rho_l\left(\theta_i^{j+1}-\theta_i^j\right)\left(z_{i+1}-z_{i-1}\right)}{2\Delta t}=\frac{K_i\left(\psi_{i+1}-\psi_i\right)}{z_{i+1}-z_i}-\frac{K_{i-1}\left(\psi_i-\psi_{i-1}\right)}{z_i-z_{i-1}}+u_i
+	\rho_lV_i\frac{\partial\theta_i}{\partial t}=\sum_{j=1}^{n}F_{ij}+u_i \qquad\forall i\neq j,
 \]
 
-\noindent or in its $\psi$-based form:
+\noindent where $V_i$ is the finite volume of cell/node $i$, and the inter-nodal mass flux [kg\,s$^{-1}$]:
 \[
-	\frac{\rho_lC_i\left(\psi_i^{j+1}-\psi_i^j\right)\left(z_{i+1}-z_{i-1}\right)}{2\Delta t}=\frac{K_i\left(\psi_{i+1}-\psi_i\right)}{z_{i+1}-z_i}-\frac{K_{i-1}\left(\psi_i-\psi_{i-1}\right)}{z_i-z_{i-1}}+u_i
+	F_{ij}=-A_{ij}\overline{K}_i\frac{h_i-h_j}{L_{ij}},
 \]
 
-\noindent the source term $u_i$ could include extraction by roots, evaporation, etc. In most cases, for vertical simulations, the source term represents gravitational flux, where:
+\noindent and $h_i=\psi_i+gz$ is the total hydrostatic potential [J\,kg$^{-1}$]. In the 1D vertical, The water balance in cell $i$ (i.e., implicit Euler method---evaluating at the end of the time step) is: %pg.63
 \[
-	u_i=g\left(K_{i-1}-K_i\right).
+	\frac{\rho_lV_i\overline{C}_i}{\Delta t}\left(h_i^{k+1}-h_i^k\right)=F_i\left(h_i^{k+1}-h_{i+i}^{k+1}\right)-F_{i-1}\left(h_{i-1}^{k+1}-h_i^{k+1}\right)+u_i,
 \]
 
-The solution to the above equation is done implicitly, by solving a system equations. Transforming the above to:
+\noindent where
+\[
+	F_i=-A_i\frac{\overline{K}_i}{z_{i+1}-z_i}.
+\]
+\noindent and
+\[
+	\overline{C}_i=\frac{d\theta}{dh}\approx\frac{\theta_i^{k+1}-\theta_i^k}{h_i^{k+1}-h_i^k}.
+\]
+
+The solution to the above equation is done implicitly, by solving a system equations, expanding the above and letting:
 \begin{align*}
-	\varrho(i) &=\rho_lC_i\frac{\left(z_{i+1}-z_{i-1}\right)}{2\Delta t} \\
-	k(i) &=\frac{K_i}{z_{i+1}-z_i} \\
-	c(i) &= a(i+1) = k(i) \\
-	b(i) &= k(i-1)+k(i)+\varrho(i) \\
-	d(i) &= \varrho(i)\psi_i^j+u(i)
+	\varrho(i) &=\frac{\rho_l V_i\overline{C}_i}{\Delta t} \\
+	f(i) &=\frac{A_i\overline{K}_i}{z_{i+1}-z_i} \\
+	c(i) &= a(i+1) = -f(i) \\
+	b(i) &= f(i-1)+f(i)+\varrho(i) \\
+	d(i) &= \varrho(i)h_i^k+u_i
 \end{align*}
 
-\noindent the finite-difference scheme for $4$ layers is put in matrix form:
+\noindent the finite-volume scheme for $4$ layers is put in matrix form:
 \[
 	\begin{bmatrix}
 		b(1) & c(1) & 0 & 0 \\
@@ -236,10 +288,10 @@ The solution to the above equation is done implicitly, by solving a system equat
 		0 & 0 & a(4) & b(4)
 	\end{bmatrix}
 	\begin{bmatrix}
-		\psi^{j+1}(1) \\
-		\psi^{j+1}(2) \\
-		\psi^{j+1}(3) \\
-		\psi^{j+1}(4)
+		h^{k+1}(1) \\
+		h^{k+1}(2) \\
+		h^{k+1}(3) \\
+		h^{k+1}(4)
 	\end{bmatrix}
 	=
 	\begin{bmatrix}
@@ -249,6 +301,8 @@ The solution to the above equation is done implicitly, by solving a system equat
 		d(4)
 	\end{bmatrix}
 \]
+
+\noindent which is a tri-diagonal matrix that is solved using the Thomas algorithm.
 
 
 \subsubsection*{Newton-Raphson transformation}

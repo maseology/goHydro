@@ -27,20 +27,18 @@ func (pm *rPM) dtdp(psi float64) float64 {
 
 // returns specific moisture capacity pg.120
 func (pm *rPM) dtdh(h0, h1, z float64) float64 {
-	psi0 := h0 + g*z
-	psi1 := h1 + g*z
+	psi0, psi1 := h0-g*z, h1-g*z //g*(h0-z), g*(h1-z)
 	if math.Abs(psi1-psi0) < 1e-5 {
 		return pm.dtdp(psi0)
 	}
-	theta0 := pm.GetTheta(psi0)
-	theta1 := pm.GetTheta(psi1)
-	return (theta1 - theta0) / (psi1 - psi0)
+	theta0, theta1 := pm.GetTheta(psi0), pm.GetTheta(psi1)
+	return (theta1 - theta0) / (h1 - h0) //(psi1 - psi0) //
 }
 
 // vapour exchange
-func (pm *rPM) GetKvap(q, theta float64) float64 {
-	return (pm.Ts - theta) * mw * eta * rhoa * da * q / r / ts
-}
+// func (pm *rPM) GetKvap(q, theta float64) float64 {
+// 	return (pm.Ts - theta) * mw * eta * rhoa * da * q / r / ts
+// }
 
 // func (pm *rPM) GetSpecificHumidity(psi float64) float64 {
 // 	return qp * math.Exp(mw*psi/r/ts)

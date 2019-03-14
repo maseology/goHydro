@@ -12,6 +12,7 @@
 *.out
 
 # mm
+*.rar
 bak/
 old/
 test/

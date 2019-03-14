@@ -20,7 +20,6 @@ func (p *Profile) New(pm []porousmedia.PorousMedium, depths []float64) {
 		p.P[i+1] = &s
 		p.D[i+1] = depths[i]
 	}
-	println("asfd")
 }
 
 // GetPorousMedium returns the PorousMedium type from depth

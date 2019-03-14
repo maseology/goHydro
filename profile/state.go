@@ -11,16 +11,16 @@ const (
 
 // State holds the dynamic state for a profile, that can be subdivided into multiple layers for numerical applications
 type State struct {
-	PM                map[int]*rPM    // material properties
-	t, tl, q, ql, p   map[int]float64 // state variables t (theta) soil moisture content; q specific humdity (gas-filled pore space moiture content); p (psi) matric potential
-	z, dz, cz, vol, K map[int]float64 // structure
+	PM              map[int]*rPM    // material properties
+	t, tl, q, ql, p map[int]float64 // state variables t (theta) soil moisture content; q specific humdity (gas-filled pore space moiture content); p (psi) matric potential
+	dz, cz, vol, K  map[int]float64 // structure
 }
 
 // WaterContentProfile returns the State's water content with depth
 func (ps *State) WaterContentProfile() (t, z []float64) {
 	t, z = make([]float64, nsl), make([]float64, nsl)
 	for i := 1; i <= nsl; i++ {
-		z[i-1] = -(ps.z[i] + ps.z[i+1]) / 2.
+		z[i-1] = ps.cz[i]
 		t[i-1] = ps.t[i]
 	}
 	return
@@ -30,18 +30,18 @@ func (ps *State) WaterContentProfile() (t, z []float64) {
 func (ps *State) Initialize(p Profile, initSe float64, cellCenter bool) {
 
 	// set dimensions
-	ps.buildSubLayers(p.D[len(p.D)], geom)
+	z := ps.buildSubLayers(p.D[len(p.D)], geom)
 	ps.vol, ps.dz = make(map[int]float64, nsl+1), make(map[int]float64, nsl+1)
 	ps.cz = make(map[int]float64, nsl+1)
 	ps.vol[0] = 0.
 	for i := 0; i <= nsl; i++ {
-		ps.dz[i] = ps.z[i+1] - ps.z[i]
+		ps.dz[i] = z[i+1] - z[i]
 		if i > 0 {
 			ps.vol[i] = carea * ps.dz[i]
 		}
 	}
 	for i := 1; i <= nsl+1; i++ {
-		ps.cz[i] = ps.z[i] + ps.dz[i]/2. // cell center (as depth from top), adding ghost cell below model for boundary conditions
+		ps.cz[i] = z[i] + ps.dz[i]/2. // cell center (as depth from top), adding ghost cell below model for boundary conditions
 	}
 	if cellCenter {
 		// adjust cell centered finite volume nodal distances at boundaries
@@ -66,12 +66,17 @@ func (ps *State) Initialize(p Profile, initSe float64, cellCenter bool) {
 		ps.ql[i] = ps.q[i]
 		// ps.h[i] = ps.p[i] - ps.cz[i]*g // could set ps.h[nsl+1] for bottom constant head bc (not used in Newton Raphson)
 	}
+
+	// reconfigure cz to elevation
+	for i := 1; i <= nsl+1; i++ {
+		ps.cz[i] = ztop - ps.cz[i] // cell center
+	}
 }
 
-func (ps *State) buildSubLayers(depth float64, geom bool) {
-	ps.z = make(map[int]float64, nsl+2)
-	ps.z[0] = 0.0 // ghost cell
-	ps.z[1] = 0.0 // top of profile
+func (ps *State) buildSubLayers(depth float64, geom bool) map[int]float64 {
+	z := make(map[int]float64, nsl+2)
+	z[0] = 0.0 // ghost cell
+	z[1] = 0.0 // top of profile
 
 	if geom { // geometric distribution
 		sum := 0.0
@@ -80,14 +85,15 @@ func (ps *State) buildSubLayers(depth float64, geom bool) {
 		}
 		dz := depth / sum
 		for i := 1; i <= nsl; i++ {
-			ps.z[i+1] = ps.z[i] + dz*float64(i*i)
+			z[i+1] = z[i] + dz*float64(i*i)
 		}
 	} else { // linear distribution
 		dz := depth / float64(nsl)
 		for i := 1; i <= nsl; i++ {
-			ps.z[i+1] = ps.z[i] + dz
+			z[i+1] = z[i] + dz
 		}
 	}
+	return z
 }
 
 func (ps *State) reset() {

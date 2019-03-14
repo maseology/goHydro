@@ -5,6 +5,8 @@ package profile
 
 	assumes:
 		- considers only vapour flux at the soil surface
+		- isothermal and isobaric throughout the timestep
+		- uniform soil temperature (model meant for soil surface)
 */
 
 import (
@@ -15,9 +17,12 @@ import (
 )
 
 const (
+	isFreeDrainage = true
+	isInfiltrating = true // set to false to active evaporation
+
 	maxTimeStep = 3600. // [s]
 	maxIter     = 100
-	tolerance   = 1e-6
+	tolerance   = 1e-9
 
 	// physical constants
 	rhow = 1000.   // density of water [kg/m³]
@@ -38,9 +43,6 @@ const (
 	da = 2.12e-5  // coefficient of molecular diffusion of water vapour in air [m²/s] (pg.43 Bittelli)
 	kv = 1 / 100. // water vapour turbulent transport coefficient [m/s] =1/ra
 	// ep = 0.21 / 3600. // potential evaportation rate [mm/s]
-
-	isFreeDrainage = true
-	isInfiltrating = true // set to false to active evaporation
 )
 
 // Solve vertical variable-timestep Newton-Raphson solution to richards equation with vapour flux
@@ -66,8 +68,8 @@ func (ps *State) Solve(simLenHr float64) (t, f []float64, ok bool) {
 	t, f = []float64{}, []float64{}
 	for time < endTime {
 		dt = math.Min(dt, endTime-time)
-		ok, initer, flx := ps.cellCenteredFiniteVolume(dt)
-		// ok, initer, flx := ps.newtonRaphson(dt) // tends to work only for single material profiles
+		// ok, initer, flx := ps.cellCenteredFiniteVolume(dt)
+		ok, initer, flx := ps.newtonRaphson(dt) // tends to work only for single material profiles
 		totiter += initer
 		if ok {
 			for i := 0; i <= nsl+1; i++ {
@@ -118,9 +120,9 @@ func (ps *State) newtonRaphson(dt float64) (bool, int, float64) {
 	for massBalance > tolerance && nIter < maxIter {
 		massBalance = 0.
 		for i := 1; i <= nsl; i++ {
-			ps.K[i] = ps.PM[i].GetK(ps.t[i])              // liquid conductance
-			u[i] = -g * ps.K[i]                           // gravitational flux
-			ps.K[i] += ps.PM[i].GetKvap(ps.q[i], ps.t[i]) // vapour conductance
+			ps.K[i] = ps.PM[i].GetK(ps.t[i])                                             // liquid conductance
+			u[i] = -g * ps.K[i]                                                          // gravitational flux
+			ps.K[i] += (ps.PM[i].Ts - ps.t[i]) * mw * eta * rhoa * da * ps.q[i] / r / ts //ps.PM[i].GetKvap(ps.q[i], ps.t[i]) // vapour conductance
 			dudp[i] = -u[i] * ps.PM[i].cn / ps.p[i]
 			dtdp := ps.PM[i].dtdp(ps.p[i])
 			dqdp := ps.q[i] * mw / r / ts                    // ps.PM[i].dqdp(ps.q[i])
@@ -182,11 +184,18 @@ func (ps *State) cellCenteredFiniteVolume(dt float64) (bool, int, float64) {
 	h, h0, cp, f := make(map[int]float64, nsl), make(map[int]float64, nsl), make(map[int]float64), make(map[int]float64)
 	a, b, c, d := make(map[int]float64), make(map[int]float64), make(map[int]float64), make(map[int]float64)
 
+	kavg := func(k1, k2 float64) float64 { // logarithmic mean
+		if k1 == k2 {
+			return k1
+		}
+		return (k1 - k2) / math.Log(k1/k2)
+	}
+
 	sum0 := 0.0
 	for i := 1; i <= nsl; i++ {
-		h0[i] = ps.p[i] - ps.cz[i]*g
+		h0[i] = ps.p[i] + ps.cz[i]*g //ps.p[i]/g + ps.cz[i] // ps.p[i] - ps.cz[i]*g
 		h[i] = h0[i]
-		sum0 += rhow * ps.vol[i] * ps.t[i]
+		sum0 += ps.vol[i] * (rhow*ps.t[i] + rhoa*ps.q[i]*(ps.PM[i].Ts-ps.t[i])) // vapour mass
 	}
 
 	massBalance := sum0
@@ -194,27 +203,30 @@ func (ps *State) cellCenteredFiniteVolume(dt float64) (bool, int, float64) {
 	for massBalance > tolerance && nIter < maxIter {
 		for i := 1; i <= nsl; i++ {
 			ps.K[i] = ps.PM[i].GetK(ps.t[i])
+			ps.K[i] += (ps.PM[i].Ts - ps.t[i]) * mw * eta * rhoa * da * ps.q[i] / r / ts // vapour conductance
 			dtdh := ps.PM[i].dtdh(h0[i], h[i], ps.cz[i])
-			cp[i] = (rhow * ps.vol[i] * dtdh) / dt
+			dqdh := ps.q[i] * mw / r / ts                    // vapour (dqdh=dqdp)
+			cp[i] = ps.vol[i] * (rhow*dtdh + rhoa*dqdh) / dt // vapour
 		}
 
 		f[0] = 0
 		for i := 1; i <= nsl; i++ {
-			km := func(k1, k2 float64) float64 {
-				if k1 == k2 {
-					return k1
-				}
-				return (k1 - k2) / math.Log(k1/k2)
-			}(ps.K[i], ps.K[i+1])
-			f[i] = carea * km / ps.dz[i] // logarithmic mean
+			f[i] = carea * kavg(ps.K[i], ps.K[i+1]) / ps.dz[i] // [kg s/m²]
 		}
 
 		for i := 1; i <= nsl; i++ {
 			a[i] = -f[i-1]
 			if i == 1 {
-				b[i] = 1.
-				c[i] = 0.
-				d[i] = h0[i]
+				if isInfiltrating {
+					b[i] = 1.
+					c[i] = 0.
+					d[i] = h0[i]
+				} else {
+					b[i] = cp[i] + f[i]
+					c[i] = -f[i]
+					fe := -rhoa * kv * (ps.PM[i].Ts*(ps.q[i]-qa) + ps.t[i]*(qp-ps.q[i]))
+					d[i] = cp[i]*h0[i] + carea*fe
+				}
 			} else if i < nsl {
 				b[i] = cp[i] + f[i-1] + f[i]
 				c[i] = -f[i]
@@ -232,20 +244,22 @@ func (ps *State) cellCenteredFiniteVolume(dt float64) (bool, int, float64) {
 
 		mmaths.ThomasBoundaryCondition(a, b, c, d, h, 1, nsl)
 
-		newSum := 0.
+		new1 := 0.
 		for i := 1; i <= nsl; i++ {
-			ps.p[i] = h[i] + g*ps.cz[i]
+			ps.p[i] = h[i] - g*ps.cz[i]
 			ps.t[i] = ps.PM[i].GetTheta(ps.p[i])
-			newSum += rhow * ps.vol[i] * ps.t[i]
+			ps.q[i] = qp * math.Exp(mw*ps.p[i]/r/ts)
+			new1 += ps.vol[i] * (rhow*ps.t[i] + rhoa*ps.q[i]*(ps.PM[i].Ts-ps.t[i])) // vapour mass
 		}
 
 		if isFreeDrainage {
 			ps.p[nsl+1] = ps.p[nsl]
 			ps.t[nsl+1] = ps.t[nsl]
 			ps.K[nsl+1] = ps.K[nsl]
-			massBalance = math.Abs(newSum - (sum0 + f[1]*(h[1]-h[2])*dt - carea*ps.K[nsl]*g*dt))
+			ps.q[nsl+1] = ps.q[nsl]
+			massBalance = math.Abs(new1 - (sum0 + f[1]*(h[1]-h[2])*dt - carea*ps.K[nsl]*g*dt))
 		} else {
-			massBalance = math.Abs(newSum - (sum0 + f[1]*(h[1]-h[2])*dt - f[nsl]*(h[nsl]-h[nsl+1])*dt))
+			massBalance = math.Abs(new1 - (sum0 + f[1]*(h[1]-h[2])*dt - f[nsl]*(h[nsl]-h[nsl+1])*dt)) // h[nsl+1] can be a specified head
 		}
 		nIter++
 	}
