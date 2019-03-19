@@ -22,7 +22,7 @@ const (
 
 	maxTimeStep = 3600. // [s]
 	maxIter     = 100
-	tolerance   = 1e-9
+	tolerance   = 1e-6
 
 	// physical constants
 	rhow = 1000.   // density of water [kg/m³]
@@ -68,8 +68,8 @@ func (ps *State) Solve(simLenHr float64) (t, f []float64, ok bool) {
 	t, f = []float64{}, []float64{}
 	for time < endTime {
 		dt = math.Min(dt, endTime-time)
-		// ok, initer, flx := ps.cellCenteredFiniteVolume(dt)
-		ok, initer, flx := ps.newtonRaphson(dt) // tends to work only for single material profiles
+		ok, initer, flx := ps.cellCenteredFiniteVolume(dt)
+		// ok, initer, flx := ps.newtonRaphson(dt) // tends to work only for single material profiles
 		totiter += initer
 		if ok {
 			for i := 0; i <= nsl+1; i++ {
@@ -220,7 +220,7 @@ func (ps *State) cellCenteredFiniteVolume(dt float64) (bool, int, float64) {
 				if isInfiltrating {
 					b[i] = 1.
 					c[i] = 0.
-					d[i] = h0[i]
+					d[i] = cp[i] * h0[i]
 				} else {
 					b[i] = cp[i] + f[i]
 					c[i] = -f[i]

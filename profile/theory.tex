@@ -150,7 +150,7 @@ Within a porous medium, assuming isobaric (i.e., $P_\text{pores}\approx P_a$) an
 	\frac{dq}{dz}=q^*(T_s,P)\frac{dw_p}{dz}.
 \]
 
-By further assuming that the liquid and vapour phases are in equilibrium (i.e., have equal potential and the partial pressure of water has reached its vapour pressure, $e$), according to the ideal gas law, pore-space relative humidity can be determined from liquid potential by:
+By further assuming that the liquid and vapour phases are in equilibrium (i.e., have equal potential and the partial pressure of water has reached its vapour pressure, $e$), according to the ideal gas law, pore-space relative humidity can be determined from liquid potential by (Philip, 1957):
 \[ %eq:wp
 	w_p=\frac{e}{e^*(T_s)}=\frac{q}{q^*(T_s,P)}=\exp{\frac{\omega_w\psi}{RT_s}},
 \]
@@ -172,10 +172,11 @@ By further assuming that the liquid and vapour phases are in equilibrium (i.e., 
 
 By combining the flux of water vapour, the Richards equation can be re-stated as (Nov\'ak, 2012): % pg.71 
 \[
-	\rho_l\frac{\partial\theta}{\partial t}=\frac{\partial}{\partial z}\left[K(\psi)\left(\frac{\partial\psi}{\partial z}+g\right)+\rho_a D(\theta)\frac{\partial q}{\partial z}\right].
+	\rho_l\frac{\partial\theta}{\partial t}=\frac{\partial}{\partial z}\left[K(\psi)\left(\frac{\partial\psi}{\partial z}+g\right)+\rho_a D(\theta)\frac{\partial q}{\partial z}\right],
 \]
 
 \noindent and further:
+
 \[
 	\rho_l\frac{\partial\theta}{\partial t}=\frac{\partial}{\partial z}\left[\left[K(\psi)+K_v(\theta,q)\right]\frac{\partial\psi}{\partial z}+gK(\psi)\right].
 \]
@@ -416,17 +417,19 @@ At the bottom of the profile, either a constant potential (i.e., water table) or
 
 Bittelli, M., Campbell, G.S., and Tomei, F., 2015. Soil Physics with Python. Oxford University Press.
 
-Campbell, G.S., 1974. A simple method for determining unsaturated conductivity from moisture retention data. Soil Science, 117: 311-387.
+Campbell, G.S., 1974. A simple method for determining unsaturated conductivity from moisture retention data. Soil Science, 117: 311--387.
 
-Monteith, J.L.,1965. Evaporation and environment. Symposia of the Society for Experimental Biology 19: 205–224.
+Monteith, J.L.,1965. Evaporation and environment. Symposia of the Society for Experimental Biology 19: 205–-224.
 
 Nov\'ak, V., 2012. Evapotranspiration in the Soil-Plant-Atmosphere System. Springer. 253pp.
 
 Penman, H.L., 1940. Gas and vapour movements in the soil: I. The diffusion of vapours through porous solids. Journal of Agricultural Science 30(3): 437--462.
 
-Penman, H.L., 1948. Natural evaporation from open water, bare soil and grass. Proceedings of the Royal Society of London. Series A, Mathematical and Physical Sciences 193(1032): 120-145.
+Penman, H.L., 1948. Natural evaporation from open water, bare soil and grass. Proceedings of the Royal Society of London. Series A, Mathematical and Physical Sciences 193(1032): 120--145.
 
-Richards, L.A., 1931. Capillary conduction of liquids through porous media. Physics 1: 318-333.
+Philip, J.R., 1957. Evaporation, and moisture and heat fields in the soil. Journal of Meteorology 14: 354--366.
+
+Richards, L.A., 1931. Capillary conduction of liquids through porous media. Physics 1: 318--333.
 
 
 
