@@ -13,7 +13,7 @@ type Basin = map[int]*HRU
 
 // HRU the Hydrologic Response Unit
 type HRU struct {
-	sma, srf         res
+	sma, srf         Res
 	fimp, fprv, perc float64
 	// stat             byte
 }
@@ -32,16 +32,36 @@ func (h *HRU) Initialize(rzsto, srfsto, fimp, ksat, ts float64) {
 	h.perc = ts * h.fprv * ksat // gravity-driven percolation rate m/ts
 }
 
+// Reset state
+func (h *HRU) Reset() {
+	h.sma.sto = 0. // inital storage
+	h.srf.sto = 0. // inital storage
+}
+
 // Update hru given a set of forcings
 func (h *HRU) Update(p, ep float64) (aet, ro, rch float64) {
 	sri := h.fimp * p // impervious runoff
-	ro = h.sma.overflow(h.srf.overflow(p-sri)) + sri
-	rch = h.sma.overflow(-h.perc) + h.perc
-	avail := h.srf.overflow(-ep) // remaining available ep
-	avail = h.sma.overflow(avail*h.fprv) + avail*h.fimp
+	ro = h.sma.Overflow(h.srf.Overflow(p-sri)) + sri
+	rch = h.sma.Overflow(-h.perc) + h.perc
+	avail := h.srf.Overflow(-ep) // remaining available ep
+	avail = h.sma.Overflow(avail*h.fprv) + avail*h.fimp
 	aet = ep + avail
 	// h.updateStatus()
 	return
+}
+
+// UpdateIN hru given a set of input forcings only
+func (h *HRU) UpdateIN(p float64) (ro, rch float64) {
+	sri := h.fimp * p // impervious runoff
+	ro = h.sma.Overflow(h.srf.Overflow(p-sri)) + sri
+	rch = h.sma.Overflow(-h.perc) + h.perc
+	// h.updateStatus()
+	return
+}
+
+// Update0 hru given no forcings
+func (h *HRU) Update0() float64 {
+	return h.sma.Overflow(-h.perc) + h.perc
 }
 
 // Storage returns total current storages

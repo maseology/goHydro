@@ -21,13 +21,28 @@ func (t *TMQ) New(ksat map[int]float64, topo tem.TEM, cw, q0, qo, m float64) {
 	t.t = make(map[int]float64, n)
 	for i, p := range topo.TEC {
 		t0 := ksat[i] * cw                        // lateral transmisivity when soil is saturated [m²/ts]
-		ai := topo.UnitContributingArea(i) / cw   // contributing area per unit contour [m]
+		ai := topo.UnitContributingArea(i) * cw   // contributing area per unit contour [m] (assumes uniform square cells)
 		ti[i] = math.Log(ai / t0 / math.Tan(p.S)) // soil-topographic index
 		g += ti[i]                                // gamma
 	}
-	g /= float64(n)
+	g /= float64(n)             // assumes uniform square cells
+	t.Dm = -m * math.Log(q0/qo) // initialize basin-wide deficit and cell deficits [m]
 	for i, v := range ti {
 		t.t[i] = m * (g - v)
 	}
-	t.Dm = -m * math.Log(q0/qo) // initialize basin-wide deficit and cell deficits [m]
+}
+
+// Clone creates a deep copy of TMQ
+func (t *TMQ) Clone(m float64) TMQ {
+	tnew := make(map[int]float64, len(t.t))
+	for i, v := range t.t {
+		tnew[i] = m * v / t.m
+	}
+	return TMQ{
+		t:  tnew,
+		Dm: 0.,
+		qo: t.qo,
+		m:  m,
+		ca: t.ca,
+	}
 }

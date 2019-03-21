@@ -13,9 +13,9 @@ type TMQ struct {
 // Update state. input g: total basin average recharge per time step [m]
 // returns baseflow [m³/ts]
 func (t *TMQ) Update(g float64) float64 {
-	t.Dm -= g // recharge [m/ts]
-	qb := t.qo * math.Exp(-t.Dm/t.m)
-	t.Dm += qb / t.ca // gw discharge to streams [m³/ts]
+	qb := t.qo * math.Exp(-t.Dm/t.m) // gw discharge to streams [m³/ts]
+	t.Dm -= g                        // recharge [m/ts]
+	t.Dm += qb / t.ca
 	return qb
 }
 

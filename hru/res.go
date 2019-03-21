@@ -1,13 +1,19 @@
 package hru
 
-// res simple linear reservoir
-type res struct {
+// Res simple linear reservoir
+type Res struct {
 	sto, cap float64
 }
 
-// overflow : update state. p is an net addition and function returns excess.
+// Initialize Res
+func (r *Res) Initialize(init, cap float64) {
+	r.sto = init
+	r.cap = cap
+}
+
+// Overflow : update state. p is an net addition and function returns excess.
 // If p<0 and |p|>sto, function returns remainder of sink
-func (r *res) overflow(p float64) float64 {
+func (r *Res) Overflow(p float64) float64 {
 	r.sto += p
 	if r.sto < 0. {
 		d := r.sto
@@ -23,6 +29,6 @@ func (r *res) overflow(p float64) float64 {
 }
 
 // Storage returns total current storage
-func (r *res) Storage() float64 {
+func (r *Res) Storage() float64 {
 	return r.sto
 }
