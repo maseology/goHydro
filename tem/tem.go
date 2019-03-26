@@ -1,5 +1,10 @@
 package tem
 
+import (
+	"container/list"
+	"log"
+)
+
 // TEM topologic elevation model
 type TEM struct {
 	TEC map[int]TEC
@@ -10,6 +15,26 @@ type TEM struct {
 // NumCells number of cells that make up the TEM
 func (t *TEM) NumCells() int {
 	return len(t.TEC)
+}
+
+// Peaks returns list of peak cell IDs (cells that do not receive cascading runon) cascading to cellID cid0. cid0<0 returns all peaks.
+func (t *TEM) Peaks(cid0 int) []int {
+	p := make([]int, 0)
+	if cid0 < 0 {
+		for i, v := range t.us {
+			if len(v) == 0 {
+				p = append(p, i)
+			}
+		}
+		return p
+	}
+	c := t.ContributingAreaIDs(cid0)
+	for _, i := range c {
+		if len(t.us[i]) == 0 {
+			p = append(p, i)
+		}
+	}
+	return p
 }
 
 // UpIDs returns a list of upslope cell IDs
@@ -29,6 +54,29 @@ func (t *TEM) ContributingAreaIDs(cid0 int) []int {
 	return a
 }
 
+// DownslopeContributingAreaIDs returns a list of upslope cell IDs that make up the contributing area to cid0, yet ordered in the downslope direction
+func (t *TEM) DownslopeContributingAreaIDs(cid0 int) []int {
+	queue, set := list.New(), make(map[int]bool, len(t.us))
+	for _, k := range t.Peaks(cid0) {
+		queue.PushBack(k) // initial enqueue
+	}
+	ds, c, i := t.downslopes(), make([]int, len(t.us)), 0
+	for queue.Len() > 0 {
+		e := queue.Front() // first element
+		c[i] = e.Value.(int)
+		if v, ok := ds[c[i]]; ok && v != cid0 {
+			if _, ok := set[v]; !ok {
+				queue.PushBack(v) // enqueue
+				set[v] = true
+			}
+		}
+		queue.Remove(e) // dequeue
+		i++
+	}
+	c[len(c)-1] = cid0
+	return c
+}
+
 // UpCnt returns a list of upslope cell IDs
 func (t *TEM) UpCnt(cid int) int {
 	t.c = make(map[int]bool)
@@ -46,6 +94,19 @@ func (t *TEM) climb(cid int) {
 	for _, i := range t.us[cid] {
 		t.climb(i)
 	}
+}
+
+func (t *TEM) downslopes() map[int]int {
+	ds := make(map[int]int, len(t.us))
+	for to, v := range t.us {
+		for _, from := range v {
+			if _, ok := ds[from]; ok {
+				log.Fatalln(" TEM.downslopes() error: expecting a tree graph")
+			}
+			ds[from] = to
+		}
+	}
+	return ds
 }
 
 // SubSet returns a subset topologic elevation model from a given outlet cell
