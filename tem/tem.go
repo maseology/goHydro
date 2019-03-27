@@ -59,28 +59,27 @@ func (t *TEM) DownslopeContributingAreaIDs(cid0 int) ([]int, map[int]int) {
 	queue := list.New()
 	eval := make(map[int]bool, len(t.us))
 	proceed := func(cid int) bool {
-		for _, u := range t.us[cid] {
+		for _, u := range t.us[cid] { // returns true if all upslope cells have been evaluated
 			if !eval[u] {
 				return false
 			}
 		}
-		return false
+		return true
 	}
 
 	dsa := t.downslopes()
 	c, ds, i := make([]int, len(t.us)), make(map[int]int, len(t.us)), 0
 	for _, k := range t.Peaks(cid0) {
 		queue.PushBack(k) // initial enqueue
-		eval[k] = true
 	}
 
 	for queue.Len() > 0 {
 		e := queue.Front() // first element
 		c[i] = e.Value.(int)
 		eval[c[i]] = true
-		if v, ok := dsa[c[i]]; ok && v != cid0 {
+		if v, ok := dsa[c[i]]; ok {
 			ds[c[i]] = v
-			if proceed(v) {
+			if v != cid0 && proceed(v) {
 				queue.PushBack(v) // enqueue
 			}
 		}
@@ -88,46 +87,7 @@ func (t *TEM) DownslopeContributingAreaIDs(cid0 int) ([]int, map[int]int) {
 		i++
 	}
 	c[len(c)-1] = cid0
-
-	// dsa, i := t.downslopes(), 0 //, make(map[int]bool, len(t.us))
-	// c, ds := make([]int, len(t.us)), make(map[int]int, len(t.us))
-	// for queue.Len() > 0 {
-	// 	e := queue.Front() // first element
-	// 	c[i] = e.Value.(int)
-	// 	ds[c[i]] = dsa[c[i]]
-	// 	if v, ok := dsa[c[i]]; ok && v != cid0 {
-	// 		if _, ok := set[v]; !ok {
-	// 			queue.PushBack(v) // enqueue
-	// 			set[v] = true
-	// 		}
-	// 	}
-	// 	queue.Remove(e) // dequeue
-	// 	i++
-	// }
-	// c[len(c)-1] = cid0
-	// if _, ok := ds[cid0]; ok {
-	// 	log.Fatalf("TEM.DownslopeContributingAreaIDs() error: check code and inputs")
-	// }
-	// ds[cid0] = -1
-
-	// eval := make(map[int]bool, len(ds))
-	// for _, c := range c {
-	// 	eval[c] = false
-	// }
-	// for {
-	// 	for _, c := range c {
-	// 		if dsa[c] == -1 {
-	// 			println("d")
-	// 		} else {
-	// 			if eval[dsa[c]] {
-	// 				fmt.Println(c, dsa[c])
-	// 				break
-	// 			}
-	// 			eval[c] = true
-	// 		}
-	// 	}
-	// }
-
+	ds[cid0] = -1
 	return c, ds
 }
 
