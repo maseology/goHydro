@@ -55,26 +55,80 @@ func (t *TEM) ContributingAreaIDs(cid0 int) []int {
 }
 
 // DownslopeContributingAreaIDs returns a list of upslope cell IDs that make up the contributing area to cid0, yet ordered in the downslope direction
-func (t *TEM) DownslopeContributingAreaIDs(cid0 int) []int {
-	queue, set := list.New(), make(map[int]bool, len(t.us))
+func (t *TEM) DownslopeContributingAreaIDs(cid0 int) ([]int, map[int]int) {
+	queue := list.New()
+	eval := make(map[int]bool, len(t.us))
+	proceed := func(cid int) bool {
+		for _, u := range t.us[cid] {
+			if !eval[u] {
+				return false
+			}
+		}
+		return false
+	}
+
+	dsa := t.downslopes()
+	c, ds, i := make([]int, len(t.us)), make(map[int]int, len(t.us)), 0
 	for _, k := range t.Peaks(cid0) {
 		queue.PushBack(k) // initial enqueue
+		eval[k] = true
 	}
-	ds, c, i := t.downslopes(), make([]int, len(t.us)), 0
+
 	for queue.Len() > 0 {
 		e := queue.Front() // first element
 		c[i] = e.Value.(int)
-		if v, ok := ds[c[i]]; ok && v != cid0 {
-			if _, ok := set[v]; !ok {
+		eval[c[i]] = true
+		if v, ok := dsa[c[i]]; ok && v != cid0 {
+			ds[c[i]] = v
+			if proceed(v) {
 				queue.PushBack(v) // enqueue
-				set[v] = true
 			}
 		}
 		queue.Remove(e) // dequeue
 		i++
 	}
 	c[len(c)-1] = cid0
-	return c
+
+	// dsa, i := t.downslopes(), 0 //, make(map[int]bool, len(t.us))
+	// c, ds := make([]int, len(t.us)), make(map[int]int, len(t.us))
+	// for queue.Len() > 0 {
+	// 	e := queue.Front() // first element
+	// 	c[i] = e.Value.(int)
+	// 	ds[c[i]] = dsa[c[i]]
+	// 	if v, ok := dsa[c[i]]; ok && v != cid0 {
+	// 		if _, ok := set[v]; !ok {
+	// 			queue.PushBack(v) // enqueue
+	// 			set[v] = true
+	// 		}
+	// 	}
+	// 	queue.Remove(e) // dequeue
+	// 	i++
+	// }
+	// c[len(c)-1] = cid0
+	// if _, ok := ds[cid0]; ok {
+	// 	log.Fatalf("TEM.DownslopeContributingAreaIDs() error: check code and inputs")
+	// }
+	// ds[cid0] = -1
+
+	// eval := make(map[int]bool, len(ds))
+	// for _, c := range c {
+	// 	eval[c] = false
+	// }
+	// for {
+	// 	for _, c := range c {
+	// 		if dsa[c] == -1 {
+	// 			println("d")
+	// 		} else {
+	// 			if eval[dsa[c]] {
+	// 				fmt.Println(c, dsa[c])
+	// 				break
+	// 			}
+	// 			eval[c] = true
+	// 		}
+	// 	}
+	// }
+
+	return c, ds
 }
 
 // UpCnt returns a list of upslope cell IDs
@@ -106,7 +160,7 @@ func (t *TEM) downslopes() map[int]int {
 			ds[from] = to
 		}
 	}
-	return ds
+	return ds // from{to}
 }
 
 // SubSet returns a subset topologic elevation model from a given outlet cell
