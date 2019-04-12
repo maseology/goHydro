@@ -21,6 +21,7 @@ type Channel struct {
 // Route volumes (pg.432)
 // variable storage rounting method (as built in HYMO)
 // ref: Williams, J.R. and R.W. Hann, 1978. Optimal operation of large agricultural watersheds with water quality contraints. Texas Water Resources Institute, Texas A&M Univ. Tech. Rept. No. 96.
+// ref: Williams J.R., 1969. Flood routing with variable travel time or variable storage coefficients. Transactions of the ASAE 12(1): 100--103.
 func (c *Channel) Route(vin float64) (vout float64) {
 	a := c.vstr / 1000. / c.len // channel cross-sectional flow area [m²]
 	p := func() float64 {       // wetted perimeter of the channel at depth [m] (pg.430-431)
