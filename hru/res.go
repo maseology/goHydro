@@ -32,3 +32,8 @@ func (r *Res) Overflow(p float64) float64 {
 func (r *Res) Storage() float64 {
 	return r.sto
 }
+
+// Deficit return current storage deficit
+func (r *Res) Deficit() float64 {
+	return r.cap - r.sto
+}
