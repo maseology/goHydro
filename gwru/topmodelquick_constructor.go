@@ -12,7 +12,7 @@ func (t *TMQ) New(ksat map[int]float64, topo tem.TEM, cw, q0, qo, m float64) {
 	// q0: initial catchment flow rate [m³/ts]
 	checkInputs(ksat, topo, cw, q0, qo, m)
 	t.m = m                     // parameter [m]
-	t.qo = qo                   // qo: baseflow when basin is fully saturated [m3/ts]
+	t.Qo = qo                   // qo: baseflow when basin is fully saturated [m3/ts]
 	n := topo.NumCells()        // number of cells
 	t.ca = cw * cw * float64(n) // cw: cell width, ca: basin area [m2]
 
@@ -41,7 +41,7 @@ func (t *TMQ) Clone(m float64) TMQ {
 	return TMQ{
 		t:  tnew,
 		Dm: 0.,
-		qo: t.qo,
+		Qo: t.Qo,
 		m:  m,
 		ca: t.ca,
 	}
