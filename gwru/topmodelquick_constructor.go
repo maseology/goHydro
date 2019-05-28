@@ -32,7 +32,7 @@ func (t *TMQ) New(ksat map[int]float64, topo tem.TEM, cw, q0, qo, m float64) {
 	}
 }
 
-// Clone creates a deep copy of TMQ
+// Clone creates a deep copy of TMQ, while changing recession coefficient m
 func (t *TMQ) Clone(m float64) TMQ {
 	tnew := make(map[int]float64, len(t.t))
 	for i, v := range t.t {

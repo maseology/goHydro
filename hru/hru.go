@@ -8,8 +8,8 @@ package hru
 // 	deficitPoreWater
 // )
 
-// Basin is an alias for a set of HRUs
-type Basin = map[int]*HRU
+// WtrShd is an alias for a set of HRUs making up a watershed
+type WtrShd = map[int]*HRU
 
 // HRU the Hydrologic Response Unit
 type HRU struct {

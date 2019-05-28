@@ -23,6 +23,11 @@ func (h *Header) IntervalSec() float64 {
 	return float64(h.intvl)
 }
 
+// Nloc returns the time interval of the .met file
+func (h *Header) Nloc() int {
+	return int(h.nloc)
+}
+
 // Nstep returns the number of timesteps in the .met file
 func (h *Header) Nstep() int {
 	n := h.dte.Add(time.Second*time.Duration(h.intvl)).Sub(h.dtb).Seconds() / float64(h.intvl)
