@@ -10,22 +10,23 @@ func (bsn *SubBasin) Update(vin, p, ep float64) (r, i, a, g, b, o float64) {
 		for _, ly := range m.sz {
 			swprfl += ly.sw - ly.wp
 		}
-		r += m.surfRunoffLag(m.cn.Update(p, swprfl, false)) // runoff
-		inf := math.Max(0., p-r)                            // infiltration
-		m.sz[0].sw += inf                                   // add infiltration to soil zone
-		i += inf                                            // accumulate subbasin infiltration
-		a += m.evap(ep)                                     // actual et
-		g += m.percolate()                                  // gw recharge
+		r += m.cn.Update(p, swprfl, false) // runoff
+		inf := math.Max(0., p-r)           // infiltration
+		m.sz[0].sw += inf                  // add infiltration to soil zone
+		i += inf                           // accumulate subbasin infiltration
+		a += m.evap(ep)                    // actual et
+		g += m.percolate()                 // gw recharge
 	}
+	r = bsn.surfRunoffLag(r)
 	b = bsn.baseflow(g)                        // baseflow
 	o = bsn.chn.Route(vin + (r+b)*bsn.ca/86.4) // SubBasin daily average outflow [m³/s]
 	return
 }
 
 // surfRunoffLag returns the the amount of surface runoff released to the main channel (pg.116)
-func (m *HRU) surfRunoffLag(qgen float64) float64 {
-	qsurf := (qgen + m.qstr) * (1. - math.Exp(-m.surlag/m.tconc))
-	m.qstr = qgen + m.qstr - qsurf // update state
+func (bsn *SubBasin) surfRunoffLag(qgen float64) float64 {
+	qsurf := (qgen + bsn.qstr) * (1. - math.Exp(-bsn.surlag/bsn.tconc))
+	bsn.qstr = qgen + bsn.qstr - qsurf // update state
 	return qsurf
 }
 

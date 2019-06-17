@@ -3,20 +3,12 @@ package swat
 import "math"
 
 const (
-	twothird  = .66666666667
-	fivethird = 1.66666666667
+	twothird  = 2. / 3.
+	fivethird = 5. / 3.
 	secperday = 86400.
 	zch       = 2. // SWAT default
 	zfld      = 4. // SWAT default
 )
-
-// Channel is a channel units in SWAT
-// ref: Neitsch, S.L., J.G. Arnold, J.R., Kiniry, J.R. Williams, 2011. Soil and Water Assessment Tool: Theoretical Documentation Version 2009 (September 2011). 647pp.
-type Channel struct {
-	len, sqlp, dbf, wbf, wbtm, wfld, zch float64 // geometry
-	n, zch2, zfld2                       float64 // parameter
-	vstr, d                              float64 // state variable (vstr: is the change in volume of storage during the time step m³)
-}
 
 // Route volumes (pg.432)
 // variable storage rounting method (as built in HYMO)
