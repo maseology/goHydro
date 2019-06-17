@@ -38,31 +38,34 @@ specifications:
 // CHN: (n) Manning's n value for tributary channels
 // CHW: (W_bankfull) width of channel top at bank [m]
 // CHD: (depth_bankfull) depth of water wht filled to bank [m]
+// SURLAG: surface runoff lag coefficient [0,15]
 // GWDELAY: (delta_gw) delay time for aquifer recharge [days]
 // GWQMN: (aq_shthr) threshold water level in aquifer for baseflow [mm]
 // ALPHABF: (alpha_bf) baseflow recession coeficient (1/k)
-func (b *SubBasin) New(HRUs []HRU, Chn Channel, SUBKM, SLSUBBSN, CHL, CHS, CHN, GWDELAY, ALPHABF float64) {
+func (b *SubBasin) New(HRUs []*HRU, Chn *Channel, SUBKM, SLSUBBSN, CHL, CHS, CHN, SURLAG, GWDELAY, ALPHABF float64) {
 	b.ca = SUBKM // subbasin contributing area [km²]
+	b.surlag = SURLAG
 	b.dgw = GWDELAY
 	b.aqt = 0. // GWQMN (no shallow aquifer baseflow threshold (GWQMIN/aqt))
 	b.agw = ALPHABF
+	b.Outflow = -1 // SubBasin outflow ID
 
 	// build HRUs and tconc, add channel element
-	b.chn = &Chn
-	ftot := 0.
+	b.chn = Chn
+	ftot, wslp, wovn := 0., 0., 0.
 	b.hru = make([]*HRU, len(HRUs))
 	for i, u := range HRUs {
 		ftot += u.f
-		b.hru[i] = &u
+		b.hru[i] = u
+		wslp += u.f * u.slp // subsasin weighted average slope
+		wovn += u.f * u.ovn // subsasin weighted average overland roughness
 	}
 	if math.Abs(1.-ftot) > 0.001 {
 		for _, u := range b.hru {
 			u.f /= ftot // nomalize hru fractions
 		}
 	}
-	for _, u := range b.hru {
-		u.tconc = tconc(u.slp, SLSUBBSN, u.ovn, CHL, CHS, CHN, SUBKM*u.f)
-	}
+	b.tconc = tconc(wslp, SLSUBBSN, wovn, CHL, CHS, CHN, SUBKM)
 }
 
 // tconc returns the time of concentration to subbasin outlet [hr]
@@ -78,14 +81,12 @@ func tconc(slp, lslp, ovn, lch, sch, nch, carea float64) float64 {
 // HRUSLP: (slp) average slope steepness [m/m]
 // OVN: (n) Manning's n value for overland flow
 // CN2: moisture condition II curve number
-// SURLAG: surface runoff lag coefficient [0,15]
 // CV: aboveground biomass and residue [kg/ha]
 // IWATABLE: high water table code: set to true when seasonal high water table present
-func (m *HRU) New(sz SoilLayer, HRUFR, HRUSLP, OVN, CN2, SURLAG, CV float64, IWATABLE bool) {
+func (m *HRU) New(sz SoilLayer, HRUFR, HRUSLP, OVN, CN2, CV float64, IWATABLE bool) {
 	m.f = HRUFR
 	m.slp = HRUSLP
 	m.ovn = OVN
-	m.surlag = SURLAG
 	m.cov = math.Exp(-5.0e-5 * CV) // soil cover index (pg.135)
 	m.iwt = IWATABLE
 	m.sz = make([]SoilLayer, nsl)
