@@ -13,8 +13,8 @@ import (
 type lbsn struct{ SUBKM, SLSUBBSN, CHL, CHS, CHN, SURLAG, GWDELAY, ALPHABF float64 }
 type lrte struct{ CHL, CHS, CHW, CHD, CHN float64 }
 type lhru struct {
-	SWSID                                                  int
-	HRUFR, HRUSLP, OVN, CN2, CV, CLAY, SOLBD, SOLAWC, SOLK float64
+	SWSID                                                        int
+	HRUFR, HRUSLP, OVN, CN2, CV, ESCO, CLAY, SOLBD, SOLAWC, SOLK float64
 }
 
 // Load a set of .csv files to build a SWAT model structure
@@ -70,10 +70,11 @@ func Load(fbsn, fhru, frte, ftopo string) (WaterShed, []int) {
 			OVN:    s[3],
 			CN2:    s[4],
 			CV:     s[5],
-			CLAY:   s[6],
-			SOLBD:  s[7],
-			SOLAWC: s[8],
-			SOLK:   s[9],
+			ESCO:   s[6],
+			CLAY:   s[7],
+			SOLBD:  s[8],
+			SOLAWC: s[9],
+			SOLK:   s[10],
 		}
 		shru[i] = sh
 	}
@@ -83,7 +84,7 @@ func Load(fbsn, fhru, frte, ftopo string) (WaterShed, []int) {
 	if err != nil {
 		log.Fatalf("main: Error (1) reading %s: %v\n", ftopo, err)
 	}
-	topo := make(map[int][]int, len(itopo)) // SubBasin topology {to:[]from}
+	topo = make(map[int][]int, len(itopo)) // SubBasin topology {to:[]from}
 	for _, s := range itopo {
 		s1 := strings.Split(s, ",")
 		s2 := strings.Split(s1[1], " ")
@@ -112,7 +113,7 @@ func Load(fbsn, fhru, frte, ftopo string) (WaterShed, []int) {
 		var sl SoilLayer
 		sl.New(s.CLAY, s.SOLBD, s.SOLAWC, s.SOLK)
 		var hru HRU
-		hru.New(sl, s.HRUFR, s.HRUSLP, s.OVN, s.CN2, s.CV, false)
+		hru.New(sl, s.HRUFR, s.HRUSLP, s.OVN, s.CN2, s.CV, s.ESCO, false)
 		if _, ok := hrus[s.SWSID]; !ok {
 			hrus[s.SWSID] = make([]*HRU, 0)
 		}
@@ -140,35 +141,5 @@ func Load(fbsn, fhru, frte, ftopo string) (WaterShed, []int) {
 		}
 	}
 
-	return sbsns, topoOrder(topo)
-}
-
-func topoOrder(topo map[int][]int) []int {
-	eval := make(map[int]bool, len(topo))
-	for i := range topo {
-		eval[i] = false
-	}
-
-	fromto := make(map[int]int, len(topo))
-	for to, froms := range topo {
-		for _, from := range froms {
-			eval[from] = true
-			if from < 0 { // headwaters
-				continue
-			}
-			if _, ok := fromto[from]; ok {
-				log.Fatalf("swat.topoOrder error: subbasin %d going to %d and %d, must have only one destination\n", from, fromto[from], to)
-			}
-			fromto[from] = to
-		}
-	}
-
-	for i, b := range eval {
-		if !b {
-			fmt.Println(i)
-		}
-	}
-	fmt.Println(eval)
-
-	return nil
+	return sbsns, topoOrder()
 }

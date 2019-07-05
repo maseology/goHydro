@@ -1,94 +1,85 @@
 package swat
 
-import "math"
+import (
+	"log"
+	"math"
+)
+
+const nearzero = 1e-8
 
 // Update state (all in [mm])
-func (bsn *SubBasin) Update(vin, p, ep float64) (r, i, a, g, b, o float64) {
+func (bsn *SubBasin) Update(vin, p, ep float64) (r, i, a, g, b, vout float64) {
 	r, i, a, g = 0., 0., 0., 0.
+	sl := bsn.Storage()
 	for _, m := range bsn.hru {
-		swprfl := 0. // soil water content of the entire profile excluding the water held in the profile at wilting point [mm] (pg.104)
-		for _, ly := range m.sz {
-			swprfl += ly.sw - ly.wp
+		slt := m.storage()
+		swprfl := m.drainableStorage() // soil water content of the entire profile excluding the water held in the profile at wilting point [mm] (pg.104)
+
+		rgen := m.cn.Update(p, swprfl, false) // generated runoff
+		inf := math.Max(0., p-rgen)           // infiltration
+		m.sz[0].sw += inf                     // add infiltration to soil zone
+		r += rgen * m.f                       // accumulate subbasin generated runoff
+		i += inf * m.f                        // accumulate subbasin infiltration
+
+		s0 := m.storage()
+		at := m.evap(ep) // actual et
+		s1 := m.storage()
+		wbalevap := s0 - (at + s1)
+		s0 = s1
+		if math.Abs(wbalevap) > nearzero {
+			log.Fatalf("HRU wbal error: |wbalevap| = %f\n", wbalevap)
 		}
-		r += m.cn.Update(p, swprfl, false) // runoff
-		inf := math.Max(0., p-r)           // infiltration
-		m.sz[0].sw += inf                  // add infiltration to soil zone
-		i += inf                           // accumulate subbasin infiltration
-		a += m.evap(ep)                    // actual et
-		g += m.percolate()                 // gw recharge
+		a += at * m.f // accumulate subbasin evaporation
+
+		gt := m.percolate() // gw recharge
+		s1 = m.storage()
+		wbalperc := s0 - (gt + s1)
+		s0 = s1
+		if math.Abs(wbalperc) > nearzero {
+			log.Fatalf("HRU wbal error: |wbalperc| = %f\n", wbalperc)
+		}
+		g += gt * m.f // accumulate subbasin gw recharge
+
+		wbal := p + slt - s0 - at - gt - rgen
+		if math.Abs(wbal) > nearzero {
+			log.Fatalf("HRU wbal error: |wbal| = %f\n", wbal)
+		}
 	}
-	r = bsn.surfRunoffLag(r)
-	b = bsn.baseflow(g)                        // baseflow
-	o = bsn.chn.Route(vin + (r+b)*bsn.ca/86.4) // SubBasin daily average outflow [m³/s]
+	s0 := bsn.Storage()
+	rbsn := bsn.surfRunoffLag(r) // basin lagged runoff
+	s1 := bsn.Storage()
+	wbalro := s0 + r - (rbsn + s1)
+	s0 = s1
+	if math.Abs(wbalro) > nearzero {
+		log.Fatalf("SubBasin runoff wbal error: |wbalro| = %f\n", wbalro)
+	}
+
+	b = bsn.baseflow(g) // baseflow
+	s1 = bsn.Storage()
+	wbalbf := s0 + g - (b + s1)
+	s0 = s1
+	if math.Abs(wbalbf) > nearzero {
+		log.Fatalf("SubBasin baseflow wbal error: |wbalbf| = %f\n", wbalbf)
+	}
+
+	wbal := p + sl - s0 - a - rbsn - b // subbasin wb
+	if math.Abs(wbal) > nearzero {
+		log.Fatalf("SubBasin wbal error: |wbal| = %f\n", wbal)
+	}
+
+	vout = bsn.chn.Route(vin + (rbsn+b)*bsn.Ca*1000.) // SubBasin daily average outflow [m³/d]
+	s1 = bsn.Storage()
+	vinmm := vin / bsn.Ca / 1000.
+	voutmm := vout / bsn.Ca / 1000.
+	wbalrte := s0 + vinmm + rbsn + b - (voutmm + s1)
+	s0 = s1
+	if math.Abs(wbalrte) > nearzero {
+		log.Fatalf("SubBasin rte wbal error: |wbalrte| = %f\n", wbalrte)
+	}
+
+	wbal2 := p + vinmm + sl - s0 - a - voutmm
+	if math.Abs(wbal2) > nearzero {
+		log.Fatalf("SubBasin wbal2 (post routing) error: |wbal2| = %f\n", wbal2)
+	}
 	return
-}
-
-// surfRunoffLag returns the the amount of surface runoff released to the main channel (pg.116)
-func (bsn *SubBasin) surfRunoffLag(qgen float64) float64 {
-	qsurf := (qgen + bsn.qstr) * (1. - math.Exp(-bsn.surlag/bsn.tconc))
-	bsn.qstr = qgen + bsn.qstr - qsurf // update state
-	return qsurf
-}
-
-func (m *HRU) evap(ep float64) float64 {
-	// et := 0.                            // Penman-Monteith is not used; therefore no transpiration
-	// ep0 := ep                           // while using SCSCN, canopy extraction is implied (pg.124)
-	// es := ep0 * m.cov                   // maximum potential soil evaporation/sublimation (pg.135)
-	// eps := math.Min(es, es*ep0/(es+et)) // maximum potential soil evaporation/sublimation adjusted for plant use (pg.136)
-	// esub := 0.                          // sublimation has already been accounted for (pg.137)
-	// epps := eps - esub                  // maximum potential soil water evaporation adjusted for plant use (pg.137) [mm]
-	epps := ep * m.cov // reduced processes from above
-	esoilz, esum := make([]float64, nsl+1), 0.
-	for i := 0; i <= nsl; i++ {
-		z := float64(i) * lythick                              // depth [mm]
-		esoilz[i] = epps * z / (z + math.Exp(2.374-0.00713*z)) // evaporative demand at depth z (pg.137)
-	}
-	for i := 0; i < nsl; i++ {
-		esoil := esoilz[i] - esoilz[i+1] // evaporative demand at for layer i (pg.137) // Note ESCO hard-coded to 1.0
-		if m.sz[i].sw < m.sz[i].fc {
-			esoil *= math.Exp(2.5 * (m.sz[i].sw - m.sz[i].fc) / (m.sz[i].fc - m.sz[i].wp))
-		}
-		eppsoil := math.Min(esoil, 0.8*(m.sz[i].sw-m.sz[i].wp)) // amount of water removed from layer by evaporation (pg.140) [mm]
-		m.sz[i].sw -= eppsoil
-		esum += eppsoil
-	}
-	return esum
-}
-
-// percolate from soil zone (pg.151)
-func (m *HRU) percolate() float64 {
-	w := 0.
-	for i, ly := range m.sz {
-		if ly.frz {
-			w = 0. // soil layer frozen, no percolation allowed
-		} else {
-			if i < nsl-1 && m.iwt && m.sz[i+1].sw <= m.sz[i+1].fc+(m.sz[i+1].sat-m.sz[i+1].fc)/2. {
-				w = 0. // high water table, no percolation allowed
-			} else {
-				if ly.sw > ly.fc {
-					swex := ly.sw - ly.fc                  // [mm]
-					w = swex * (1. - math.Exp(-24./ly.tt)) // hard-coded to daily simulations
-					m.sz[i].sw -= w
-					if i < nsl-1 {
-						m.sz[i+1].sw += w
-					}
-				}
-			}
-		}
-	}
-	return w
-}
-
-// baseflow is the shallow groundwater accounting (deep aquifer not included here)
-func (bsn *SubBasin) baseflow(g float64) float64 {
-	// note: no bypass flow; no partioning to deep aquifer (pg.173)
-	d1 := math.Exp(-1. / bsn.dgw)
-	bsn.wrch += (1.-d1)*g + d1*bsn.wrch // recharge entering aquifer (pg.172)
-	if bsn.aq > bsn.aqt {
-		d1 = math.Exp(-bsn.agw) // only applicable for daily simulations
-		bsn.qbf = bsn.qbf*d1 + bsn.wrch*(1.-d1)
-	} else {
-		bsn.qbf = 0.
-	}
-	return bsn.qbf // [mm]
 }

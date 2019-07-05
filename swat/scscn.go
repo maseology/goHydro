@@ -7,7 +7,7 @@ import "math"
 // defaulted SWAT ICN=0: daily curve number as a function of soil moisture
 // ref: Neitsch, S.L., J.G. Arnold, J.R., Kiniry, J.R. Williams, 2011. Soil and Water Assessment Tool: Theoretical Documentation Version 2009 (September 2011). 647pp.
 type SCSCN struct {
-	smax, w1, w2 float64
+	cn, smax, w1, w2 float64
 }
 
 // New constructor
@@ -20,12 +20,12 @@ func (c *SCSCN) New(cn, fc, sat, slp float64) {
 		return cn1, cn3
 	}
 	cn1, cn3 := ccomp(cn)
-	cn2 := (cn3-cn)*(1.-2.*math.Exp(-13.86*slp))/3. + cn // slope adjustment
-	cn1, cn3 = ccomp(cn2)
+	c.cn = (cn3-cn)*(1.-2.*math.Exp(-13.86*slp))/3. + cn // slope adjustment
+	cn1, cn3 = ccomp(c.cn)
 	c.smax = 25.4 * (1000/cn1 - 10)
 	s3 := 25.4 * (1000/cn3 - 10)
 	d := math.Log(fc/(1.-s3/c.smax) - fc)
-	c.w2 = (d - math.Log(fc/(1.-2.54/c.smax)-sat)) / (sat - fc)
+	c.w2 = (d - math.Log(sat/(1.-2.54/c.smax)-sat)) / (sat - fc) // pg.104
 	c.w1 = d + c.w2*fc
 }
 
@@ -38,5 +38,8 @@ func (c *SCSCN) Update(p, sw float64, froz bool) float64 {
 		s *= (1. - math.Exp(-0.000862*s))
 	}
 	//cn := 25400. / (s + 254.)
-	return math.Pow(p-0.2*s, 2.) / (p + 0.8*s)
+	if p > 0.2*s {
+		return math.Pow(p-0.2*s, 2.) / (p + 0.8*s)
+	}
+	return 0.
 }

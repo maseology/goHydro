@@ -1,10 +1,17 @@
 package swat
 
-import "math"
+import (
+	"log"
+	"math"
+)
 
 const (
-	nsl     = 50  // number of soilzone layers
-	lythick = 10. // layer thickness [mm]
+	nsl         = 50     // number of soilzone layers
+	lythick     = 10.    // layer thickness [mm]
+	satini      = 1.     // initial degree of soil saturation relative to fc
+	minslp      = 0.0001 // min CHS: channel slope
+	secperday   = 86400.
+	hoursperday = 24.
 )
 
 /*
@@ -17,9 +24,11 @@ specifications:
 	3. SCS CN is adjusted according to soil moisture (ICN=0)
 	4. snowpack is modelled externally and thus melt is added as an input, so snowpack (sublimation, etc.) is not modelled here
 	5. assumes a uniform 0.5m soil zone depth, subdivided into 50 1cm layers (see const above)
-	X. Not included:
+	6. initial conditions starting at 0.25 bankfull
+	X. Notes:
 		- Penman-Monteith is not used; therefore transpiration is not modelled (pg.135)
 		- vertisols are not included, i.e., no bypass flow (pg.152)
+		- no bypass flow; no partioning to deep aquifer (pg.173)
 		- perched water table (pg.158)
 		- lateral flow (pg.160)
 		- no evaporation or pumping from shallow gw reservoirs (pg.176)
@@ -43,20 +52,24 @@ specifications:
 // GWQMN: (aq_shthr) threshold water level in aquifer for baseflow [mm]
 // ALPHABF: (alpha_bf) baseflow recession coeficient (1/k)
 func (b *SubBasin) New(HRUs []*HRU, Chn *Channel, SUBKM, SLSUBBSN, CHL, CHS, CHN, SURLAG, GWDELAY, ALPHABF float64) {
-	b.ca = SUBKM // subbasin contributing area [km²]
+	b.Ca = SUBKM // subbasin contributing area [km²]
 	b.surlag = SURLAG
-	b.dgw = GWDELAY
-	b.aqt = 0. // GWQMN (no shallow aquifer baseflow threshold (GWQMIN/aqt))
-	b.agw = ALPHABF
-	b.Outflow = -1 // SubBasin outflow ID
+	b.dgw = GWDELAY // the delay of soil zone percolation to aquifer [days]
+	b.aqt = 0.      // GWQMN (no shallow aquifer baseflow threshold (GWQMIN/aqt))
+	b.agw = ALPHABF // baseflow recession coefficient
+	b.Outflow = -1  // SubBasin outflow ID
+	b.slplen = SLSUBBSN
+	b.tribl = CHL
+	b.tribs = CHS
+	b.tribn = CHN
 
 	// build HRUs and tconc, add channel element
-	b.chn = Chn
+	b.chn = *Chn
 	ftot, wslp, wovn := 0., 0., 0.
-	b.hru = make([]*HRU, len(HRUs))
+	b.hru = make([]HRU, len(HRUs))
 	for i, u := range HRUs {
 		ftot += u.f
-		b.hru[i] = u
+		b.hru[i] = *u
 		wslp += u.f * u.slp // subsasin weighted average slope
 		wovn += u.f * u.ovn // subsasin weighted average overland roughness
 	}
@@ -66,6 +79,9 @@ func (b *SubBasin) New(HRUs []*HRU, Chn *Channel, SUBKM, SLSUBBSN, CHL, CHS, CHN
 		}
 	}
 	b.tconc = tconc(wslp, SLSUBBSN, wovn, CHL, CHS, CHN, SUBKM)
+	if math.IsNaN(b.tconc) {
+		log.Fatalf("SubBasin.New error: tconc is NaN\n")
+	}
 }
 
 // tconc returns the time of concentration to subbasin outlet [hr]
@@ -82,12 +98,14 @@ func tconc(slp, lslp, ovn, lch, sch, nch, carea float64) float64 {
 // OVN: (n) Manning's n value for overland flow
 // CN2: moisture condition II curve number
 // CV: aboveground biomass and residue [kg/ha]
+// ESCO: soil evporation compensation coefficient [0,1] (pg.138)
 // IWATABLE: high water table code: set to true when seasonal high water table present
-func (m *HRU) New(sz SoilLayer, HRUFR, HRUSLP, OVN, CN2, CV float64, IWATABLE bool) {
+func (m *HRU) New(sz SoilLayer, HRUFR, HRUSLP, OVN, CN2, CV, ESCO float64, IWATABLE bool) {
 	m.f = HRUFR
 	m.slp = HRUSLP
 	m.ovn = OVN
 	m.cov = math.Exp(-5.0e-5 * CV) // soil cover index (pg.135)
+	m.esco = ESCO
 	m.iwt = IWATABLE
 	m.sz = make([]SoilLayer, nsl)
 	for i := 0; i < nsl; i++ {
@@ -107,8 +125,9 @@ func (sl *SoilLayer) New(CLAY, SOLBD, SOLAWC, SOLK float64) {
 	sl.fc = (sl.wp + SOLAWC)          // water content at field capacity as a fraction of total soil volume (pg.150)
 	sl.frz = false
 	// converting to [mm]
-	sl.sat = n * lythick            // the amount of water in the soil profile when completely saturated [mm] using constant 1cm thickness
+	sl.sat = n * lythick            // the amount of water in the soil profile when completely saturated [mm] based on layer thickness
 	sl.fc *= lythick                // the amount of water in the soil profile at field capacity [mm]
+	sl.sw = sl.fc * satini          // initial saturation
 	sl.wp *= lythick                // [mm]
 	sl.tt = (sl.sat - sl.fc) / SOLK // pg.151 percolation time of travel; Ksat saturated hydraulic conductivity [mm/hr]
 }
@@ -120,22 +139,35 @@ func (sl *SoilLayer) New(CLAY, SOLBD, SOLAWC, SOLK float64) {
 // CHS: (slp_ch) length of main channel [-]
 // CHN: (n) Manning's n value for the main channel
 func (c *Channel) New(CHW, CHD, CHL, CHS, CHN float64) {
+	c.d = CHD           // initial flow depth [m]
+	c.len = CHL * 1000. // converting to [m]
 	c.zch = zch
-	c.len = CHL
-	c.sqlp = math.Sqrt(CHS) // square root of channel slope fraction (rise/run)
-	c.wbf = CHW             // channel width at bankfull [m]
-	c.n = CHN               // channel Mannings roughness
+	c.sqslp = math.Sqrt(math.Max(minslp, CHS)) // square root of channel slope fraction (rise/run)
+	c.wbf = CHW                                // channel width at bankfull [m]
+	c.n = CHN                                  // channel Mannings roughness
 	c.wfld = 5. * CHW
-	c.dbf = CHD
-
-	c.wbtm = CHW - 2.*zch*CHD
-	if c.wbtm <= 0. {
-		c.wbtm = CHW / 2.
-		c.zch = (CHW - c.wbtm) / 2. / CHD
-	}
-
-	c.d = CHD                                           // initial conditions
-	c.vstr = 1000. * c.len * (c.wbtm + c.zch*CHD) * CHD // initial conditions
+	c.dbf = CHD // bankful depth [m]
 	c.zch2 = math.Sqrt(1. + c.zch*c.zch)
 	c.zfld2 = math.Sqrt(1. + zfld*zfld)
+
+	c.wbtm = CHW - 2.*zch*CHD // pg.429
+	if c.wbtm <= 0. {
+		c.wbtm = CHW / zch
+		c.zch = (CHW - c.wbtm) / 2. / CHD
+	}
+	c.vstr = c.len * (c.wbtm + c.zch*c.d) * c.d // initial volume [m³]
+
+	ach := c.vstr / c.len         // pg.432
+	pch := c.wbtm + 2.*c.d*c.zch2 // pg.430
+	rch := ach / pch              // hydraulic radius
+
+	q := ach * math.Pow(rch, twothird) * c.sqslp / c.n // pg.431
+	tt := c.vstr / q
+	if tt < secperday/2. {
+		tt = secperday / 2.
+	}
+	c.sc = 2. * secperday / (2.*tt + secperday) // pg.434
+	if c.sc < 0. || c.sc > 1. || (math.IsNaN(c.sc) && c.len > 0.) {
+		log.Fatalf("Channel.New error: SC = %f\n", c.sc)
+	}
 }

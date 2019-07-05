@@ -10,11 +10,12 @@ type WaterShed = map[int]*SubBasin
 
 // SubBasin SWAT subbasin
 type SubBasin struct {
-	hru                              []*HRU   // hydrologic response unit (state variable)
-	chn                              *Channel // channel unit (state variable)
-	ca, dgw, aqt, agw, surlag, tconc float64  // parameters
-	aq, wrch, qbf, qstr              float64  // state variables
-	Outflow                          int      // SubBasin id outflow from this SubBasin (<0: farfield outflow)
+	hru                              []HRU   // hydrologic response unit (state variable)
+	chn                              Channel // channel unit (state variable)
+	Ca, dgw, aqt, agw, surlag, tconc float64 // parameters
+	aq, psto, wrch, qbf, qstr        float64 // state variables
+	tribl, tribs, tribn, slplen      float64 // tributary parameters
+	Outflow                          int     // SubBasin id outflow from this SubBasin (<0: farfield outflow)
 }
 
 // HRU SWAT hydrologic response unit
@@ -22,7 +23,7 @@ type HRU struct {
 	sz          []SoilLayer // soil zone layers (state variable)
 	cn          SCSCN
 	f, ovn, slp float64 // strucutral
-	cov         float64 // parameters
+	cov, esco   float64 // parameters
 	iwt         bool    // flags
 }
 
@@ -36,7 +37,7 @@ type SoilLayer struct {
 // Channel is a channel units in SWAT
 // ref: Neitsch, S.L., J.G. Arnold, J.R., Kiniry, J.R. Williams, 2011. Soil and Water Assessment Tool: Theoretical Documentation Version 2009 (September 2011). 647pp.
 type Channel struct {
-	len, sqlp, dbf, wbf, wbtm, wfld, zch float64 // geometry
-	n, zch2, zfld2                       float64 // parameter
-	vstr, d                              float64 // state variable (vstr: is the change in volume of storage during the time step m³)
+	len, sqslp, dbf, wbf, wbtm, wfld, zch float64 // geometry
+	n, zch2, zfld2                        float64 // parameter
+	vstr, d, sc                           float64 // state variable (vstr: is the change in volume of storage during the time step m³)
 }
