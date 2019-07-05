@@ -16,6 +16,7 @@ const (
 	angvel            = 0.261799387799149 // rad/hr: angular velocity = 2*PI/24hr
 	earthAxialTilt    = 23.43689 * Pi / 180.
 	earthEccentricity = 0.0167
+	minf              = 0.5 // minimum radiation factor si.f
 )
 
 // SolIrad a stuct used to compute potential solar irradiation given latitude, slope and aspect.
@@ -39,6 +40,11 @@ func New(LatitudeDeg, SlopeRad, AspectCwnRad float64) SolIrad {
 	si.buildRadiusVectorSquared()
 	si.horizontalSurfaceCompute()
 	si.slopingSurfaceCompute()
+	for d := 0; d < 366; d++ {
+		if si.f[d] < 1. {
+			si.f[d] = si.f[d]*(1.-minf) + minf
+		}
+	}
 	return si
 }
 
@@ -95,13 +101,13 @@ func (si *SolIrad) slopingSurfaceCompute() {
 	a := Atan2(Sin(si.Aspect)*Sin(si.Slope), d) // Eq B.8 difference in longitude between equivalent horizontal surface and slope
 	for i := 0; i <= 365; i++ {
 		d = -Tan(lateq) * Tan(si.solardec[i]) // Eq B.10
-		if d >= 1.0 {                         // no sun exposure
-			si.dayhours[i] = 0.0
-			si.psi[i] = 0.0
-			si.zeff[i] = -9999.0
-			si.srh[i] = -9999.0
-			si.ssh[i] = -9999.0
-			si.f[i] = -9999.0
+		if d >= 1. {                          // no sun exposure
+			si.dayhours[i] = 0.
+			si.psi[i] = 0.
+			si.zeff[i] = -9999.
+			si.srh[i] = -9999. // sun rise hour
+			si.ssh[i] = -9999. // sun set hour
+			si.f[i] = 0.
 		} else {
 			if d < -1. { // when <= -1.0, sun exposure all day (pg. 397)
 				d = -1.
@@ -112,17 +118,17 @@ func (si *SolIrad) slopingSurfaceCompute() {
 			if t1 < -si.dayhoursh[i]/2. {
 				t1 = -si.dayhoursh[i] / 2.
 			}
-			if t2 > si.dayhoursh[i]/2.0 {
+			if t2 > si.dayhoursh[i]/2. {
 				t2 = si.dayhoursh[i] / 2.
 			}
 			si.dayhours[i] = t2 - t1
-			if si.dayhours[i] <= 0.0 { // no sun exposure
-				si.dayhours[i] = 0.0
-				si.psi[i] = 0.0
-				si.zeff[i] = -9999.0
-				si.srh[i] = -9999.0
-				si.ssh[i] = -9999.0
-				si.f[i] = -9999.0
+			if si.dayhours[i] <= 0. { // no sun exposure
+				si.dayhours[i] = 0.
+				si.psi[i] = 0.
+				si.zeff[i] = -9999.
+				si.srh[i] = -9999.
+				si.ssh[i] = -9999.
+				si.f[i] = 0.
 			} else {
 				d = si.dayhours[i]*Sin(lateq)*Sin(si.solardec[i]) + Cos(lateq)*Cos(si.solardec[i])*(Sin(angvel*t2+a)-Sin(angvel*t1+a))/angvel // Eq B.11
 				si.psi[i] = solcnst / si.radivectsq[i] * d                                                                                    // MJ/m²

@@ -33,21 +33,37 @@ func (t *TOPMODEL) New(ksat map[int]float64, topo tem.TEM, cw, q0, qo, m float64
 }
 
 func checkInputs(ksat map[int]float64, topo tem.TEM, cw, q0, qo, m float64) {
-	for i, p := range topo.TEC {
-		if k, ok := ksat[i]; ok {
-			if k <= 0. {
-				log.Panicf("TOPMODEL error: cell %d has an assigned ksat = %v", i, k)
-			}
+	for i, k := range ksat {
+		if k <= 0. {
+			log.Panicf("TOPMODEL.checkInputs error: cell %d has an assigned ksat = %v", i, k)
+		}
+		if p, ok := topo.TEC[i]; ok {
 			if p.S <= 0. {
-				fmt.Printf("TOPMODEL warning: slope at cell %d was found to be %v, reset to 0.0001.", i, p.S)
+				fmt.Printf("TOPMODEL.checkInputs warning: slope at cell %d was found to be %v, reset to 0.0001.", i, p.S)
 				t := topo.TEC[i]
 				t.S = 0.0001
 				topo.TEC[i] = t
 			}
 		} else {
-			log.Panicf("TOPMODEL error: ksat map does not contain value for cell %d", i)
+			log.Panicf("TOPMODEL.checkInputs error: no topographic info available for cell %d", i)
 		}
 	}
+
+	// for i, p := range topo.TEC {
+	// 	if k, ok := ksat[i]; ok {
+	// 		if k <= 0. {
+	// 			log.Panicf("TOPMODEL error: cell %d has an assigned ksat = %v", i, k)
+	// 		}
+	// 		if p.S <= 0. {
+	// 			fmt.Printf("TOPMODEL warning: slope at cell %d was found to be %v, reset to 0.0001.", i, p.S)
+	// 			t := topo.TEC[i]
+	// 			t.S = 0.0001
+	// 			topo.TEC[i] = t
+	// 		}
+	// 	} else {
+	// 		log.Panicf("TOPMODEL error: ksat map does not contain value for cell %d", i)
+	// 	}
+	// }
 	if m <= 0. {
 		log.Panic("TOPMODEL error: parameter m must be >0.")
 	}

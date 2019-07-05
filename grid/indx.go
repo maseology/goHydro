@@ -50,6 +50,17 @@ func (r *Indx) NewShortGD(bfp, gdfp string, rowmajor bool) {
 	r.getBinaryShort(bfp, rowmajor)
 }
 
+// NewIMAP constructor
+func (r *Indx) NewIMAP(imap map[int]int) {
+	if r.gd == nil {
+		log.Fatalf("grid.Indx.NewIMAP: grid definition needs defining\n")
+	}
+	r.a = make(map[int]int, len(imap))
+	for k, v := range imap {
+		r.a[k] = v
+	}
+}
+
 // LoadGDef loads grid definition
 func (r *Indx) LoadGDef(gd *Definition) {
 	r.gd = gd
@@ -99,7 +110,7 @@ func (r *Indx) getBinaryShort(fp string, rowmajor bool) {
 	switch n {
 	case r.gd.na:
 		r.a = make(map[int]int, r.gd.na)
-		panic("todo")
+		log.Fatalln("Indx.getBinary: active grids not yet supported (TODO)")
 	case r.gd.nr * r.gd.nc:
 		r.a = make(map[int]int, r.gd.nr*r.gd.nc)
 		if rowmajor {
@@ -149,7 +160,11 @@ func (r *Indx) ToASC(fp string, ignoreActives bool) error {
 		c := 0
 		for i := 0; i < r.gd.nr; i++ {
 			for j := 0; j < r.gd.nc; j++ {
-				t.Write(fmt.Sprintf("%d ", r.a[c]))
+				if v, ok := r.a[c]; ok {
+					t.Write(fmt.Sprintf("%d ", v))
+				} else {
+					t.Write("-9999 ")
+				}
 				c++
 			}
 			t.Write("\n")

@@ -1,6 +1,7 @@
 package gwru
 
 import (
+	"log"
 	"math"
 
 	"github.com/maseology/goHydro/tem"
@@ -13,17 +14,20 @@ func (t *TMQ) New(ksat map[int]float64, topo tem.TEM, cw, q0, qo, m float64) {
 	checkInputs(ksat, topo, cw, q0, qo, m)
 	t.M = m                     // parameter [m]
 	t.Qo = qo                   // qo: baseflow when basin is fully saturated [m3/ts]
-	n := topo.NumCells()        // number of cells
-	t.ca = cw * cw * float64(n) // cw: cell width, ca: basin area [m2]
+	n := len(ksat)              // number of cells
+	t.Ca = cw * cw * float64(n) // cw: cell width, ca: basin area [m2]
 
 	g := 0.
 	ti := make(map[int]float64, n)
 	t.t = make(map[int]float64, n)
-	for i, p := range topo.TEC {
-		t0 := ksat[i] * cw                        // lateral transmisivity when soil is saturated [m²/ts]
-		ai := topo.UnitContributingArea(i) * cw   // contributing area per unit contour [m] (assumes uniform square cells)
-		ti[i] = math.Log(ai / t0 / math.Tan(p.S)) // soil-topographic index
-		g += ti[i]                                // gamma
+	for i, k := range ksat {
+		t0 := k * cw                                        // lateral transmisivity when soil is saturated [m²/ts]
+		ai := topo.UnitContributingArea(i) * cw             // contributing area per unit contour [m] (assumes uniform square cells)
+		ti[i] = math.Log(ai / t0 / math.Tan(topo.TEC[i].S)) // soil-topographic index
+		if math.IsNaN(ti[i]) {
+			log.Fatalln("TMQ.New error: topographic index is NaN")
+		}
+		g += ti[i] // gamma
 	}
 	g /= float64(n)             // assumes uniform square cells
 	t.Dm = -m * math.Log(q0/qo) // initialize basin-wide deficit and cell deficits [m]
@@ -43,6 +47,6 @@ func (t *TMQ) Clone(m float64) TMQ {
 		Dm: 0.,
 		Qo: t.Qo,
 		M:  m,
-		ca: t.ca,
+		Ca: t.Ca,
 	}
 }

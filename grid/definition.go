@@ -49,6 +49,7 @@ func ReadGDEF(fp string) (*Definition, error) {
 
 	nc := gd.nr * gd.nc
 	cn, cx := 0, nc
+
 	gd.act = make(map[int]bool, cx)
 	if nc%8 != 0 {
 		nc += 8 - nc%8 // add padding
@@ -57,29 +58,37 @@ func ReadGDEF(fp string) (*Definition, error) {
 
 	b1 := make([]byte, nc)
 	if err := binary.Read(reader, binary.LittleEndian, b1); err != nil {
-		return nil, fmt.Errorf("Fatal error: read actives failed: %v", err)
-	}
-	t := make([]byte, 1)
-	if v, _ := reader.Read(t); v != 0 {
-		return nil, fmt.Errorf("Fatal error: EOF not reached when expected")
-	}
-	for _, b := range b1 {
-		for i := uint(0); i < 8; i++ {
-			if b&(1<<i)>>i == 1 {
-				gd.act[cn] = true
-				gd.na++
-			}
-			cn++
-			if cn >= cx {
-				break
+		if err != io.EOF {
+			return nil, fmt.Errorf("Fatal error: read actives failed: %v", err)
+		}
+		// gd.na = cx
+		// for i := 0; i < cx; i++ {
+		// 	gd.act[i] = true
+		// }
+		fmt.Printf(" %d cells (no actives)\n", gd.na)
+	} else { // active cells
+		t := make([]byte, 1)
+		if v, _ := reader.Read(t); v != 0 {
+			return nil, fmt.Errorf("Fatal error: EOF not reached when expected")
+		}
+		for _, b := range b1 {
+			for i := uint(0); i < 8; i++ {
+				if b&(1<<i)>>i == 1 {
+					gd.act[cn] = true
+					gd.na++
+				}
+				cn++
+				if cn >= cx {
+					break
+				}
 			}
 		}
-	}
-	if cn != cx {
-		return nil, fmt.Errorf("Fatal error(s): ReadGDEF:\n   number of cells found (%d) not equal to total (%d): %v", cn, cx, err)
-	}
-	if gd.na > 0 {
-		fmt.Printf(" %d actives\n", gd.na) //11,118,568
+		if cn != cx {
+			return nil, fmt.Errorf("Fatal error(s): ReadGDEF:\n   number of cells found (%d) not equal to total (%d): %v", cn, cx, err)
+		}
+		if gd.na > 0 {
+			fmt.Printf(" %d actives\n", gd.na) //11,118,568
+		}
 	}
 	fmt.Println()
 

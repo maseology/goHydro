@@ -13,7 +13,7 @@ type Header struct {
 	wbdc       uint64            // waterbalance data code
 	wbl        map[uint64]string // waterbalance data map
 	prc        int8              // precision
-	intvl      uint64
+	intvl      uint64            // timestep interval [s]
 	dtb, dte   time.Time
 	ESPG, nloc uint32
 }
