@@ -18,18 +18,24 @@ type HRU struct {
 	// stat             byte
 }
 
+// PercFimpCap returns percolation rates, fraction impervious, and storage capacity on the HRU
+func (h *HRU) PercFimpCap() (perc, fimp, cap float64) {
+	return h.perc, h.fimp, h.sma.cap + h.srf.cap
+}
+
 // Initialize HRU
 func (h *HRU) Initialize(rzsto, srfsto, fimp, ksat, ts float64) {
 	if rzsto < 0. || srfsto < 0. || fimp < 0. || fimp > 1. || ksat < 0. {
 		panic("HRU Initialize parameter error")
 	}
-	h.sma.sto = 0.              // inital soil moisture storage
-	h.srf.sto = 0.              // inital surface/depression storage
-	h.sma.cap = rzsto           // soil moisture storage (i.e., rootzone/drainable storage)
-	h.srf.cap = srfsto          // surface/depression storage
-	h.fimp = fimp               // fraction impervious
-	h.fprv = 1. - fimp          // fraction pervious
-	h.perc = ts * h.fprv * ksat // gravity-driven percolation rate m/ts
+	h.sma.sto = 0.     // inital soil moisture storage
+	h.srf.sto = 0.     // inital surface/depression storage
+	h.sma.cap = rzsto  // soil moisture storage (i.e., rootzone/drainable storage)
+	h.srf.cap = srfsto // surface/depression storage
+	h.fimp = fimp      // fraction impervious
+	h.fprv = 1. - fimp // fraction pervious
+	// h.perc = ts * h.fprv * ksat // gravity-driven percolation rate m/ts
+	h.perc = ts * ksat // gravity-driven percolation rate m/ts
 }
 
 // Reset state
@@ -74,7 +80,7 @@ func (h *HRU) Storage() float64 {
 	return h.sma.Storage() + h.srf.Storage()
 }
 
-// Deficit return current storage deficit
+// Deficit returns current storage deficit
 func (h *HRU) Deficit() float64 {
 	return h.sma.Deficit() + h.srf.Deficit()
 }

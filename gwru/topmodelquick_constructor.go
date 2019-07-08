@@ -8,14 +8,15 @@ import (
 )
 
 // New constructor
-func (t *TMQ) New(ksat map[int]float64, topo tem.TEM, cw, q0, qo, m float64) {
+func (t *TMQ) New(ksat map[int]float64, topo tem.TEM, cw, q0, qo, m float64) (map[int]float64, float64) {
 	// ksat: saturated hydraulic conductivity [m/ts]
 	// q0: initial catchment flow rate [m³/ts]
 	checkInputs(ksat, topo, cw, q0, qo, m)
 	t.M = m                     // parameter [m]
-	t.Qo = qo                   // qo: baseflow when basin is fully saturated [m3/ts]
+	t.Qo = qo                   // qo: baseflow when basin is fully saturated [m³/ts]
+	t.Dm = -m * math.Log(q0/qo) // initialize basin-wide deficit and cell deficits [m]
 	n := len(ksat)              // number of cells
-	t.Ca = cw * cw * float64(n) // cw: cell width, ca: basin area [m2]
+	t.Ca = cw * cw * float64(n) // cw: cell width, ca: basin area [m²]
 
 	g := 0.
 	ti := make(map[int]float64, n)
@@ -29,11 +30,11 @@ func (t *TMQ) New(ksat map[int]float64, topo tem.TEM, cw, q0, qo, m float64) {
 		}
 		g += ti[i] // gamma
 	}
-	g /= float64(n)             // assumes uniform square cells
-	t.Dm = -m * math.Log(q0/qo) // initialize basin-wide deficit and cell deficits [m]
+	g /= float64(n) // assumes uniform square cells
 	for i, v := range ti {
 		t.t[i] = m * (g - v)
 	}
+	return ti, g
 }
 
 // Clone creates a deep copy of TMQ, while changing recession coefficient m

@@ -33,7 +33,7 @@ func (r *Res) Storage() float64 {
 	return r.sto
 }
 
-// Deficit return current storage deficit
+// Deficit returns current storage deficit
 func (r *Res) Deficit() float64 {
 	return r.cap - r.sto
 }
