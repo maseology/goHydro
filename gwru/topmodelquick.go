@@ -15,10 +15,10 @@ type TMQ struct {
 
 // Update state. input g: total basin average recharge per time step [m]
 func (t *TMQ) Update(g float64) float64 {
-	qb := t.Qo * math.Exp(-t.Dm/t.M) // gw discharge to streams [m³/ts]
+	qb := t.Qo * math.Exp(-t.Dm/t.M) // gw discharge to streams [m/ts]
 	t.Dm -= g                        // add recharge [m/ts]
-	t.Dm += qb / t.Ca                // remove baseflow discharge
-	return qb                        // baseflow [m³/ts]
+	t.Dm += qb                       /// t.Ca                // remove baseflow discharge
+	return qb                        // baseflow [m/ts]
 }
 
 // GetDi returns the local subsurface deficit (Di)

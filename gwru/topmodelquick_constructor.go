@@ -10,7 +10,7 @@ import (
 // New constructor
 func (t *TMQ) New(ksat map[int]float64, topo tem.TEM, cw, q0, qo, m float64) (map[int]float64, float64) {
 	// ksat: saturated hydraulic conductivity [m/ts]
-	// q0: initial catchment flow rate [m³/ts]
+	// q0: initial catchment flow rate [m/ts] or [m³/ts]
 	checkInputs(ksat, topo, cw, q0, qo, m)
 	t.M = m                     // parameter [m]
 	t.Qo = qo                   // qo: baseflow when basin is fully saturated [m³/ts]
