@@ -56,6 +56,24 @@ func (h *HRU) Update(p, ep float64) (aet, ro, rch float64) {
 	return
 }
 
+// UpdateP adds precip to the hru and returns runoff
+func (h *HRU) UpdateP(p float64) float64 {
+	sri := h.fimp * p // impervious runoff
+	return h.sma.Overflow(h.srf.Overflow(p-sri)) + sri
+}
+
+// UpdateEp removes evaporation from hru
+func (h *HRU) UpdateEp(ep float64) float64 {
+	avail := h.srf.Overflow(-ep) // remaining available ep
+	avail = h.sma.Overflow(avail*h.fprv) + avail*h.fimp
+	return ep + avail
+}
+
+// UpdatePerc updates hru given no forcings (percolation only)
+func (h *HRU) UpdatePerc() float64 {
+	return h.sma.Overflow(-h.perc) + h.perc
+}
+
 // UpdateIN updates hru given a set of input forcings only
 func (h *HRU) UpdateIN(p float64) (ro, rch float64) {
 	sri := h.fimp * p // impervious runoff
@@ -63,11 +81,6 @@ func (h *HRU) UpdateIN(p float64) (ro, rch float64) {
 	rch = h.sma.Overflow(-h.perc) + h.perc
 	// h.updateStatus()
 	return
-}
-
-// Update0 updates hru given no forcings
-func (h *HRU) Update0() float64 {
-	return h.sma.Overflow(-h.perc) + h.perc
 }
 
 // UpdateStorage simply adds infiltration to storage (soil first, excess to surface depressions)
