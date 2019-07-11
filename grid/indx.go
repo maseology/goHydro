@@ -15,7 +15,7 @@ type Indx struct {
 }
 
 // New constructor
-func (r *Indx) New(fp string) {
+func (r *Indx) New(fp string, rowmajor bool) {
 	if r.gd == nil {
 		if _, b := mmio.FileExists(fp + ".gdef"); b {
 			r.getGDef(fp + ".gdef")
@@ -23,13 +23,13 @@ func (r *Indx) New(fp string) {
 			log.Fatalf("getGDef: no grid definition loaded")
 		}
 	}
-	r.getBinary(fp)
+	r.getBinary(fp, rowmajor)
 }
 
 // NewGD constructor
 func (r *Indx) NewGD(bfp, gdfp string) {
 	r.getGDef(gdfp)
-	r.getBinary(bfp)
+	r.getBinary(bfp, true)
 }
 
 // NewShort constructor
@@ -105,12 +105,12 @@ func (r *Indx) getGDef(fp string) {
 func (r *Indx) getBinaryShort(fp string, rowmajor bool) {
 	b, n, err := mmio.ReadBinaryShorts(fp, 1)
 	if err != nil {
-		log.Fatalf("getBinary(): %v", err)
+		log.Fatalf(" Indx.getBinary(): %v", err)
 	}
 	switch n {
 	case r.gd.na:
 		r.a = make(map[int]int, r.gd.na)
-		log.Fatalln("Indx.getBinary: active grids not yet supported (TODO)")
+		log.Fatalln(" Indx.getBinary: active grids not yet supported (TODO)")
 	case r.gd.nr * r.gd.nc:
 		r.a = make(map[int]int, r.gd.nr*r.gd.nc)
 		if rowmajor {
@@ -127,12 +127,37 @@ func (r *Indx) getBinaryShort(fp string, rowmajor bool) {
 			}
 		}
 	default:
-		log.Fatalf(" getBinaryShort: grid does not match definition length")
+		log.Fatalf(" Indx.getBinaryShort: grid does not match definition length")
 	}
 }
 
-func (r *Indx) getBinary(fp string) {
-	panic("Indx getBinary todo")
+func (r *Indx) getBinary(fp string, rowmajor bool) {
+	b, n, err := mmio.ReadBinaryInts(fp, 1)
+	if err != nil {
+		log.Fatalf(" Indx.getBinary(): %v", err)
+	}
+	switch n {
+	case r.gd.na:
+		r.a = make(map[int]int, r.gd.na)
+		log.Fatalln(" Indx.getBinary: active grids not yet supported (TODO)")
+	case r.gd.nr * r.gd.nc:
+		r.a = make(map[int]int, r.gd.nr*r.gd.nc)
+		if rowmajor {
+			for i := 0; i < n; i++ {
+				r.a[i] = int(b[0][i])
+			}
+		} else {
+			c, nr, nc := 0, r.gd.nr, r.gd.nc
+			for j := 0; j < nc; j++ {
+				for i := 0; i < nr; i++ {
+					r.a[i*nc+j] = int(b[0][c])
+					c++
+				}
+			}
+		}
+	default:
+		log.Fatalf(" Indx.getBinary: grid does not match definition length")
+	}
 }
 
 // ToASC creates an ascii-grid of Indx.
