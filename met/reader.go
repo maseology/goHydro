@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"math"
+	"path/filepath"
 	"sort"
 	"time"
 
@@ -27,7 +28,7 @@ func (h *Header) Read(b *bytes.Reader) {
 		h.dtb = time.Unix(mmio.ReadInt64(b), 0).UTC()
 		h.dte = time.Unix(mmio.ReadInt64(b), 0).UTC()
 	}
-	h.lc = mmio.ReadUInt8(b)
+	h.lc = mmio.ReadInt8(b)
 	h.ESPG = mmio.ReadUInt32(b)
 	if h.lc == 0 {
 		h.nloc = mmio.ReadUInt32(b)
@@ -66,6 +67,7 @@ func ReadMET(fp string) (*Header, map[time.Time]map[int]float64, error) {
 	b := mmio.OpenBinary(fp)
 	var h Header
 	h.Read(b)
+	fmt.Printf("\n File: %s\n", filepath.Base(fp))
 	h.Print()
 	if err := h.check(); err != nil {
 		return nil, nil, err

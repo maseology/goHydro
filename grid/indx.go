@@ -139,7 +139,11 @@ func (r *Indx) getBinary(fp string, rowmajor bool) {
 	switch n {
 	case r.gd.na:
 		r.a = make(map[int]int, r.gd.na)
-		log.Fatalln(" Indx.getBinary: active grids not yet supported (TODO)")
+		i := 0
+		for cid := range r.gd.act {
+			r.a[cid] = int(b[0][i])
+			i++
+		}
 	case r.gd.nr * r.gd.nc:
 		r.a = make(map[int]int, r.gd.nr*r.gd.nc)
 		if rowmajor {

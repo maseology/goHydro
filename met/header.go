@@ -9,10 +9,10 @@ import (
 type Header struct {
 	Locations  map[int][]interface{}
 	v          uint16            // version
-	uc, tc, lc uint8             // unit code, time code, location code
+	uc, tc     uint8             // unit code, time code, location code
 	wbdc       uint64            // waterbalance data code
 	wbl        map[uint64]string // waterbalance data map
-	prc        int8              // precision
+	prc, lc    int8              // precision
 	intvl      uint64            // timestep interval [s]
 	dtb, dte   time.Time
 	ESPG, nloc uint32
@@ -41,7 +41,7 @@ func (h *Header) BeginEndInterval() (time.Time, time.Time, int64) {
 
 // Print .met metadata
 func (h *Header) Print() {
-	fmt.Printf("\n Version %04d\n", h.v)
+	fmt.Printf(" Version %04d\n", h.v)
 	fmt.Printf(" unit code %d\n", h.uc)
 	fmt.Printf(" time code %d\n", h.tc)
 	fmt.Printf(" water-balance types: %v\n", h.wbl)
