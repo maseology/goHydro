@@ -3,6 +3,7 @@ package grid
 import (
 	"fmt"
 	"log"
+	"sort"
 
 	"github.com/maseology/mmaths"
 	"github.com/maseology/mmio"
@@ -139,10 +140,14 @@ func (r *Indx) getBinary(fp string, rowmajor bool) {
 	switch n {
 	case r.gd.na:
 		r.a = make(map[int]int, r.gd.na)
-		i := 0
+		i, lst := 0, make([]int, len(r.gd.act))
 		for cid := range r.gd.act {
-			r.a[cid] = int(b[0][i])
+			lst[i] = cid
 			i++
+		}
+		sort.Ints(lst)
+		for k, cid := range lst {
+			r.a[cid] = int(b[0][k])
 		}
 	case r.gd.nr * r.gd.nc:
 		r.a = make(map[int]int, r.gd.nr*r.gd.nc)

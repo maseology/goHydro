@@ -26,7 +26,7 @@ func (t *TMQ) New(ksat map[int]float64, topo tem.TEM, cw, q0, qo, m float64) (ma
 		ai := topo.UnitContributingArea(i) * cw             // contributing area per unit contour [m] (assumes uniform square cells)
 		ti[i] = math.Log(ai / t0 / math.Tan(topo.TEC[i].S)) // soil-topographic index
 		if math.IsNaN(ti[i]) {
-			log.Fatalln("TMQ.New error: topographic index is NaN")
+			log.Fatalf("TMQ.New error: topographic index is NaN. slope = %f\n", topo.TEC[i].S)
 		}
 		g += ti[i] // gamma
 	}
