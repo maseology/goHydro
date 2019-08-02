@@ -3,6 +3,7 @@ package tem
 import (
 	"encoding/binary"
 	"fmt"
+	"math"
 	"path/filepath"
 
 	"github.com/maseology/mmaths"
@@ -30,10 +31,23 @@ func (t *TEM) New(fp string) (map[int]mmaths.Point, error) {
 		return nil, fmt.Errorf(" error: unknown TEM file type used")
 	}
 
+	t.checkVals()
 	t.buildUpslopes()
 	return coord, nil
 }
 
+func (t *TEM) checkVals() {
+	for k, v := range t.TEC {
+		v1 := v
+		if v.S < 0.0001 {
+			v1.S = 0.0001
+		}
+		if v.A < -math.Pi {
+			v1.A = 0.
+		}
+		t.TEC[k] = v1
+	}
+}
 func (t *TEM) buildUpslopes() {
 	t.us = make(map[int][]int)
 	for i, v := range t.TEC {
