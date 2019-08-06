@@ -9,21 +9,21 @@ import (
 
 // TMQ is an optimized variation of the TOPMODEL struct
 type TMQ struct {
-	t             map[int]float64
-	Dm, Qo, M, Ca float64
+	d             map[int]float64 // cell deficit
+	Dm, Qo, M, Ca float64         // mean deficit, discharge at Dm=0, Prameter m, catchment area
 }
 
 // Update state. input g: total basin average recharge per time step [m]
 func (t *TMQ) Update(g float64) float64 {
 	qb := t.Qo * math.Exp(-t.Dm/t.M) // gw discharge to streams [m/ts]
 	t.Dm -= g                        // add recharge [m/ts]
-	t.Dm += qb                       /// t.Ca                // remove baseflow discharge
+	t.Dm += qb                       // remove baseflow discharge
 	return qb                        // baseflow [m/ts]
 }
 
 // GetDi returns the local subsurface deficit (Di)
 func (t *TMQ) GetDi(cid int) float64 {
-	return t.Dm + t.t[cid]
+	return t.Dm + t.d[cid]
 }
 
 // IsSame compares two TMQ structs
@@ -42,9 +42,9 @@ func (t *TMQ) IsSame(t1 *TMQ) (bool, string) {
 	}
 
 	c := 0
-	for i, t := range t.t {
-		tt := t1.t[i]
-		rd := math.Abs(mmaths.RelativeDifference(t, tt))
+	for i, d := range t.d {
+		dd := t1.d[i]
+		rd := math.Abs(mmaths.RelativeDifference(d, dd))
 		if rd > 1e-10 {
 			c++
 		}
