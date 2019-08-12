@@ -63,12 +63,14 @@ func (h *Header) check() error {
 }
 
 // ReadMET reads a .met blob, returning a map
-func ReadMET(fp string) (*Header, map[time.Time]map[int]float64, error) {
+func ReadMET(fp string, print bool) (*Header, map[time.Time]map[int]float64, error) {
 	b := mmio.OpenBinary(fp)
 	var h Header
 	h.Read(b)
-	fmt.Printf("\n File: %s\n", filepath.Base(fp))
-	h.Print()
+	if print {
+		fmt.Printf("\n File: %s\n", filepath.Base(fp))
+		h.Print()
+	}
 	if err := h.check(); err != nil {
 		return nil, nil, err
 	}
@@ -106,7 +108,7 @@ func ReadMET(fp string) (*Header, map[time.Time]map[int]float64, error) {
 			}
 		}
 	} else {
-		panic("unknown data type")
+		log.Fatalf(" met.ReadMET error: unknown data type\n")
 	}
 
 	return &h, dc, nil

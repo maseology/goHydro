@@ -58,18 +58,15 @@ func (t *TMQ) steady() {
 	for {
 		tsum := 0.
 		for i := range t.d {
-			// fmt.Println(t.d[i])
 			if t.d[i] < 0. {
 				tsum -= t.d[i]
 				t.d[i] = 0.
 			}
 		}
-		bf := t.Update(t.Qo)
-		// fmt.Println(bf)
-		if math.Abs(tl-bf) < 1.e-9 {
+		bf := t.Update(t.Qo) // [m/ts]
+		if math.Abs(tl-bf) < 1.e-3 {
 			break
 		}
 		tl = bf
 	}
-	print(".")
 }

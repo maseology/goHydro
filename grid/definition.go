@@ -9,11 +9,13 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/maseology/mmaths"
 	"github.com/maseology/mmio"
 )
 
 // Definition struct
 type Definition struct {
+	Coord                 map[int]mmaths.Point
 	act                   map[int]bool
 	eorig, norig, rot, cs float64
 	nr, nc, na            int
@@ -92,6 +94,20 @@ func ReadGDEF(fp string) (*Definition, error) {
 	}
 	fmt.Println()
 
+	gd.Coord = make(map[int]mmaths.Point, gd.na)
+	cid := 0
+	for i := 0; i < gd.nr; i++ {
+		for j := 0; j < gd.nc; j++ {
+			if v, ok := gd.act[cid]; ok {
+				if v {
+					p := mmaths.Point{X: gd.eorig + gd.cs*(float64(j)+0.5), Y: gd.norig - gd.cs*(float64(i)+0.5)}
+					gd.Coord[cid] = p
+				}
+			}
+			cid++
+		}
+	}
+
 	return &gd, nil
 }
 
@@ -151,6 +167,23 @@ func parseHeader(a []string) (Definition, error) {
 	fmt.Println("", uni)
 
 	return gd, nil
+}
+
+// Actives returns a slice of active cell IDs
+func (gd *Definition) Actives() []int {
+	out, i := make([]int, gd.na), 0
+	for k, v := range gd.act {
+		if v {
+			out[i] = k
+			i++
+		}
+	}
+	return out
+}
+
+// Nactives returns the count of active grid cells
+func (gd *Definition) Nactives() int {
+	return gd.na
 }
 
 // CellWidth returns the (uniform) width of the grid cells

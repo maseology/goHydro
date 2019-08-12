@@ -11,29 +11,26 @@ import (
 )
 
 // New contructor
-func (t *TEM) New(fp string) (map[int]mmaths.Point, error) {
-	fmt.Printf(" loading: %s\n", fp)
-
-	var coord map[int]mmaths.Point
+func (t *TEM) New(fp string) error {
 	var err error
 	switch filepath.Ext(fp) {
 	case ".uhdem", ".bin":
-		coord, err = t.loadUHDEM(fp)
+		_, err = t.loadUHDEM(fp)
 		if err != nil {
-			return nil, err
+			return err
 		}
 	case ".hdem":
-		coord, err = t.loadHDEM(fp)
+		_, err = t.loadHDEM(fp)
 		if err != nil {
-			return nil, err
+			return err
 		}
 	default:
-		return nil, fmt.Errorf(" error: unknown TEM file type used")
+		return fmt.Errorf(" error: unknown TEM file type used")
 	}
 
 	t.checkVals()
 	t.buildUpslopes()
-	return coord, nil
+	return nil
 }
 
 func (t *TEM) checkVals() {

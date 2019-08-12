@@ -12,7 +12,7 @@ type Header struct {
 	uc, tc     uint8             // unit code, time code, location code
 	wbdc       uint64            // waterbalance data code
 	wbl        map[uint64]string // waterbalance data map
-	prc, lc    int8              // precision
+	prc, lc    int8              // precision, location code
 	intvl      uint64            // timestep interval [s]
 	dtb, dte   time.Time
 	ESPG, nloc uint32
@@ -23,9 +23,14 @@ func (h *Header) IntervalSec() float64 {
 	return float64(h.intvl)
 }
 
-// Nloc returns the time interval of the .met file
+// Nloc returns the number of locations in the .met file
 func (h *Header) Nloc() int {
 	return int(h.nloc)
+}
+
+// LocationCode returns the location code of the .met file
+func (h *Header) LocationCode() int {
+	return int(h.lc)
 }
 
 // Nstep returns the number of timesteps in the .met file
