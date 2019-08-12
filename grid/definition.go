@@ -89,7 +89,7 @@ func ReadGDEF(fp string) (*Definition, error) {
 			return nil, fmt.Errorf("Fatal error(s): ReadGDEF:\n   number of cells found (%d) not equal to total (%d): %v", cn, cx, err)
 		}
 		if gd.na > 0 {
-			fmt.Printf(" %d actives\n", gd.na) //11,118,568
+			fmt.Printf(" %s actives\n", mmio.Thousands(int64(gd.na))) //11,118,568
 		}
 	}
 	fmt.Println()
