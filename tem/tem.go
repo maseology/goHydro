@@ -20,8 +20,8 @@ func (t *TEM) NumCells() int {
 func (t *TEM) Peaks(cid0 int) []int {
 	p := make([]int, 0)
 	if cid0 < 0 {
-		for i, v := range t.us {
-			if len(v) == 0 {
+		for i := range t.TEC {
+			if len(t.us[i]) == 0 {
 				p = append(p, i)
 			}
 		}
@@ -66,7 +66,7 @@ func (t *TEM) DownslopeContributingAreaIDs(cid0 int) ([]int, map[int]int) {
 	}
 
 	dsa := t.downslopes()
-	c, ds, i := make([]int, len(t.us)), make(map[int]int, len(t.us)), 0
+	c, ds, i := make([]int, len(t.TEC)), make(map[int]int, len(t.us)), 0
 	for _, k := range t.Peaks(cid0) {
 		queue.PushBack(k) // initial enqueue
 	}
@@ -84,9 +84,14 @@ func (t *TEM) DownslopeContributingAreaIDs(cid0 int) ([]int, map[int]int) {
 		queue.Remove(e) // dequeue
 		i++
 	}
-	c[len(c)-1] = cid0
+	if cid0 < 0 {
+		return c, ds
+	}
+	c[i] = cid0
 	ds[cid0] = -1
-	return c, ds
+	u := make([]int, i+1)
+	copy(u, c)
+	return u, ds
 }
 
 // UpCnt returns a list of upslope cell IDs
