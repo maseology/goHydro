@@ -5,12 +5,24 @@ import (
 	"math"
 
 	"github.com/maseology/mmaths"
+	"github.com/maseology/mmio"
 )
 
 // TMQ is an optimized variation of the TOPMODEL struct
 type TMQ struct {
 	d             map[int]float64 // cell deficit
 	Dm, Qo, M, Ca float64         // mean deficit, discharge at Dm=0, Prameter m, catchment area
+}
+
+// Copy TMQ
+func (t *TMQ) Copy() TMQ {
+	return TMQ{
+		d:  mmio.CopyMapif(t.d),
+		Dm: t.Dm,
+		Qo: t.Qo,
+		M:  t.M,
+		Ca: t.Ca,
+	}
 }
 
 // Update state. input g: total basin average recharge per time step [m]

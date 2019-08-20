@@ -11,6 +11,16 @@ package hru
 // WtrShd is an alias for a set of HRUs making up a watershed
 type WtrShd = map[int]*HRU
 
+// CopyWtrShd reutrns a deep copy of a WtrShd
+func CopyWtrShd(origWtrShd WtrShd) (newWtrShd WtrShd) {
+	newWtrShd = make(map[int]*HRU, len(origWtrShd))
+	for k, v := range origWtrShd {
+		newHRU := *v
+		newWtrShd[k] = &newHRU
+	}
+	return
+}
+
 // HRU the Hydrologic Response Unit
 type HRU struct {
 	sma, srf         Res

@@ -35,6 +35,7 @@ func (t *TMQ) New(ksat map[int]float64, topo tem.TEM, cw, qo, m float64) (map[in
 		t.d[i] = m * (g - v) // deficit at cell i [m]
 	}
 	t.steady()
+	// fmt.Printf("  catchemnt area: %.3f km²; niter: %d\n", t.Ca/1000./1000., t.steady())
 	return ti, g
 }
 
@@ -53,9 +54,11 @@ func (t *TMQ) Clone(m float64) TMQ {
 	}
 }
 
-func (t *TMQ) steady() {
+func (t *TMQ) steady() (niter int) {
 	tl := math.MaxFloat64
+	niter = 0
 	for {
+		niter++
 		tsum := 0.
 		for i := range t.d {
 			if t.d[i] < 0. {
@@ -69,4 +72,5 @@ func (t *TMQ) steady() {
 		}
 		tl = bf
 	}
+	return
 }
