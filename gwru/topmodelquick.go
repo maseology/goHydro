@@ -10,8 +10,8 @@ import (
 
 // TMQ is an optimized variation of the TOPMODEL struct
 type TMQ struct {
-	d             map[int]float64 // cell deficit
-	Dm, Qo, M, Ca float64         // mean deficit, discharge at Dm=0, Prameter m, catchment area
+	d, Qs     map[int]float64 // cell deficit relative to Dm; saturated lateral discharge (=w To tan(beta)/a)
+	Dm, M, Ca float64         // mean deficit, discharge at Dm=0, Prameter m, catchment area
 }
 
 // Copy TMQ
@@ -19,18 +19,9 @@ func (t *TMQ) Copy() TMQ {
 	return TMQ{
 		d:  mmio.CopyMapif(t.d),
 		Dm: t.Dm,
-		Qo: t.Qo,
 		M:  t.M,
 		Ca: t.Ca,
 	}
-}
-
-// Update state. input g: total basin average recharge per time step [m]
-func (t *TMQ) Update(g float64) float64 {
-	qb := t.Qo * math.Exp(-t.Dm/t.M) // gw discharge to streams [m/ts]
-	t.Dm -= g                        // add recharge [m/ts]
-	t.Dm += qb                       // remove baseflow discharge
-	return qb                        // baseflow [m/ts]
 }
 
 // GetDi returns the local subsurface deficit (Di)
@@ -42,9 +33,6 @@ func (t *TMQ) GetDi(cid int) float64 {
 func (t *TMQ) IsSame(t1 *TMQ) (bool, string) {
 	if t.M != t1.M {
 		return false, "m"
-	}
-	if t.Qo != t1.Qo {
-		return false, "Qo"
 	}
 	if t.Dm != t1.Dm {
 		return false, "Dm"

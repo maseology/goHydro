@@ -7,24 +7,31 @@ import (
 	"github.com/maseology/goHydro/tem"
 )
 
+const qo = 0.25    // Qo is the discharge when basin is fully saturated (i.e., when Dm=0) [m/yr] (only needed when initializing model)
+const strmkm2 = 1. // total drainage area [km²] required to deem a cell a "stream cell"
+
 // New constructor. unit-volum inputs (i.e., [m/ts])
 //  ksat: saturated hydraulic conductivity [m/ts]
-//  q0: initial catchment flow rate [m/ts]
-func (t *TMQ) New(ksat map[int]float64, topo tem.TEM, cw, qo, m float64) (map[int]float64, float64) {
-	checkInputs(ksat, topo, cw, 1., qo, m)
-	t.M = m                     // parameter [m]
-	t.Qo = qo                   // qo: baseflow when basin is fully saturated [m/ts]
-	t.Dm = -m * math.Log(3.)    // initialize basin-wide deficit and cell deficits [m] (assumes q0/qo~3)
-	n := len(ksat)              // number of cells
-	t.Ca = cw * cw * float64(n) // cw: cell width, Ca: basin (catchment) area [m²]
+func (t *TMQ) New(ksat map[int]float64, upcnt map[int]int, topo tem.TEM, cw, m, ts float64) (map[int]float64, float64) {
+	checkInputs(ksat, topo, cw, 1., 1., m)
+	t.M = m                                               // parameter [m]
+	t.Dm = -m * math.Log(3.)                              // initialize basin-wide deficit and cell deficits [m] (assumes q0/qo~3)
+	n := len(ksat)                                        // number of cells
+	t.Ca = cw * cw * float64(n)                           // cw: cell width, Ca: basin (catchment) area [m²]
+	strmcthresh := int(strmkm2 * 1000. * 1000. / cw / cw) // "stream cell" threshold
 
 	g := 0.
-	ti := make(map[int]float64, n) // soil-topographic index
-	t.d = make(map[int]float64, n) // cell deficits
+	ti := make(map[int]float64, n)  // soil-topographic index
+	t.d = make(map[int]float64, n)  // cell deficits relative to Dm
+	t.Qs = make(map[int]float64, n) // saturated lateral discharge [m/ts]
 	for i, k := range ksat {
-		t0 := k * cw                                        // lateral transmisivity when soil is saturated [m²/ts]
-		ai := topo.UnitContributingArea(i) * cw             // contributing area per unit contour [m] (assumes uniform square cells)
-		ti[i] = math.Log(ai / t0 / math.Tan(topo.TEC[i].S)) // soil-topographic index
+		tsat := k * cw                          // lateral transmisivity when soil is saturated [m²/ts]
+		tanbeta := math.Tan(topo.TEC[i].S)      // gradient
+		ai := topo.UnitContributingArea(i) * cw // contributing area per unit contour [m] (assumes uniform square cells)
+		ti[i] = math.Log(ai / tsat / tanbeta)   // soil-topographic index
+		if upcnt[i] >= strmcthresh {
+			t.Qs[i] = (cw * tsat * tanbeta / ai) // saturated lateral discharge [m/ts]
+		}
 		if math.IsNaN(ti[i]) {
 			log.Fatalf(" TMQ.New error: topographic index is NaN. slope = %f\n", topo.TEC[i].S)
 		}
@@ -32,9 +39,9 @@ func (t *TMQ) New(ksat map[int]float64, topo tem.TEM, cw, qo, m float64) (map[in
 	}
 	g /= float64(n) // assumes uniform square cells
 	for i, v := range ti {
-		t.d[i] = m * (g - v) // deficit at cell i [m]
+		t.d[i] = m * (g - v) // deficit at cell i relative to Dm [m]
 	}
-	t.steady()
+	t.steady(ts)
 	// fmt.Printf("  catchemnt area: %.3f km²; niter: %d\n", t.Ca/1000./1000., t.steady())
 	return ti, g
 }
@@ -48,14 +55,13 @@ func (t *TMQ) Clone(m float64) TMQ {
 	return TMQ{
 		d:  dnew,
 		Dm: 0.,
-		Qo: t.Qo,
 		M:  m,
 		Ca: t.Ca,
 	}
 }
 
-func (t *TMQ) steady() (niter int) {
-	tl := math.MaxFloat64
+func (t *TMQ) steady(ts float64) (niter int) {
+	tl, qot := math.MaxFloat64, qo*ts/365.24/86400. // [m/yr] to [m/ts]
 	niter = 0
 	for {
 		niter++
@@ -66,7 +72,7 @@ func (t *TMQ) steady() (niter int) {
 				t.d[i] = 0.
 			}
 		}
-		bf := t.Update(t.Qo) // [m/ts]
+		bf := qot * math.Exp(-t.Dm/t.M) // [m/ts]
 		if math.Abs(tl-bf) < 1.e-3 {
 			break
 		}
