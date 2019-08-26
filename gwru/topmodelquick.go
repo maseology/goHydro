@@ -8,7 +8,7 @@ import (
 	"github.com/maseology/mmio"
 )
 
-// TMQ is an optimized variation of the TOPMODEL struct
+// TMQ is an optimized, distributed variation of the TOPMODEL struct
 type TMQ struct {
 	d, Qs     map[int]float64 // cell deficit relative to Dm; saturated lateral discharge (=w To tan(beta)/a)
 	Dm, M, Ca float64         // mean deficit, discharge at Dm=0, Prameter m, catchment area
