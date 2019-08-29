@@ -1,21 +1,20 @@
 package gwru
 
 import (
+	"fmt"
 	"log"
 	"math"
 
 	"github.com/maseology/goHydro/tem"
 )
 
-const qo = 0.25    // Qo is the discharge when basin is fully saturated (i.e., when Dm=0) [m/yr] (only needed when initializing model)
-const strmkm2 = 1. // total drainage area [km²] required to deem a cell a "stream cell"
-
 // New constructor. unit-volum inputs (i.e., [m/ts])
 //  ksat: saturated hydraulic conductivity [m/ts]
 func (t *TMQ) New(ksat map[int]float64, upcnt map[int]int, topo tem.TEM, cw, m, ts float64) (map[int]float64, float64) {
 	checkInputs(ksat, topo, cw, 1., 1., m)
-	t.M = m                                               // parameter [m]
-	t.Dm = -m * math.Log(3.)                              // initialize basin-wide deficit and cell deficits [m] (assumes q0/qo~3)
+	// t.Qo = qo * ts / 365.24 / 86400. // [m/yr] to [m/ts]
+	t.M = m // parameter [m]
+	// t.Dm = -m * math.Log(3.)                              // initialize basin-wide deficit and cell deficits [m] (assumes q0/qo~3)
 	n := len(ksat)                                        // number of cells
 	t.Ca = cw * cw * float64(n)                           // cw: cell width, Ca: basin (catchment) area [m²]
 	strmcthresh := int(strmkm2 * 1000. * 1000. / cw / cw) // "stream cell" threshold
@@ -29,54 +28,59 @@ func (t *TMQ) New(ksat map[int]float64, upcnt map[int]int, topo tem.TEM, cw, m, 
 		tanbeta := math.Tan(topo.TEC[i].S)      // gradient
 		ai := topo.UnitContributingArea(i) * cw // contributing area per unit contour [m] (assumes uniform square cells)
 		ti[i] = math.Log(ai / tsat / tanbeta)   // soil-topographic index
-		if upcnt[i] >= strmcthresh {
-			t.Qs[i] = (cw * tsat * tanbeta / ai) // saturated lateral discharge [m/ts]
+		if upcnt[i] >= strmcthresh {            // selecting only stream cells
+			t.Qs[i] = omega * tsat * tanbeta // (qi) saturated lateral discharge (when Dm=0) at stream cells [m²/ts]
 		}
 		if math.IsNaN(ti[i]) {
 			log.Fatalf(" TMQ.New error: topographic index is NaN. slope = %f\n", topo.TEC[i].S)
 		}
 		g += ti[i] // gamma
 	}
+
+	ccc := 0
+	asum := 0.
+	for c0 := range t.Qs {
+		cnt, asumi := 0, 0.
+		for c1 := range topo.UpIDs(c0) {
+			if _, ok := t.Qs[c1]; !ok {
+				ccc += topo.UpCnt(c1)
+				asumi += topo.UnitContributingArea(c1)
+				cnt++
+			}
+		}
+		// fmt.Printf(" %d", cnt)
+		asum += asumi //* cw // lateral contributing area (to stream cells) per unit contour [m] (assumes uniform square cells)
+	}
+	if asum != t.Ca {
+		fmt.Printf("%d (%d) %f %f\n", n, len(t.Qs), t.Ca, asum)
+		log.Fatalf(" TMQ.New error: catchment areal calculation error: Ca: %.2e  ai*w: %.2e\n", t.Ca, asum*cw)
+	}
+
 	g /= float64(n) // assumes uniform square cells
+	cd := 0.
 	for i, v := range ti {
 		t.d[i] = m * (g - v) // deficit at cell i relative to Dm [m]
+		if t.d[i] < cd {
+			cd = t.d[i] // initialize without ponding
+		}
 	}
-	t.steady(ts)
-	// fmt.Printf("  catchemnt area: %.3f km²; niter: %d\n", t.Ca/1000./1000., t.steady())
+	// t.Dm = 1.75
+	fmt.Printf("  catchemnt area: %.3f km²; Dm0: %.3f; niter: %d\n", t.Ca/1000./1000., t.Dm, t.steady(ts))
 	return ti, g
 }
 
-// Clone creates a deep copy of TMQ, while changing recession coefficient m
-func (t *TMQ) Clone(m float64) TMQ {
-	dnew := make(map[int]float64, len(t.d))
-	for i, v := range t.d {
-		dnew[i] = m * v / t.M
-	}
-	return TMQ{
-		d:  dnew,
-		Dm: 0.,
-		M:  m,
-		Ca: t.Ca,
-	}
-}
-
 func (t *TMQ) steady(ts float64) (niter int) {
-	tl, qot := math.MaxFloat64, qo*ts/365.24/86400. // [m/yr] to [m/ts]
+	tl, g := math.MaxFloat64, gyr*ts/365.24/86400. // [m/yr] to [m/ts]
+	t.Dm = -t.M * math.Log(3.)                     // initialize basin-wide deficit and cell deficits [m] (assumes q0/qo~3)
 	niter = 0
 	for {
 		niter++
-		tsum := 0.
-		for i := range t.d {
-			if t.d[i] < 0. {
-				tsum -= t.d[i]
-				t.d[i] = 0.
-			}
-		}
-		bf := qot * math.Exp(-t.Dm/t.M) // [m/ts]
-		if math.Abs(tl-bf) < 1.e-3 {
+		qb := 2. * g * math.Exp(-t.Dm/t.M) // [m/ts] (assumes max monthly baseflow rate (Qo) is twice annual average recharge)
+		if math.Abs(tl-qb) < 1.e-3 {
 			break
 		}
-		tl = bf
+		t.Dm += qb - g // remove baseflow discharge and add steady recharge
+		tl = qb
 	}
 	return
 }

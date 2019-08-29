@@ -102,7 +102,7 @@ func (t *TEM) UpCnt(cid int) int {
 	return len(t.climb(cid))
 }
 
-// UnitContributingArea computes the (unit) contributing area from a given cell id
+// UnitContributingArea computes the (unit) contributing area to a given cell id
 func (t *TEM) UnitContributingArea(cid int) float64 {
 	return float64(t.UpCnt(cid))
 }
