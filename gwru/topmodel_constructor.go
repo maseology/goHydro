@@ -22,10 +22,10 @@ func (t *TOPMODEL) New(ksat map[int]float64, topo tem.TEM, cw, q0, qo, m float64
 	t.ti = make(map[int]float64, n)
 	t.Di = make(map[int]float64, n) // soil moisture deficit (~depth to watertable * porosity)
 	for i, p := range topo.TEC {
-		t0 := ksat[i] * cw                          // lateral transmisivity when soil is saturated [m²/ts]
-		ai := topo.UnitContributingArea(i) / cw     // contributing area per unit contour [m]
-		t.ti[i] = math.Log(ai / t0 / math.Tan(p.S)) // soil-topographic index
-		t.g += t.ti[i]                              // gamma
+		t0 := ksat[i] * cw                               // lateral transmisivity when soil is saturated [m²/ts]
+		ai := float64(topo.UnitContributingArea(i)) / cw // contributing area per unit contour [m]
+		t.ti[i] = math.Log(ai / t0 / math.Tan(p.S))      // soil-topographic index
+		t.g += t.ti[i]                                   // gamma
 	}
 	t.g /= float64(n)
 	t.Dm = -t.m * math.Log(q0/qo) // initialize basin-wide deficit and cell deficits [m]

@@ -103,8 +103,8 @@ func (t *TEM) UpCnt(cid int) int {
 }
 
 // UnitContributingArea computes the (unit) contributing area to a given cell id
-func (t *TEM) UnitContributingArea(cid int) float64 {
-	return float64(t.UpCnt(cid))
+func (t *TEM) UnitContributingArea(cid int) int {
+	return t.UpCnt(cid)
 }
 
 func (t *TEM) climb(cid int) map[int]bool {

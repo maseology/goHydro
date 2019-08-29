@@ -9,10 +9,8 @@ import (
 )
 
 const (
-	// qo      = 0.25 // Qo is the discharge when basin is fully saturated (i.e., when Dm=0) [m/yr] (only needed when initializing model)
-	gyr     = 0.25 // annual average rate of recharge [m/yr] (only needed when initializing model)
-	strmkm2 = 1.   // total drainage area [km²] required to deem a cell a "stream cell"
-	omega   = 1.   // sinuosity
+	strmkm2 = 1. // total drainage area [km²] required to deem a cell a "stream cell"
+	omega   = 1. // sinuosity
 )
 
 // TMQ is an optimized, distributed variation of the TOPMODEL struct
@@ -29,6 +27,15 @@ func (t *TMQ) Copy() TMQ {
 		M:  t.M,
 		Ca: t.Ca,
 	}
+}
+
+// RelTi returns the topographical index relative to gamma (g-Ti)
+func (t *TMQ) RelTi() map[int]float64 {
+	out := make(map[int]float64, len(t.d))
+	for k, v := range t.d {
+		out[k] = v / t.M
+	}
+	return out
 }
 
 // // Clone creates a deep copy of TMQ, while changing recession coefficient m
