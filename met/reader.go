@@ -9,6 +9,8 @@ import (
 	"sort"
 	"time"
 
+	"github.com/maseology/goHydro/grid"
+
 	"github.com/maseology/mmio"
 )
 
@@ -108,8 +110,92 @@ func ReadMET(fp string, print bool) (*Header, map[time.Time]map[int]float64, err
 			}
 		}
 	} else {
-		log.Fatalf(" met.ReadMET error: unknown data type\n")
+		return nil, nil, fmt.Errorf(" met.ReadMET error: unknown data type")
+	}
+	return &h, dc, nil
+}
+
+// ReadRaw reads raw binary, returning a map
+func ReadRaw(fp string, print bool) (*Header, map[time.Time]map[int]float64, error) {
+	var h Header
+
+	switch ext := mmio.GetExtension(fp); ext {
+	case ".f16":
+		gd, err := grid.ReadGDEF(fp + ".gdef")
+		if err != nil {
+			return nil, nil, fmt.Errorf("MET.ReadRaw: ReadGDEF error: %v", err)
+		}
+		h, err = gdefToHeader(gd)
+		if err != nil {
+			return nil, nil, fmt.Errorf("MET.gdefToHeader: grid definition error: %v", err)
+		}
+	default:
+		return nil, nil, fmt.Errorf("MET.ReadRaw: unrecognized file type ext: %s", ext)
+	}
+	if _, ok := mmio.FileExists(fp + ".gdef"); !ok {
+		return nil, nil, fmt.Errorf("MET.ReadRaw: required file not found: %s", fp+".gdef")
 	}
 
+	if err := h.check(); err != nil {
+		return nil, nil, err
+	}
+	if print {
+		fmt.Printf("\n File: %s\n", filepath.Base(fp))
+		h.Print()
+	}
+	// b := mmio.OpenBinary(fp)
+
+	// // read data
+	// dt := time.Second * time.Duration(h.intvl)
+	dc := make(map[time.Time]map[int]float64)
+	// iwbl := func() []uint64 {
+	// 	keys := make([]uint64, 0, len(h.wbl))
+	// 	for k := range h.wbl {
+	// 		keys = append(keys, k)
+	// 	}
+	// 	sort.Slice(keys, func(i, j int) bool { return keys[i] < keys[j] })
+	// 	return keys
+	// }()
+
+	// nan := func(v float64) float64 { // no data handler
+	// 	if v == -9999.0 {
+	// 		return math.NaN()
+	// 	}
+	// 	return v
+	// }
+	// if h.prc == 8 {
+	// 	for d := h.dtb; !d.After(h.dte); d = d.Add(dt) {
+	// 		dc[d] = make(map[int]float64)
+	// 		for _, i := range iwbl {
+	// 			dc[d][int(i)] = nan(mmio.ReadFloat64(b))
+	// 		}
+	// 	}
+	// } else if h.prc == 4 {
+	// 	for d := h.dtb; !d.After(h.dte); d = d.Add(dt) {
+	// 		dc[d] = make(map[int]float64)
+	// 		for _, i := range iwbl {
+	// 			dc[d][int(i)] = nan(float64(mmio.ReadFloat32(b)))
+	// 		}
+	// 	}
+	// } else {
+	// 	log.Fatalf(" met.ReadMET error: unknown data type\n")
+	// }
+
 	return &h, dc, nil
+}
+
+func gdefToHeader(gd *grid.Definition) (Header, error) {
+	var h Header
+	h.v = 1
+
+	// Locations  map[int][]interface{}
+	// v          uint16            // version
+	// uc, tc     uint8             // unit code, time code, location code
+	// wbdc       uint64            // waterbalance data code
+	// wbl        map[uint64]string // waterbalance data map
+	// prc, lc    int8              // precision, location code
+	// intvl      uint64            // timestep interval [s]
+	// dtb, dte   time.Time
+	// ESPG, nloc uint32
+	return h, nil
 }
