@@ -3,26 +3,26 @@ package gwru
 import (
 	"fmt"
 	"math"
+	"log"
 
 	"github.com/maseology/mmaths"
 	"github.com/maseology/mmio"
 )
 
 const (
-	strmkm2 = 1. // total drainage area [km²] required to deem a cell a "stream cell"
 	omega   = 1. // sinuosity
 )
 
 // TMQ is an optimized, distributed variation of the TOPMODEL struct
 type TMQ struct {
-	d, Qs     map[int]float64 // cell deficit relative to Dm; saturated lateral discharge (=w To tan(beta)/a)
+	D, Qs     map[int]float64 // cell deficit relative to Dm; saturated lateral discharge (=w To tan(beta)/a)
 	Dm, M, Ca float64         // mean deficit, discharge at Dm=0, Prameter m, catchment area
 }
 
 // Copy TMQ
 func (t *TMQ) Copy() TMQ {
 	return TMQ{
-		d:  mmio.CopyMapif(t.d),
+		D:  mmio.CopyMapif(t.D),
 		Dm: t.Dm,
 		M:  t.M,
 		Ca: t.Ca,
@@ -31,8 +31,8 @@ func (t *TMQ) Copy() TMQ {
 
 // RelTi returns the topographical index relative to gamma (g-Ti)
 func (t *TMQ) RelTi() map[int]float64 {
-	out := make(map[int]float64, len(t.d))
-	for k, v := range t.d {
+	out := make(map[int]float64, len(t.D))
+	for k, v := range t.D {
 		out[k] = v / t.M
 	}
 	return out
@@ -54,7 +54,11 @@ func (t *TMQ) RelTi() map[int]float64 {
 
 // GetDi returns the local subsurface deficit (Di)
 func (t *TMQ) GetDi(cid int) float64 {
-	return t.Dm + t.d[cid]
+	if d, ok := t.D[cid]; ok {
+		return t.Dm + d
+	}
+	log.Fatalf(" TMQ.GetDi error: cell id %d not found in model\n", cid)
+	return t.Dm 
 }
 
 // // UpdateLumped state. input g: total basin average recharge per time step [m]
@@ -78,8 +82,8 @@ func (t *TMQ) IsSame(t1 *TMQ) (bool, string) {
 	}
 
 	c := 0
-	for i, d := range t.d {
-		dd := t1.d[i]
+	for i, d := range t.D {
+		dd := t1.D[i]
 		rd := math.Abs(mmaths.RelativeDifference(d, dd))
 		if rd > 1e-10 {
 			c++
@@ -88,6 +92,5 @@ func (t *TMQ) IsSame(t1 *TMQ) (bool, string) {
 	if c > 0 {
 		return false, fmt.Sprintf("t: %d", c)
 	}
-
 	return true, "nil"
 }

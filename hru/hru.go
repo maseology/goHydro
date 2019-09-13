@@ -66,6 +66,21 @@ func (h *HRU) Update(p, ep float64) (aet, ro, rch float64) {
 	return
 }
 
+// UpdateWT hru given a set of forcings and the presence of a watertable
+func (h *HRU) UpdateWT(p, ep, zwt float64) (aet, ro, rch float64) {	
+	if zwt < 0. { // upward gradient
+		rch = -h.sma.Deficit() // groundwater discharge (negative recharge)
+		h.sma.sto = h.sma.cap
+		sri := h.fimp * p // impervious runoff
+		ro = h.srf.Overflow(p-sri) + sri // fulfill surface storage
+		rch += h.srf.Overflow(-ep) // remaining available ep assumed to be taken from high watertable
+		aet = ep
+	} else {
+		aet, ro, rch = h.Update(p,ep)
+	}
+	return
+}
+
 // UpdateP adds precip to the hru and returns runoff
 func (h *HRU) UpdateP(p float64) float64 {
 	sri := h.fimp * p // impervious runoff

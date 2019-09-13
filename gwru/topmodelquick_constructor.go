@@ -3,13 +3,13 @@ package gwru
 import (
 	"log"
 	"math"
-
+	
 	"github.com/maseology/goHydro/tem"
 )
 
 // New constructor. unit-volum inputs (i.e., [m/ts])
 //  ksat: saturated hydraulic conductivity [m/ts]
-func (t *TMQ) New(ksat map[int]float64, upcnt map[int]int, topo *tem.TEM, cw, m, Q0 float64) (map[int]float64, float64) {
+func (t *TMQ) New(ksat map[int]float64, upcnt map[int]int, topo *tem.TEM, cw, m, Q0, strmkm2 float64) (map[int]float64, float64) {
 	// checkInputs(ksat, topo, cw, 1., 1., m)
 	t.M = m                                               // parameter [m]
 	n := len(ksat)                                        // number of cells
@@ -29,7 +29,7 @@ func (t *TMQ) New(ksat map[int]float64, upcnt map[int]int, topo *tem.TEM, cw, m,
 
 	g := 0.
 	ti := make(map[int]float64, n)  // soil-topographic index
-	t.d = make(map[int]float64, n)  // cell deficits relative to Dm
+	t.D = make(map[int]float64, n)  // cell deficits relative to Dm
 	t.Qs = make(map[int]float64, n) // saturated lateral discharge [m/ts]
 	for i, k := range ksat {
 		tsat := k * cw                        // lateral transmisivity when soil is saturated [m²/ts]
@@ -48,13 +48,13 @@ func (t *TMQ) New(ksat map[int]float64, upcnt map[int]int, topo *tem.TEM, cw, m,
 	g /= float64(n) // assumes uniform square cells
 
 	for i, v := range ti {
-		t.d[i] = m * (g - v) // deficit at cell i relative to Dm [m]
+		t.D[i] = m * (g - v) // deficit at cell i relative to Dm [m]
 	}
 
 	// imitialize
-	t.Dm = -m * (g + math.Log(Q0))
-	t.steady()
-	// fmt.Printf("  catchemnt area: %.3f km²; m %.3f; Dm0: %.3f; niter: %d\n", t.Ca/1000./1000., m, t.Dm, t.steady())
+	t.Dm = 2.5//-m * (g + math.Log(Q0))
+	// t.steady()
+	// fmt.Printf("  catchemnt area: %.3f km²; m %.3f; Dm0: %.3f; niter: %d\n", t.Ca/1000./1000., m, t.Dm, -1)//t.steady())
 	return ti, g
 }
 
@@ -63,26 +63,28 @@ func (t *TMQ) steady() (niter int) {
 	tl := 0.
 	for {
 		niter++
-		qb, lsum, lcnt := 0., 0., 0.
-		for i, v := range t.Qs {
-			di := t.Dm + t.d[i]
-			qb += v * math.Exp(-di/t.M)
-		}
-		qb /= float64(len(t.d))
+		// qb := 0.
+		// for i, v := range t.Qs {
+		// 	di := t.Dm + t.D[i]
+		// 	qb += v * math.Exp(-di/t.M)
+		// }
+		// qb /= float64(len(t.D))
+		qb := 1.* math.Exp(-t.Dm/t.M)
 		if math.Abs(tl-qb) < 1.e-3 || niter > 100 {
 			break
 		}
-		for _, d := range t.d {
-			di := t.Dm + d
-			if di < 0 {
-				lsum -= di
-				lcnt++
-			}
-		}
-		t.Dm += qb - .001 //  adding 1mm/ts recharge
-		if lcnt > 0 {
-			t.Dm += lsum / lcnt
-		}
+		// lsum, lcnt := 0., 0.
+		// for _, d := range t.D {
+		// 	di := t.Dm + d
+		// 	if di < 0 {
+		// 		lsum -= di
+		// 		lcnt++
+		// 	}
+		// }
+		t.Dm += qb - .001 //  adding recharge [m/ts]
+		// if lcnt > 0 {
+		// 	t.Dm += lsum / lcnt
+		// }
 		if math.IsNaN(t.Dm) {
 			log.Fatalf(" TMQ.steady error: Dm=NaN; m=%.3e; niter=%d\n", t.M, niter)
 		}

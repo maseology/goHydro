@@ -11,8 +11,8 @@ func (r *Res) Initialize(init, cap float64) {
 	r.cap = cap
 }
 
-// Overflow : update state. p is an net addition and function returns excess.
-// If p<0 and |p|>sto, function returns remainder of sink
+// Overflow : update state. p is an net addition and function returns excess (+).
+// If p<0 and |p|>sto, function returns remainder of sink (-).
 func (r *Res) Overflow(p float64) float64 {
 	r.sto += p
 	if r.sto < 0. {
