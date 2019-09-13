@@ -9,8 +9,8 @@ import (
 
 // New constructor. unit-volum inputs (i.e., [m/ts])
 //  ksat: saturated hydraulic conductivity [m/ts]
-func (t *TMQ) New(ksat map[int]float64, upcnt map[int]int, topo tem.TEM, cw, m, Q0 float64) (map[int]float64, float64) {
-	checkInputs(ksat, topo, cw, 1., 1., m)
+func (t *TMQ) New(ksat map[int]float64, upcnt map[int]int, topo *tem.TEM, cw, m, Q0 float64) (map[int]float64, float64) {
+	// checkInputs(ksat, topo, cw, 1., 1., m)
 	t.M = m                                               // parameter [m]
 	n := len(ksat)                                        // number of cells
 	t.Ca = cw * cw * float64(n)                           // cw: cell width, Ca: basin (catchment) area [m²]
@@ -37,7 +37,8 @@ func (t *TMQ) New(ksat map[int]float64, upcnt map[int]int, topo tem.TEM, cw, m, 
 		ai := float64(uca[i]) * cw            // contributing area per unit contour [m] (assumes uniform square cells)
 		ti[i] = math.Log(ai / tsat / tanbeta) // soil-topographic index
 		if upcnt[i] >= strmcthresh {          // selecting only stream cells
-			t.Qs[i] = omega * tsat * tanbeta * cw / t.Ca // (Qi) saturated lateral discharge (when Dm=0) at stream cells [m/ts]
+			// t.Qs[i] = omega * tsat * tanbeta * cw / t.Ca // (Qi) saturated lateral discharge (when Dm=0) at stream cells [m/ts]
+			t.Qs[i] = omega * tsat * tanbeta / cw // (Qi) saturated lateral discharge (when Dm=0) at stream cells [m/ts]
 		}
 		if math.IsNaN(ti[i]) {
 			log.Fatalf(" TMQ.New error: topographic index is NaN. slope = %f\n", topo.TEC[i].S)
@@ -53,7 +54,7 @@ func (t *TMQ) New(ksat map[int]float64, upcnt map[int]int, topo tem.TEM, cw, m, 
 	// imitialize
 	t.Dm = -m * (g + math.Log(Q0))
 	t.steady()
-	// fmt.Printf("  catchemnt area: %.3f km²; Dm0: %.3f; niter: %d\n", t.Ca/1000./1000., t.Dm, t.steady())
+	// fmt.Printf("  catchemnt area: %.3f km²; m %.3f; Dm0: %.3f; niter: %d\n", t.Ca/1000./1000., m, t.Dm, t.steady())
 	return ti, g
 }
 
@@ -67,7 +68,8 @@ func (t *TMQ) steady() (niter int) {
 			di := t.Dm + t.d[i]
 			qb += v * math.Exp(-di/t.M)
 		}
-		if math.Abs(tl-qb) < 1.e-3 {
+		qb /= float64(len(t.d))
+		if math.Abs(tl-qb) < 1.e-3 || niter > 100 {
 			break
 		}
 		for _, d := range t.d {
@@ -77,7 +79,13 @@ func (t *TMQ) steady() (niter int) {
 				lcnt++
 			}
 		}
-		t.Dm += qb + lsum/lcnt - .0005 //  adding ~5mm/ts recharge
+		t.Dm += qb - .001 //  adding 1mm/ts recharge
+		if lcnt > 0 {
+			t.Dm += lsum / lcnt
+		}
+		if math.IsNaN(t.Dm) {
+			log.Fatalf(" TMQ.steady error: Dm=NaN; m=%.3e; niter=%d\n", t.M, niter)
+		}
 		tl = qb
 	}
 	return

@@ -19,6 +19,7 @@ type Definition struct {
 	act                   map[int]bool
 	eorig, norig, rot, cs float64
 	nr, nc, na            int
+	Name string
 }
 
 // ReadGDEF imports a grid definition file
@@ -107,7 +108,7 @@ func ReadGDEF(fp string) (*Definition, error) {
 			cid++
 		}
 	}
-
+gd.Name="asdf"
 	return &gd, nil
 }
 
@@ -196,6 +197,22 @@ func (gd *Definition) CellArea() float64 {
 	return gd.cs * gd.cs
 }
 
+// SaveAs writes a grid definition file of format *.gdef
+func (gd *Definition) SaveAs(fp string) error {
+	t, err := mmio.NewTXTwriter(fp)
+	if err != nil {
+		return fmt.Errorf(" Definition.SaveAs: %v", err)
+	}
+	defer t.Close()
+	t.WriteLine(fmt.Sprintf("%f", gd.eorig))
+	t.WriteLine(fmt.Sprintf("%f", gd.norig))
+	t.WriteLine(fmt.Sprintf("%f", gd.rot))
+	t.WriteLine(fmt.Sprintf("%d", gd.nr))
+	t.WriteLine(fmt.Sprintf("%d", gd.nc))
+	t.WriteLine(fmt.Sprintf("U%f", gd.cs))
+	return nil
+}
+
 // ToASCheader writes ASC grid header info to writer
 func (gd *Definition) ToASCheader(t *mmio.TXTwriter) {
 	t.WriteLine(fmt.Sprintf("ncols %d", gd.nc))
@@ -212,7 +229,7 @@ func (gd *Definition) ToASCheader(t *mmio.TXTwriter) {
 func (gd *Definition) ToASC(fp string) error {
 	t, err := mmio.NewTXTwriter(fp)
 	if err != nil {
-		return fmt.Errorf("GDEF ToASC: %v", err)
+		return fmt.Errorf(" Definition.ToASC: %v", err)
 	}
 	defer t.Close()
 	gd.ToASCheader(t)

@@ -46,10 +46,10 @@ func (t *TEM) checkVals() {
 	}
 }
 func (t *TEM) buildUpslopes() {
-	t.us = make(map[int][]int)
+	t.USlp = make(map[int][]int)
 	for i, v := range t.TEC {
 		if v.Ds >= 0 {
-			t.us[v.Ds] = append(t.us[v.Ds], i)
+			t.USlp[v.Ds] = append(t.USlp[v.Ds], i)
 		}
 	}
 }

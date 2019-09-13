@@ -9,7 +9,7 @@ import (
 )
 
 // New constructor
-func (t *TOPMODEL) New(ksat map[int]float64, topo tem.TEM, cw, q0, qo, m float64) {
+func (t *TOPMODEL) New(ksat map[int]float64, topo *tem.TEM, cw, q0, qo, m float64) {
 	// ksat: saturated hydraulic conductivity [m/ts]
 	// q0: initial catchment flow rate [m³/ts]
 	checkInputs(ksat, topo, cw, q0, qo, m)
@@ -32,7 +32,7 @@ func (t *TOPMODEL) New(ksat map[int]float64, topo tem.TEM, cw, q0, qo, m float64
 	t.updateDeficits()
 }
 
-func checkInputs(ksat map[int]float64, topo tem.TEM, cw, q0, qo, m float64) {
+func checkInputs(ksat map[int]float64, topo *tem.TEM, cw, q0, qo, m float64) {
 	for i, k := range ksat {
 		if k <= 0. {
 			log.Panicf(" TOPMODEL.checkInputs error: cell %d has an assigned ksat = %v\n", i, k)

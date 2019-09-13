@@ -45,7 +45,7 @@ func (h *HRU) Initialize(rzsto, srfsto, fimp, ksat, ts float64) {
 	h.fimp = fimp      // fraction impervious
 	h.fprv = 1. - fimp // fraction pervious
 	// h.perc = ts * h.fprv * ksat // gravity-driven percolation rate m/ts
-	h.perc = ts * ksat // gravity-driven percolation rate m/ts
+	h.perc = ts * ksat // gravity-driven percolation rate m/ts (unit gradient)
 }
 
 // Reset state
@@ -81,7 +81,17 @@ func (h *HRU) UpdateEp(ep float64) float64 {
 
 // UpdatePerc updates hru given no forcings (percolation only)
 func (h *HRU) UpdatePerc() float64 {
-	return h.sma.Overflow(-h.perc) + h.perc
+	return h.sma.Overflow(-h.perc) + h.perc // amount recharged
+}
+
+// UpdatePercWT updates hru over a high water table
+// returns net groundwater exchange (negative: recharge, positive: discharge after filling soil zone)
+// zwt: depth to watertable [m]
+func (h *HRU) UpdatePercWT(zwt float64) float64 {
+	if zwt < 0. { // upward gradient
+		return h.sma.Overflow(h.perc * -zwt) // groundwater seepage, assumes unit gradient, unit thickness
+	}
+	return -(h.sma.Overflow(-h.perc) + h.perc) // returns the amount recharged
 }
 
 // UpdateIN updates hru given a set of input forcings only
