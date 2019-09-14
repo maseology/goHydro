@@ -68,7 +68,9 @@ func (t *TEM) loadUHDEM(fp string) (map[int]mmaths.Point, error) {
 
 	// read dem data
 	var nc int32
-	binary.Read(buf, binary.LittleEndian, &nc) // number of cells
+	if err := binary.Read(buf, binary.LittleEndian, &nc); err != nil { // number of cells
+		return nil, fmt.Errorf("Fatal error: loadUHDEM uhdem read failed: %v", err)
+	}
 	t.TEC = make(map[int]TEC, nc)
 	coord := make(map[int]mmaths.Point, nc)
 	// for i := int32(0); i < nc; i++ {
@@ -88,7 +90,9 @@ func (t *TEM) loadUHDEM(fp string) (map[int]mmaths.Point, error) {
 
 	// read flowpaths
 	var nfp int32
-	binary.Read(buf, binary.LittleEndian, &nfp) // number of flowpaths
+	if err := binary.Read(buf, binary.LittleEndian, &nfp); err != nil { // number of flowpaths
+		return nil, fmt.Errorf("Fatal error: loadUHDEM flowpath read failed: %v", err)
+	}
 	// for i := int32(0); i < nfp; i++ {
 	// 	f := fpReader{}
 	// 	f.fpRead(buf)
