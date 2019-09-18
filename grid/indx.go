@@ -83,9 +83,10 @@ func (r *Indx) Value(cid int) int {
 
 // UniqueValues returns the value of a given cell ID
 func (r *Indx) UniqueValues() []int {
-	c := make([]int, len(r.a))
-	for i, v := range r.a {
+	c, i := make([]int, len(r.a)), 0
+	for _, v := range r.a {
 		c[i] = v
+		i++
 	}
 	return mmaths.UniqueInts(c)
 }
@@ -127,8 +128,11 @@ func (r *Indx) getBinaryShort(fp string, rowmajor bool) {
 				}
 			}
 		}
+	case 2 * r.gd.nr * r.gd.nc, 2 * r.gd.na:
+		// log.Fatalf(" Indx.getBinaryShort: %s is not of type short", fp)
+		r.getBinary(fp, rowmajor)
 	default:
-		log.Fatalf(" Indx.getBinaryShort: grid does not match definition length")
+		log.Fatalf(" Indx.getBinaryShort: %s does not match definition length", fp)
 	}
 }
 

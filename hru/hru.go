@@ -29,8 +29,8 @@ type HRU struct {
 }
 
 // PercFimpCap returns percolation rates, fraction impervious, and storage capacity on the HRU
-func (h *HRU) PercFimpCap() (perc, fimp, cap float64) {
-	return h.perc, h.fimp, h.sma.cap + h.srf.cap
+func (h *HRU) PercFimpCap() (perc, fimp, smacap, srfcap float64) {
+	return h.perc, h.fimp, h.sma.cap, h.srf.cap
 }
 
 // Initialize HRU
@@ -67,16 +67,16 @@ func (h *HRU) Update(p, ep float64) (aet, ro, rch float64) {
 }
 
 // UpdateWT hru given a set of forcings and the presence of a watertable
-func (h *HRU) UpdateWT(p, ep, zwt float64) (aet, ro, rch float64) {	
+func (h *HRU) UpdateWT(p, ep, zwt float64) (aet, ro, rch float64) {
 	if zwt < 0. { // upward gradient
 		rch = -h.sma.Deficit() // groundwater discharge (negative recharge)
 		h.sma.sto = h.sma.cap
-		sri := h.fimp * p // impervious runoff
+		sri := h.fimp * p                // impervious runoff
 		ro = h.srf.Overflow(p-sri) + sri // fulfill surface storage
-		rch += h.srf.Overflow(-ep) // remaining available ep assumed to be taken from high watertable
+		rch += h.srf.Overflow(-ep)       // remaining available ep assumed to be taken from high watertable
 		aet = ep
 	} else {
-		aet, ro, rch = h.Update(p,ep)
+		aet, ro, rch = h.Update(p, ep)
 	}
 	return
 }
@@ -121,6 +121,12 @@ func (h *HRU) UpdateIN(p float64) (ro, rch float64) {
 // UpdateStorage simply adds infiltration to storage (soil first, excess to surface depressions)
 func (h *HRU) UpdateStorage(f float64) float64 {
 	return h.srf.Overflow(h.sma.Overflow(f))
+}
+
+// AddToStorage simply adds infiltration to storage (soil first, excess to surface depressions), but keeps water onsite
+func (h *HRU) AddToStorage(f float64) {
+	// h.srf.sto += h.sma.Overflow(f)
+	h.sma.sto += h.srf.Overflow(f)
 }
 
 // Storage returns total current storages
