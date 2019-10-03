@@ -1,16 +1,16 @@
 package tem
 
 import (
-	"os"
-	"encoding/gob"
 	"container/list"
+	"encoding/gob"
 	"log"
+	"os"
 )
 
 // TEM topologic elevation model
 type TEM struct {
-	TEC map[int]TEC
-	USlp  map[int][]int
+	TEC  map[int]TEC
+	USlp map[int][]int
 }
 
 // NumCells number of cells that make up the TEM
@@ -29,7 +29,7 @@ func (t *TEM) Save(fp string) error {
 	err = enc.Encode(t)
 	if err != nil {
 		return err
-	}	
+	}
 	return nil
 }
 
@@ -127,6 +127,21 @@ func (t *TEM) DownslopeContributingAreaIDs(cid0 int) ([]int, map[int]int) {
 	ds[cid0] = -1
 	u := make([]int, i+1)
 	copy(u, c)
+
+	// cktopo := make(map[int]bool, len(u))
+	// for _, i := range u {
+	// 	if _, ok := cktopo[i]; ok {
+	// 		log.Fatalf(" TEM.DownslopeContributingAreaIDs error: cell %d occured more than once, possible cycle", i)
+	// 	}
+	// 	if _, ok := ds[i]; !ok {
+	// 		log.Fatalf(" TEM.DownslopeContributingAreaIDs error: cell %d not given dowslope id", i)
+	// 	}
+	// 	if _, ok := cktopo[ds[i]]; ok {
+	// 		log.Fatalf(" TEM.DownslopeContributingAreaIDs error: cell %d out of topological order", i)
+	// 	}
+	// 	cktopo[i] = true
+	// }
+
 	return u, ds
 }
 

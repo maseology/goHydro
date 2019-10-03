@@ -37,3 +37,13 @@ func (r *Res) Storage() float64 {
 func (r *Res) Deficit() float64 {
 	return r.cap - r.sto
 }
+
+// Skim returns excess (sto-cap>0) and resets sto=cap.
+// if negative, Skim returns the negative of Deficit.
+func (r *Res) Skim() float64 {
+	x := r.sto - r.cap
+	if x > 0. {
+		r.sto = r.cap
+	}
+	return x
+}
