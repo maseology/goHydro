@@ -69,7 +69,7 @@ func (h *HRU) Update(p, ep float64) (aet, ro, rch float64) {
 // UpdateWT hru given a set of forcings and the presence of a watertable
 func (h *HRU) UpdateWT(p, ep, zwt float64) (aet, ro, rch float64) {
 	if zwt < 0. { // upward gradient
-		x := h.sma.Skim() // excess water (note: the srf always overflow to sma)
+		x := h.sma.Skim() // excess water (note: the srf always overflows to sma)
 		if x < 0. {
 			rch = x               // groundwater discharge (negative recharge)
 			h.sma.sto = h.sma.cap // fill drainable porosity
@@ -143,6 +143,11 @@ func (h *HRU) AddToStorage(f float64) {
 // Storage returns total current storages
 func (h *HRU) Storage() float64 {
 	return h.sma.Storage() + h.srf.Storage()
+}
+
+// Storage2 returns total current storages (individually)
+func (h *HRU) Storage2() (float64, float64) {
+	return h.sma.Storage(), h.srf.Storage()
 }
 
 // Deficit returns current storage deficit
