@@ -16,7 +16,7 @@ const (
 	angvel            = 0.261799387799149 // rad/hr: angular velocity = 2*PI/24hr
 	earthAxialTilt    = 23.43689 * Pi / 180.
 	earthEccentricity = 0.0167
-	minf              = 0.5 // minimum radiation factor si.f
+	// minf              = 0.5 // minimum radiation factor si.f
 )
 
 // SolIrad a stuct used to compute potential solar irradiation given latitude, slope and aspect.
@@ -30,7 +30,7 @@ type SolIrad struct {
 }
 
 // New constructor
-func New(LatitudeDeg, SlopeRad, AspectCwnRad float64) SolIrad {
+func New(LatitudeDeg, SlopeRad, AspectCwnRad, minf float64) SolIrad {
 	// southern Ontario Latitude_deg = 43.6
 	var si SolIrad
 	si.Lat = LatitudeDeg * Pi / 180.
@@ -40,9 +40,11 @@ func New(LatitudeDeg, SlopeRad, AspectCwnRad float64) SolIrad {
 	si.buildRadiusVectorSquared()
 	si.horizontalSurfaceCompute()
 	si.slopingSurfaceCompute()
-	for d := 0; d < 366; d++ {
-		if si.f[d] < 1. {
-			si.f[d] = si.f[d]*(1.-minf) + minf
+	if minf > 0. {
+		for d := 0; d < 366; d++ {
+			if si.f[d] < 1. {
+				si.f[d] = si.f[d]*(1.-minf) + minf
+			}
 		}
 	}
 	return si
