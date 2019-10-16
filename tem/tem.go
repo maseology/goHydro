@@ -18,8 +18,8 @@ func (t *TEM) NumCells() int {
 	return len(t.TEC)
 }
 
-// Save TEM to gob
-func (t *TEM) Save(fp string) error {
+// SaveGob TEM to gob
+func (t *TEM) SaveGob(fp string) error {
 	f, err := os.Create(fp)
 	defer f.Close()
 	if err != nil {
@@ -33,8 +33,8 @@ func (t *TEM) Save(fp string) error {
 	return nil
 }
 
-// Load TEM gob
-func Load(fp string) (TEM, error) {
+// LoadGob TEM gob
+func LoadGob(fp string) (TEM, error) {
 	var t TEM
 	f, err := os.Open(fp)
 	defer f.Close()

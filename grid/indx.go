@@ -98,7 +98,7 @@ func (r *Indx) Values() map[int]int {
 
 func (r *Indx) getGDef(fp string) {
 	var err error
-	r.gd, err = ReadGDEF(fp)
+	r.gd, err = ReadGDEF(fp, true)
 	if err != nil {
 		log.Fatalf("getGDef: %v", err)
 	}

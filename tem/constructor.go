@@ -6,9 +6,17 @@ import (
 	"math"
 	"path/filepath"
 
+	"github.com/maseology/goHydro/grid"
 	"github.com/maseology/mmaths"
 	"github.com/maseology/mmio"
 )
+
+// NewTEM loads TEM
+func NewTEM(fp string) (*TEM, error) {
+	var t TEM
+	err := t.New(fp)
+	return &t, err
+}
 
 // New contructor
 func (t *TEM) New(fp string) error {
@@ -36,8 +44,8 @@ func (t *TEM) New(fp string) error {
 func (t *TEM) checkVals() {
 	for k, v := range t.TEC {
 		v1 := v
-		if v.S < 0.0001 {
-			v1.S = 0.0001
+		if v.G < 0.0001 {
+			v1.G = 0.0001
 		}
 		if v.A < -math.Pi {
 			v1.A = 0.
@@ -73,12 +81,6 @@ func (t *TEM) loadUHDEM(fp string) (map[int]mmaths.Point, error) {
 	}
 	t.TEC = make(map[int]TEC, nc)
 	coord := make(map[int]mmaths.Point, nc)
-	// for i := int32(0); i < nc; i++ {
-	// 	u := uhdemReader{}
-	// 	u.uhdemRead(buf)
-	// 	ii := int(u.I)
-	// 	coord[ii], t.TEC[ii] = u.toTEC()
-	// }
 	uc := make([]uhdemReader, nc)
 	if err := binary.Read(buf, binary.LittleEndian, uc); err != nil {
 		return nil, fmt.Errorf("Fatal error: loadUHDEM uhdem read failed: %v", err)
@@ -93,13 +95,6 @@ func (t *TEM) loadUHDEM(fp string) (map[int]mmaths.Point, error) {
 	if err := binary.Read(buf, binary.LittleEndian, &nfp); err != nil { // number of flowpaths
 		return nil, fmt.Errorf("Fatal error: loadUHDEM flowpath read failed: %v", err)
 	}
-	// for i := int32(0); i < nfp; i++ {
-	// 	f := fpReader{}
-	// 	f.fpRead(buf)
-	// 	var x = t.TEC[int(f.I)]
-	// 	x.Ds = int(f.Ids)
-	// 	t.TEC[int(f.I)] = x
-	// }
 	fc := make([]fpReader, nfp)
 	if err := binary.Read(buf, binary.LittleEndian, fc); err != nil {
 		return nil, fmt.Errorf("Fatal error: loadUHDEM flowpath read failed: %v", err)
@@ -125,54 +120,63 @@ func (t *TEM) loadHDEM(fp string) (map[int]mmaths.Point, error) {
 	typ := mmio.ReadString(buf)
 	switch typ {
 	case "grid":
-		// do nothing
+		// read dem data
+		var nc int32
+		binary.Read(buf, binary.LittleEndian, &nc) // number of cells
+		t.TEC = make(map[int]TEC, nc)
+		coord := make(map[int]mmaths.Point, nc)
+		uc := make([]uhdemReader, nc)
+		if err := binary.Read(buf, binary.LittleEndian, uc); err != nil {
+			return nil, fmt.Errorf("Fatal error: loadHDEM uhdem read failed: %v", err)
+		}
+		for _, u := range uc {
+			ii := int(u.I)
+			coord[ii], t.TEC[ii] = u.toTEC()
+		}
+
+		// read flowpaths
+		var nfp int32
+		binary.Read(buf, binary.LittleEndian, &nfp) // number of flowpaths
+		fc := make([]fpReader, nfp)
+		if err := binary.Read(buf, binary.LittleEndian, fc); err != nil {
+			return nil, fmt.Errorf("Fatal error: loadHDEM flowpath read failed: %v", err)
+		}
+		for _, f := range fc {
+			ii := int(f.I)
+			var x = t.TEC[ii]
+			x.Ds = int(f.Ids)
+			t.TEC[ii] = x
+		}
+
+		if mmio.ReachedEOF(buf) {
+			return coord, nil
+		}
+	case "":
+		// old/raw version
+		if _, ok := mmio.FileExists(mmio.RemoveExtension(fp) + ".gdef"); !ok {
+			return nil, fmt.Errorf("Fatal error: gdef required to read %s", fp)
+		}
+		gd, err := grid.ReadGDEF(mmio.RemoveExtension(fp)+".gdef", false)
+		if err != nil {
+			return nil, err
+		}
+		nc := gd.Ncells()
+		t.TEC = make(map[int]TEC, nc)
+		coord := make(map[int]mmaths.Point, nc)
+		hc := make([]hdemReader, nc)
+		buf = mmio.OpenBinary(fp) // re-open buf
+		if err := binary.Read(buf, binary.LittleEndian, hc); err != nil {
+			return nil, fmt.Errorf("Fatal error: loadHDEM hdem read failed: %v", err)
+		}
+		for i, h := range hc {
+			t.TEC[i] = h.toTEC()
+			coord[i] = gd.Coord[i]
+		}
+		if mmio.ReachedEOF(buf) {
+			return coord, nil
+		}
 	default:
 		return nil, fmt.Errorf("Fatal error: unsupported HDEM filetype: '%s'", typ)
-	}
-
-	// read dem data
-	var nc int32
-	binary.Read(buf, binary.LittleEndian, &nc) // number of cells
-	t.TEC = make(map[int]TEC, nc)
-	coord := make(map[int]mmaths.Point, nc)
-	// for i := int32(0); i < nc; i++ {
-	// 	u := uhdemReader{}
-	// 	u.uhdemRead(buf)
-	// 	ii := int(u.I)
-	// 	coord[ii], t.TEC[ii] = u.toTEC()
-	// }
-	uc := make([]uhdemReader, nc)
-	if err := binary.Read(buf, binary.LittleEndian, uc); err != nil {
-		return nil, fmt.Errorf("Fatal error: loadHDEM uhdem read failed: %v", err)
-	}
-	for _, u := range uc {
-		ii := int(u.I)
-		coord[ii], t.TEC[ii] = u.toTEC()
-	}
-
-	// read flowpaths
-	var nfp int32
-	binary.Read(buf, binary.LittleEndian, &nfp) // number of flowpaths
-	// for i := int32(0); i < nfp; i++ {
-	// 	f := fpReader{}
-	// 	f.fpRead(buf)
-	// 	var x = t.TEC[int(f.I)]
-	// 	x.Ds = int(f.Ids)
-	// 	t.TEC[int(f.I)] = x
-	// }
-	fc := make([]fpReader, nfp)
-	if err := binary.Read(buf, binary.LittleEndian, fc); err != nil {
-		return nil, fmt.Errorf("Fatal error: loadHDEM flowpath read failed: %v", err)
-	}
-	for _, f := range fc {
-		ii := int(f.I)
-		var x = t.TEC[ii]
-		x.Ds = int(f.Ids)
-		t.TEC[ii] = x
-	}
-
-	if mmio.ReachedEOF(buf) {
-		return coord, nil
 	}
 	return nil, fmt.Errorf("Fatal error: HDEM file contains extra data")
 }

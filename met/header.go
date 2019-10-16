@@ -2,6 +2,7 @@ package met
 
 import (
 	"fmt"
+	"log"
 	"time"
 )
 
@@ -55,6 +56,7 @@ func (h *Header) Print() {
 	if h.intvl > 0 {
 		fmt.Println(" start date " + h.dtb.Format("2006-01-02"))
 		fmt.Println(" end date " + h.dte.Format("2006-01-02")) // 15:04:05"))
+		fmt.Printf(" n steps %d\n", h.Nstep())
 	}
 	fmt.Printf(" location code %d\n", h.lc)
 	fmt.Printf(" coordinate projection (ESPG) %d\n", h.ESPG)
@@ -70,4 +72,26 @@ func (h *Header) Print() {
 			}
 		}
 	}
+}
+
+// Copy creates a deep copy of a Header
+func (h *Header) Copy() *Header {
+	hnew := *h
+	newLoc := make(map[int][]interface{}, len(h.Locations))
+	for k, v := range h.Locations {
+		vs := make([]interface{}, len(v))
+		copy(vs, v)
+		newLoc[k] = vs
+	}
+	hnew.Locations = newLoc
+	return &hnew
+}
+
+// SetWBDC changes the water budget data code
+func (h *Header) SetWBDC(wbdc uint64) {
+	if wbdc == 0 {
+		log.Panicf("waterbalance data code %d currently not supported\n", h.wbdc)
+	}
+	h.wbdc = wbdc
+	h.wbl = WBcodeToMap(wbdc)
 }

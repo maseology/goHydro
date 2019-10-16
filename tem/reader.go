@@ -9,9 +9,19 @@ import (
 	"github.com/maseology/mmaths"
 )
 
+type hdemReader struct {
+	Z, G, A float64
+}
+
 type uhdemReader struct {
 	I             int32
-	X, Y, Z, S, A float64
+	X, Y, Z, G, A float64
+}
+
+func (h *hdemReader) toTEC() TEC {
+	var t TEC
+	t.New(h.Z, h.G, h.A, -1)
+	return t
 }
 
 func (u *uhdemReader) uhdemRead(b *bytes.Reader) {
@@ -23,7 +33,7 @@ func (u *uhdemReader) uhdemRead(b *bytes.Reader) {
 
 func (u *uhdemReader) toTEC() (mmaths.Point, TEC) {
 	var t TEC
-	t.New(u.Z, u.S, u.A, -1)
+	t.New(u.Z, u.G, u.A, -1)
 	xy := mmaths.Point{X: u.X, Y: u.Y}
 	return xy, t
 }

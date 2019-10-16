@@ -20,7 +20,7 @@ func (r *Real) New(fp string) {
 
 func (r *Real) getGDef(fp string) {
 	var err error
-	r.gd, err = ReadGDEF(fp)
+	r.gd, err = ReadGDEF(fp, true)
 	if err != nil {
 		log.Fatalf("%v", err)
 	}

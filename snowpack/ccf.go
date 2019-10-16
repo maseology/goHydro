@@ -14,9 +14,11 @@ type CCF struct {
 
 // NewDefaultCCF returns a new CCF struct
 func NewDefaultCCF() CCF {
-	return CCF{
+	c := CCF{
 		tindex: 0.00035, // CCF temperature index; range .0002 to 0.0005 m/°C/d -- roughly 1/10 DDF (pg.278)
 	}
+	c.DDF.ddf = 0.0045 // DDF temperature index; range .001 to .008 m/°C/d  (pg.275)
+	return c
 }
 
 // Update state

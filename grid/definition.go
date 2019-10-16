@@ -19,11 +19,11 @@ type Definition struct {
 	act                   map[int]bool
 	eorig, norig, rot, cs float64
 	nr, nc, na            int
-	Name string
+	Name                  string
 }
 
 // ReadGDEF imports a grid definition file
-func ReadGDEF(fp string) (*Definition, error) {
+func ReadGDEF(fp string, print bool) (*Definition, error) {
 	file, err := os.Open(fp)
 	if err != nil {
 		return nil, fmt.Errorf("ReadGDEF: %v", err)
@@ -45,7 +45,7 @@ func ReadGDEF(fp string) (*Definition, error) {
 		}
 	}
 
-	gd, err := parseHeader(a)
+	gd, err := parseHeader(a, print)
 	if err != nil {
 		return nil, err
 	}
@@ -68,7 +68,9 @@ func ReadGDEF(fp string) (*Definition, error) {
 		// for i := 0; i < cx; i++ {
 		// 	gd.act[i] = true
 		// }
-		fmt.Printf(" %d cells (no actives)\n", gd.na)
+		if print {
+			fmt.Printf(" %d cells (no actives)\n", gd.na)
+		}
 	} else { // active cells
 		t := make([]byte, 1)
 		if v, _ := reader.Read(t); v != 0 {
@@ -89,7 +91,7 @@ func ReadGDEF(fp string) (*Definition, error) {
 		if cn != cx {
 			return nil, fmt.Errorf("Fatal error(s): ReadGDEF:\n   number of cells found (%d) not equal to total (%d): %v", cn, cx, err)
 		}
-		if gd.na > 0 {
+		if gd.na > 0 && print {
 			fmt.Printf(" %s actives\n", mmio.Thousands(int64(gd.na))) //11,118,568
 		}
 	}
@@ -108,11 +110,10 @@ func ReadGDEF(fp string) (*Definition, error) {
 			cid++
 		}
 	}
-gd.Name="asdf"
 	return &gd, nil
 }
 
-func parseHeader(a []string) (Definition, error) {
+func parseHeader(a []string, print bool) (Definition, error) {
 	stErr, uni := make([]string, 0), false
 	errfunc := func(v string, err error) {
 		stErr = append(stErr, fmt.Sprintf("   failed to read '%v': %v", v, err))
@@ -159,13 +160,15 @@ func parseHeader(a []string) (Definition, error) {
 	}
 
 	gd := Definition{eorig: oe, norig: on, rot: rot, cs: cs, nr: int(nr), nc: int(nc)}
-	fmt.Printf(" %f\n", oe)
-	fmt.Printf(" %f\n", on)
-	fmt.Printf(" %f\n", rot)
-	fmt.Println("", nr)
-	fmt.Println("", nc)
-	fmt.Printf(" %f\n", cs)
-	fmt.Println("", uni)
+	if print {
+		fmt.Printf(" %f\n", oe)
+		fmt.Printf(" %f\n", on)
+		fmt.Printf(" %f\n", rot)
+		fmt.Println("", nr)
+		fmt.Println("", nc)
+		fmt.Printf(" %f\n", cs)
+		fmt.Println("", uni)
+	}
 
 	return gd, nil
 }
@@ -185,6 +188,11 @@ func (gd *Definition) Actives() []int {
 // Nactives returns the count of active grid cells
 func (gd *Definition) Nactives() int {
 	return gd.na
+}
+
+// Ncells returns the count of grid cells
+func (gd *Definition) Ncells() int {
+	return gd.nc * gd.nr
 }
 
 // CellWidth returns the (uniform) width of the grid cells
