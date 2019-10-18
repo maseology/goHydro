@@ -5,7 +5,10 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
+	"log"
+	"math"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -185,6 +188,31 @@ func (gd *Definition) Actives() []int {
 	return out
 }
 
+// Sactives returns a SORTED slice of active cell IDs
+func (gd *Definition) Sactives() []int {
+	a := gd.Actives()
+	sort.Ints(a)
+	return a
+}
+
+// RowCol returns row and column index for a given cell ID
+func (gd *Definition) RowCol(cid int) (row, col int) {
+	if cid < 0 || cid > gd.nr*gd.nc {
+		log.Fatalf("Definition.RowCol error: invalid cell ID: %d", cid)
+	}
+	row = int(float64(cid) / float64(gd.nc))
+	col = cid - row*gd.nc
+	return
+}
+
+// CellID returns cell ID for a given row and column index
+func (gd *Definition) CellID(row, col int) int {
+	if row < 0 || row >= gd.nr || col < 0 || col >= gd.nc {
+		log.Fatalf("Definition.CellID error: invalid [row,col]: [%d,%d]", row, col)
+	}
+	return row*gd.nc + col
+}
+
 // Nactives returns the count of active grid cells
 func (gd *Definition) Nactives() int {
 	return gd.na
@@ -286,4 +314,43 @@ func (gd *Definition) ToAscData(fp string, d map[int]float64) error {
 		t.Write("\n")
 	}
 	return nil
+}
+
+// Intersect returns a mapping from current Definition to inputted Definition
+// for now, only Definitions that share the same origin, and cell sizes are mulitples can be considered
+func (gd *Definition) Intersect(toGD *Definition) map[int][]int {
+	// checks
+	if gd.eorig != toGD.eorig || gd.norig != toGD.norig {
+		log.Fatalf("Definition.Intersect error: Definitions must have the same origin")
+	}
+	if gd.rot != toGD.rot {
+		log.Fatalf("Definition.Intersect error: Definitions not in same orientation (i.e., rotation)")
+	}
+	intsct := make(map[int][]int, gd.Nactives())
+	if gd.cs > toGD.cs {
+		log.Fatalf("Definition.Intersect TODO")
+		log.Fatalf("Definition.Intersect: NNED TO CHECK CODE, not yet used.....")
+		if math.Mod(gd.cs, toGD.cs) != 0. {
+			log.Fatalf("Definition.Intersect error: Definitions grid definitions are not multiples: fromGD: %f, toGD: %f", gd.cs, toGD.cs)
+		}
+		scale := int(toGD.cs / gd.cs)
+		for _, c := range gd.Actives() {
+			i, j := gd.RowCol(c)
+			tocid := toGD.CellID(i*scale, j*scale)
+			intsct[c] = []int{tocid} // THIS IS INCONSISTENT ++++++++++++++++++++++++++++++++++++++++++++++++++++++
+		}
+	} else if gd.cs < toGD.cs {
+		if math.Mod(toGD.cs, gd.cs) != 0. {
+			log.Fatalf("Definition.Intersect error: Definitions grid definitions are not multiples: fromGD: %f, toGD: %f", gd.cs, toGD.cs)
+		}
+		scale := toGD.cs / gd.cs
+		for _, c := range gd.Actives() {
+			i, j := gd.RowCol(c)
+			tocid := toGD.CellID(int(float64(i)/scale), int(float64(j)/scale))
+			intsct[c] = []int{tocid}
+		}
+	} else {
+		log.Fatalf("Definition.Intersect TODO")
+	}
+	return intsct
 }

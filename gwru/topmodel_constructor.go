@@ -24,7 +24,7 @@ func (t *TOPMODEL) New(ksat map[int]float64, topo *tem.TEM, cw, q0, qo, m float6
 	for i, p := range topo.TEC {
 		t0 := ksat[i] * cw                               // lateral transmisivity when soil is saturated [m²/ts]
 		ai := float64(topo.UnitContributingArea(i)) / cw // contributing area per unit contour [m]
-		t.ti[i] = math.Log(ai / t0 / math.Tan(p.S))      // soil-topographic index
+		t.ti[i] = math.Log(ai / t0 / math.Tan(p.G))      // soil-topographic index
 		t.g += t.ti[i]                                   // gamma
 	}
 	t.g /= float64(n)
@@ -38,10 +38,10 @@ func checkInputs(ksat map[int]float64, topo *tem.TEM, cw, q0, qo, m float64) {
 			log.Panicf(" TOPMODEL.checkInputs error: cell %d has an assigned ksat = %v\n", i, k)
 		}
 		if p, ok := topo.TEC[i]; ok {
-			if p.S <= 0. {
-				fmt.Printf(" TOPMODEL.checkInputs warning: slope at cell %d was found to be %v, reset to 0.0001.", i, p.S)
+			if p.G <= 0. {
+				fmt.Printf(" TOPMODEL.checkInputs warning: slope at cell %d was found to be %v, reset to 0.0001.", i, p.G)
 				t := topo.TEC[i]
-				t.S = 0.0001
+				t.G = 0.0001
 				t.A = 0.
 				topo.TEC[i] = t
 			}

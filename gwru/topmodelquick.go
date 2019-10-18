@@ -54,11 +54,11 @@ func (t *TMQ) New(ksat map[int]float64, strm []int, topo *tem.TEM, cw, m float64
 	t.D = make(map[int]float64, n) // cell deficits relative to Dm
 	for i, k := range ksat {
 		tsat := k * cw                        // lateral transmisivity when soil is saturated [m²/ts]
-		tanbeta := math.Tan(topo.TEC[i].S)    // gradient
+		tanbeta := math.Tan(topo.TEC[i].G)    // gradient
 		ai := float64(uca[i]) * cw            // contributing area per unit contour [m] (assumes uniform square cells)
 		ti[i] = math.Log(ai / tsat / tanbeta) // soil-topographic index
 		if math.IsNaN(ti[i]) {
-			log.Fatalf(" TMQ.New error: topographic index is NaN. slope = %f\n", topo.TEC[i].S)
+			log.Fatalf(" TMQ.New error: topographic index is NaN. slope = %f\n", topo.TEC[i].G)
 		}
 		if _, ok := t.Qs[i]; ok {
 			t.Qs[i] = omega * tsat * tanbeta / cw // (Qi) saturated lateral discharge (when Dm=0) at stream cells [m/ts]

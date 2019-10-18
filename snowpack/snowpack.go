@@ -37,16 +37,22 @@ func (s *snowpack) properties() (porosity, depth float64) {
 	}
 	depth = s.swe * pw / s.den
 	tw := s.lwc / depth
-	porosity = 1. - (s.den - pw*tw/pi)
+	// porosity = 1. - (s.den - pw*tw/pi)
+	porosity = 1. + (pw*tw-s.den)/pi
 	return
 }
 
 func (s *snowpack) addToPack(sweFall, denFall float64) {
 	if sweFall > 0. {
-		s.den = (s.swe*s.den + sweFall*denFall) / (s.swe + sweFall)
-		s.swe += sweFall
-		if s.den < denmin || s.den > pw {
-			log.Fatalf("snowpack.addToPack error: snowpack density out of physical range")
+		if s.swe > 0. {
+			s.den = (s.swe*s.den + sweFall*denFall) / (s.swe + sweFall)
+			s.swe += sweFall
+			if s.den < denmin || s.den > pw {
+				log.Fatalf("snowpack.addToPack error: snowpack density out of physical range")
+			}
+		} else {
+			s.swe = sweFall
+			s.den = denFall
 		}
 	} else {
 		log.Fatalf("snowpack.addToPack error: negative swe being added")

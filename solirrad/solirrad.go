@@ -16,7 +16,7 @@ const (
 	angvel            = 0.261799387799149 // rad/hr: angular velocity = 2*PI/24hr
 	earthAxialTilt    = 23.43689 * Pi / 180.
 	earthEccentricity = 0.0167
-	// minf              = 0.5 // minimum radiation factor si.f
+	minf              = 0.5 // minimum radiation factor si.f
 )
 
 // SolIrad a stuct used to compute potential solar irradiation given latitude, slope and aspect.
@@ -30,7 +30,7 @@ type SolIrad struct {
 }
 
 // New constructor
-func New(LatitudeDeg, SlopeRad, AspectCwnRad, minf float64) SolIrad {
+func New(LatitudeDeg, SlopeRad, AspectCwnRad float64) SolIrad {
 	// southern Ontario Latitude_deg = 43.6
 	var si SolIrad
 	si.Lat = LatitudeDeg * Pi / 180.
@@ -147,7 +147,7 @@ func (si *SolIrad) slopingSurfaceCompute() {
 	}
 }
 
-// PSI potential solar irradiation for any instant in time [W/m2]
+// PSI potential solar irradiation for any instant in time [W/m²]
 func (si *SolIrad) PSI(HourRelativeToNoon float64, DayOfYear int) float64 {
 	d := Sin(si.Slope)*Cos(si.Aspect)*Cos(si.Lat) + Cos(si.Slope)*Sin(si.Lat)
 	lateq := Asin(d) // Eq B.6
@@ -156,7 +156,7 @@ func (si *SolIrad) PSI(HourRelativeToNoon float64, DayOfYear int) float64 {
 	return solcnst / .0036 / si.radivectsq[DayOfYear-1] * (Sin(lateq)*Sin(si.solardec[DayOfYear-1]) + Cos(lateq)*Cos(si.solardec[DayOfYear-1])*Cos(wt))
 }
 
-// PSIdaily potential solar irradiation for a given day of year [MJ/m2]
+// PSIdaily potential solar irradiation for a given day of year [MJ/m²]
 func (si *SolIrad) PSIdaily(DayOfYear int) float64 {
 	return si.psi[DayOfYear-1]
 }

@@ -8,7 +8,6 @@ import (
 	"math"
 	"os"
 	"path/filepath"
-	"sort"
 	"time"
 
 	"github.com/maseology/goHydro/grid"
@@ -88,15 +87,7 @@ func ReadMET(fp string, print bool) (*Header, *Coll, error) {
 	}
 
 	// read data
-	iwbl, nwbl := func() ([]uint64, int) {
-		keys := make([]uint64, 0, len(h.wbl))
-		for k := range h.wbl {
-			keys = append(keys, k)
-		}
-		sort.Slice(keys, func(i, j int) bool { return keys[i] < keys[j] })
-		return keys, len(keys)
-	}()
-
+	iwbl, nwbl := h.WBDCkeys()
 	nan := func(v float64) float64 { // no data handler
 		if v == -9999.0 {
 			return math.NaN()
@@ -269,15 +260,6 @@ func ReadBigMET(fp string, print bool) (*Header, *Coll, error) {
 	}
 
 	// read data
-	// iwbl, nwbl := func() ([]uint64, int) {
-	// 	keys := make([]uint64, 0, len(h.wbl))
-	// 	for k := range h.wbl {
-	// 		keys = append(keys, k)
-	// 	}
-	// 	sort.Slice(keys, func(i, j int) bool { return keys[i] < keys[j] })
-	// 	return keys, len(keys)
-	// }()
-
 	nan := func(v float64) float64 { // no data handler
 		if v == -9999.0 {
 			return math.NaN()
@@ -288,31 +270,11 @@ func ReadBigMET(fp string, print bool) (*Header, *Coll, error) {
 	nwbl := len(h.wbl)
 	ts := time.Second * time.Duration(h.intvl)
 	col := Coll{T: make([]time.Time, h.Nstep()), D: make([][][]float64, h.Nstep())}
-	// dc := make(map[time.Time]map[int]map[int]float64, h.Nstep())
 	if h.prc == 8 {
-		// for d := h.dtb; !d.After(h.dte); d = d.Add(ts) {
-		// 	dc[d] = make(map[int]map[int]float64, h.nloc)
-		// 	for i := 0; i < int(h.nloc); i++ {
-		// 		dc[d][i] = make(map[int]float64, len(iwbl))
-		// 		for _, j := range iwbl {
-		// 			dc[d][i][int(j)] = nan(mmio.ReadFloat64(b))
-		// 		}
-		// 	}
-		// }
 		fmt.Print("TODO")
 	} else if h.prc == 4 {
 		k := 0
 		for dt := h.dtb; !dt.After(h.dte); dt = dt.Add(ts) {
-			// fmt.Println(dt)
-			// dc[d] = make(map[int]map[int]float64, h.nloc)
-			// for i := 0; i < int(h.nloc); i++ {
-			// 	dc[d][i] = make(map[int]float64, len(iwbl))
-			// 	for _, j := range iwbl {
-			// 		dc[d][i][int(j)] = nan(float64(mmio.ReadFloat32(b)))
-			// 		cnt++
-			// 	}
-			// }
-			// fmt.Println(cnt)
 			col.T[k] = dt
 			bd := make([]byte, int(h.nloc)*nwbl*4)
 			if _, err := f.Read(bd); err != nil {

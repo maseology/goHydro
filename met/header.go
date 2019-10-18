@@ -3,6 +3,7 @@ package met
 import (
 	"fmt"
 	"log"
+	"sort"
 	"time"
 )
 
@@ -94,4 +95,28 @@ func (h *Header) SetWBDC(wbdc uint64) {
 	}
 	h.wbdc = wbdc
 	h.wbl = WBcodeToMap(wbdc)
+}
+
+// WBDCkeys returns an ordered key index associated with the waterbalance codes
+func (h *Header) WBDCkeys() ([]uint64, int) {
+	keys := make([]uint64, 0, len(h.wbl))
+	for k := range h.wbl {
+		keys = append(keys, k)
+	}
+	sort.Slice(keys, func(i, j int) bool { return keys[i] < keys[j] })
+	return keys, len(keys)
+}
+
+// WBDCxr return the zero-order array index of the waterbalance codes
+func (h *Header) WBDCxr() map[string]int {
+	keys := make([]uint64, 0, len(h.wbl))
+	for k := range h.wbl {
+		keys = append(keys, k)
+	}
+	sort.Slice(keys, func(i, j int) bool { return keys[i] < keys[j] })
+	m := make(map[string]int, len(keys))
+	for i, k := range keys {
+		m[h.wbl[k]] = i
+	}
+	return m
 }
