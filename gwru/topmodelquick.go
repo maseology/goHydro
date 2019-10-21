@@ -28,24 +28,14 @@ func (t *TMQ) Copy() TMQ {
 
 // New constructor. unit-volum inputs (i.e., [m/ts])
 //  ksat: saturated hydraulic conductivity [m/ts]
-func (t *TMQ) New(ksat map[int]float64, strm []int, topo *tem.TEM, cw, m float64) (map[int]float64, float64) {
+//  uca: unit contributing areas to every cell
+func (t *TMQ) New(ksat map[int]float64, uca map[int]int, strm []int, topo *tem.TEM, cw, m float64) (map[int]float64, float64) {
 	t.M = m
 	n := len(ksat)                          // number of cells
 	t.Qs = make(map[int]float64, len(strm)) // saturated lateral discharge [m/ts]
 	for _, c := range strm {
 		if _, ok := ksat[c]; ok {
 			t.Qs[c] = 0.
-		}
-	}
-
-	// compute unit contributing areas
-	uca := make(map[int]int, n)
-	for i := range ksat {
-		uca[i] = 1
-		for _, c := range topo.UpIDs(i) {
-			if _, ok := ksat[c]; ok { // to be kept within sws
-				uca[i] += topo.UnitContributingArea(c)
-			}
 		}
 	}
 

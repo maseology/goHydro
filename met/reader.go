@@ -108,7 +108,24 @@ func ReadMET(fp string, print bool) (*Header, *Coll, error) {
 		// 		}
 		// 	}
 		// }
-		fmt.Print("TODO")
+		k := 0
+		for dt := h.dtb; !dt.After(h.dte); dt = dt.Add(ts) {
+			col.T[k] = dt
+			a := make([]float64, int(h.nloc)*len(iwbl))
+			if err := binary.Read(b, binary.LittleEndian, &a); err != nil {
+				log.Fatalf(" met.ReadMET failed: %v", err)
+			}
+			col.D[k] = make([][]float64, int(h.nloc))
+			c := 0
+			for i := 0; i < int(h.nloc); i++ {
+				col.D[k][i] = make([]float64, nwbl)
+				for j := 0; j < nwbl; j++ {
+					col.D[k][i][j] = nan(a[c]) // [date ID][cell ID][type ID]
+					c++
+				}
+			}
+			k++
+		}
 	} else if h.prc == 4 {
 		k := 0
 		for dt := h.dtb; !dt.After(h.dte); dt = dt.Add(ts) {
@@ -127,11 +144,12 @@ func ReadMET(fp string, print bool) (*Header, *Coll, error) {
 			if err := binary.Read(b, binary.LittleEndian, &a); err != nil {
 				log.Fatalf(" met.ReadMET failed: %v", err)
 			}
-			col.D[k] = make([][]float64, nwbl)
+			col.D[k] = make([][]float64, int(h.nloc))
 			c := 0
 			for i := 0; i < int(h.nloc); i++ {
+				col.D[k][i] = make([]float64, nwbl)
 				for j := 0; j < nwbl; j++ {
-					col.D[k][i][j] = nan(float64(a[c]))
+					col.D[k][i][j] = nan(float64(a[c])) // [date ID][cell ID][type ID]
 					c++
 				}
 			}
