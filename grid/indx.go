@@ -3,7 +3,6 @@ package grid
 import (
 	"fmt"
 	"log"
-	"sort"
 
 	"github.com/maseology/mmaths"
 	"github.com/maseology/mmio"
@@ -144,14 +143,8 @@ func (r *Indx) getBinary(fp string, rowmajor bool) {
 	switch n {
 	case r.gd.na:
 		r.a = make(map[int]int, r.gd.na)
-		i, lst := 0, make([]int, len(r.gd.act))
-		for cid := range r.gd.act {
-			lst[i] = cid
-			i++
-		}
-		sort.Ints(lst)
-		for k, cid := range lst {
-			r.a[cid] = int(b[0][k])
+		for i, cid := range r.gd.Sactives {
+			r.a[cid] = int(b[0][i])
 		}
 	case r.gd.nr * r.gd.nc:
 		r.a = make(map[int]int, r.gd.nr*r.gd.nc)
@@ -182,10 +175,14 @@ func (r *Indx) ToASC(fp string, ignoreActives bool) error {
 	defer t.Close()
 	r.gd.ToASCheader(t)
 	if r.gd.na > 0 && ignoreActives {
+		m := make(map[int]bool, r.gd.na)
+		for _, c := range r.gd.Sactives {
+			m[c] = true
+		}
 		c := 0
 		for i := 0; i < r.gd.nr; i++ {
 			for j := 0; j < r.gd.nc; j++ {
-				if r.gd.act[c] {
+				if _, ok := m[c]; ok {
 					t.Write(fmt.Sprintf("%d ", r.a[c]))
 				} else {
 					t.Write("-9999 ")

@@ -8,7 +8,6 @@ import (
 	"log"
 	"math"
 	"os"
-	"sort"
 	"strconv"
 	"strings"
 
@@ -18,8 +17,9 @@ import (
 
 // Definition struct
 type Definition struct {
-	Coord                 map[int]mmaths.Point
-	act                   map[int]bool
+	Coord map[int]mmaths.Point
+	// act                   map[int]bool
+	Sactives              []int // a sorted slice of active cell IDs
 	eorig, norig, rot, cs float64
 	nr, nc, na            int
 	Name                  string
@@ -55,8 +55,6 @@ func ReadGDEF(fp string, print bool) (*Definition, error) {
 
 	nc := gd.nr * gd.nc
 	cn, cx := 0, nc
-
-	gd.act = make(map[int]bool, cx)
 	if nc%8 != 0 {
 		nc += 8 - nc%8 // add padding
 	}
@@ -67,22 +65,30 @@ func ReadGDEF(fp string, print bool) (*Definition, error) {
 		if err != io.EOF {
 			return nil, fmt.Errorf("Fatal error: read actives failed: %v", err)
 		}
-		// gd.na = cx
-		// for i := 0; i < cx; i++ {
-		// 	gd.act[i] = true
-		// }
 		if print {
-			fmt.Printf(" %d cells (no actives)\n", gd.na)
+			fmt.Printf(" no active cells)\n")
+		}
+		gd.Coord = make(map[int]mmaths.Point, cx)
+		cid := 0
+		for i := 0; i < gd.nr; i++ {
+			for j := 0; j < gd.nc; j++ {
+				p := mmaths.Point{X: gd.eorig + gd.cs*(float64(j)+0.5), Y: gd.norig - gd.cs*(float64(i)+0.5)}
+				gd.Coord[cid] = p
+				cid++
+			}
 		}
 	} else { // active cells
 		t := make([]byte, 1)
 		if v, _ := reader.Read(t); v != 0 {
 			return nil, fmt.Errorf("Fatal error: EOF not reached when expected")
 		}
+		gd.Sactives = []int{}
+		m := make(map[int]bool, cx)
 		for _, b := range b1 {
 			for i := uint(0); i < 8; i++ {
 				if b&(1<<i)>>i == 1 {
-					gd.act[cn] = true
+					gd.Sactives = append(gd.Sactives, cn)
+					m[cn] = true
 					gd.na++
 				}
 				cn++
@@ -97,22 +103,20 @@ func ReadGDEF(fp string, print bool) (*Definition, error) {
 		if gd.na > 0 && print {
 			fmt.Printf(" %s actives\n", mmio.Thousands(int64(gd.na))) //11,118,568
 		}
-	}
-	fmt.Println()
-
-	gd.Coord = make(map[int]mmaths.Point, gd.na)
-	cid := 0
-	for i := 0; i < gd.nr; i++ {
-		for j := 0; j < gd.nc; j++ {
-			if v, ok := gd.act[cid]; ok {
-				if v {
+		gd.Coord = make(map[int]mmaths.Point, gd.na)
+		cid := 0
+		for i := 0; i < gd.nr; i++ {
+			for j := 0; j < gd.nc; j++ {
+				if _, ok := m[cid]; ok {
 					p := mmaths.Point{X: gd.eorig + gd.cs*(float64(j)+0.5), Y: gd.norig - gd.cs*(float64(i)+0.5)}
 					gd.Coord[cid] = p
 				}
+				cid++
 			}
-			cid++
 		}
 	}
+	fmt.Println()
+
 	return &gd, nil
 }
 
@@ -176,24 +180,24 @@ func parseHeader(a []string, print bool) (Definition, error) {
 	return gd, nil
 }
 
-// Actives returns a slice of active cell IDs
-func (gd *Definition) Actives() []int {
-	out, i := make([]int, gd.na), 0
-	for k, v := range gd.act {
-		if v {
-			out[i] = k
-			i++
-		}
-	}
-	return out
-}
+// // Actives returns a slice of active cell IDs
+// func (gd *Definition) Actives() []int {
+// 	out, i := make([]int, gd.na), 0
+// 	for k, v := range gd.act {
+// 		if v {
+// 			out[i] = k
+// 			i++
+// 		}
+// 	}
+// 	return out
+// }
 
-// Sactives returns a SORTED slice of active cell IDs
-func (gd *Definition) Sactives() []int {
-	a := gd.Actives()
-	sort.Ints(a)
-	return a
-}
+// // Sactives returns a SORTED slice of active cell IDs
+// func (gd *Definition) Sactives() []int {
+// 	a := gd.Actives()
+// 	sort.Ints(a)
+// 	return a
+// }
 
 // RowCol returns row and column index for a given cell ID
 func (gd *Definition) RowCol(cid int) (row, col int) {
@@ -270,10 +274,14 @@ func (gd *Definition) ToASC(fp string) error {
 	defer t.Close()
 	gd.ToASCheader(t)
 	if gd.na > 0 {
+		m := make(map[int]bool, gd.na)
+		for _, c := range gd.Sactives {
+			m[c] = true
+		}
 		c := 0
 		for i := 0; i < gd.nr; i++ {
 			for j := 0; j < gd.nc; j++ {
-				if gd.act[c] {
+				if _, ok := m[c]; ok {
 					t.Write("1 ")
 				} else {
 					t.Write("-9999 ")
@@ -334,7 +342,7 @@ func (gd *Definition) Intersect(toGD *Definition) map[int][]int {
 			log.Fatalf("Definition.Intersect error: Definitions grid definitions are not multiples: fromGD: %f, toGD: %f", gd.cs, toGD.cs)
 		}
 		scale := int(toGD.cs / gd.cs)
-		for _, c := range gd.Actives() {
+		for _, c := range gd.Sactives {
 			i, j := gd.RowCol(c)
 			tocid := toGD.CellID(i*scale, j*scale)
 			intsct[c] = []int{tocid} // THIS IS INCONSISTENT ++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -344,7 +352,7 @@ func (gd *Definition) Intersect(toGD *Definition) map[int][]int {
 			log.Fatalf("Definition.Intersect error: Definitions grid definitions are not multiples: fromGD: %f, toGD: %f", gd.cs, toGD.cs)
 		}
 		scale := toGD.cs / gd.cs
-		for _, c := range gd.Actives() {
+		for _, c := range gd.Sactives {
 			i, j := gd.RowCol(c)
 			tocid := toGD.CellID(int(float64(i)/scale), int(float64(j)/scale))
 			intsct[c] = []int{tocid}

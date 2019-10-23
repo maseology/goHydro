@@ -36,12 +36,10 @@ func (r *Real) getBinary(fp string) {
 		log.Fatalf(" grid does not match definition length")
 	}
 	c := 0
-	if len(r.gd.act) > 0 {
-		for i, a := range r.gd.act {
-			if a {
-				r.a[i] = b[0][c]
-				c++
-			}
+	if len(r.gd.Sactives) > 0 {
+		for _, i := range r.gd.Sactives {
+			r.a[i] = b[0][c]
+			c++
 		}
 	}
 }
