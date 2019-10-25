@@ -8,5 +8,5 @@ import "time"
 // Coll holds met data
 type Coll struct {
 	T []time.Time   // [date ID]
-	D [][][]float64 // D [date ID][cell ID][type ID]
+	D [][][]float64 // D [date ID][location ID][type ID] or [cell ID][date ID][type ID]
 }

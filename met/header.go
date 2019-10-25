@@ -20,6 +20,20 @@ type Header struct {
 	ESPG, nloc uint32
 }
 
+// NewHeader returns a header
+func NewHeader(dtb, dte time.Time, intvl, nloc int) Header {
+	return Header{
+		v:  1,
+		uc: 1,
+		tc: 1,
+
+		dtb:   dtb,
+		dte:   dte,
+		intvl: uint64(intvl),
+		nloc:  uint32(nloc),
+	}
+}
+
 // IntervalSec returns the time interval of the .met file
 func (h *Header) IntervalSec() float64 {
 	return float64(h.intvl)
