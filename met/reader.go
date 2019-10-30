@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"io"
 	"log"
 	"math"
 	"os"
@@ -52,7 +53,6 @@ func (h *Header) readLoc(b *bytes.Reader) {
 				}
 			}
 		} else if h.lc == 12 {
-			log.Panicln("h.locations-build: CODE NOT CHECKED YET")
 			for i := 0; i < int(h.nloc); i++ {
 				h.Locations[int(mmio.ReadInt32(b))] = []interface{}{mmio.ReadFloat64(b), mmio.ReadFloat64(b)}
 			}
@@ -95,69 +95,106 @@ func ReadMET(fp string, print bool) (*Header, *Coll, error) {
 		return v
 	}
 
-	ts := time.Second * time.Duration(h.intvl)
-	col := Coll{T: make([]time.Time, h.Nstep()), D: make([][][]float64, h.Nstep())}
-	// dc := make(map[time.Time]map[int]map[int]float64, h.Nstep())
-	if h.prc == 8 {
-		// for d := h.dtb; !d.After(h.dte); d = d.Add(ts) {
-		// 	dc[d] = make(map[int]map[int]float64, h.nloc)
-		// 	for i := 0; i < int(h.nloc); i++ {
-		// 		dc[d][i] = make(map[int]float64, len(iwbl))
-		// 		for _, j := range iwbl {
-		// 			dc[d][i][int(j)] = nan(mmio.ReadFloat64(b))
-		// 		}
-		// 	}
-		// }
-		k := 0
-		for dt := h.dtb; !dt.After(h.dte); dt = dt.Add(ts) {
-			col.T[k] = dt
-			a := make([]float64, int(h.nloc)*len(iwbl))
-			if err := binary.Read(b, binary.LittleEndian, &a); err != nil {
-				log.Fatalf(" met.ReadMET failed: %v", err)
-			}
-			col.D[k] = make([][]float64, int(h.nloc))
-			c := 0
-			for i := 0; i < int(h.nloc); i++ {
-				col.D[k][i] = make([]float64, nwbl)
-				for j := 0; j < nwbl; j++ {
-					col.D[k][i][j] = nan(a[c]) // [date ID][cell ID][type ID]
-					c++
-				}
-			}
-			k++
-		}
-	} else if h.prc == 4 {
-		k := 0
-		for dt := h.dtb; !dt.After(h.dte); dt = dt.Add(ts) {
-			// fmt.Println(d)
-			// dc[d] = make(map[int]map[int]float64, h.nloc)
-			// for i := 0; i < int(h.nloc); i++ {
-			// 	dc[d][i] = make(map[int]float64, len(iwbl))
-			// 	for _, j := range iwbl {
-			// 		dc[d][i][int(j)] = nan(float64(mmio.ReadFloat32(b)))
-			// 		cnt++
+	var col Coll
+	if h.intvl > 0 {
+		ts := time.Second * time.Duration(h.intvl)
+		col = Coll{T: make([]time.Time, h.Nstep()), D: make([][][]float64, h.Nstep())}
+		// dc := make(map[time.Time]map[int]map[int]float64, h.Nstep())
+		if h.prc == 8 {
+			// for d := h.dtb; !d.After(h.dte); d = d.Add(ts) {
+			// 	dc[d] = make(map[int]map[int]float64, h.nloc)
+			// 	for i := 0; i < int(h.nloc); i++ {
+			// 		dc[d][i] = make(map[int]float64, len(iwbl))
+			// 		for _, j := range iwbl {
+			// 			dc[d][i][int(j)] = nan(mmio.ReadFloat64(b))
+			// 		}
 			// 	}
 			// }
-			// fmt.Println(cnt)
-			col.T[k] = dt
-			a := make([]float32, int(h.nloc)*len(iwbl))
-			if err := binary.Read(b, binary.LittleEndian, &a); err != nil {
-				log.Fatalf(" met.ReadMET failed: %v", err)
-			}
-			col.D[k] = make([][]float64, int(h.nloc))
-			c := 0
-			for i := 0; i < int(h.nloc); i++ {
-				col.D[k][i] = make([]float64, nwbl)
-				for j := 0; j < nwbl; j++ {
-					col.D[k][i][j] = nan(float64(a[c])) // [date ID][cell ID][type ID]
-					c++
+			k := 0
+			for dt := h.dtb; !dt.After(h.dte); dt = dt.Add(ts) {
+				col.T[k] = dt
+				a := make([]float64, int(h.nloc)*len(iwbl))
+				if err := binary.Read(b, binary.LittleEndian, &a); err != nil {
+					log.Fatalf(" met.ReadMET failed: %v", err)
 				}
+				col.D[k] = make([][]float64, int(h.nloc))
+				c := 0
+				for i := 0; i < int(h.nloc); i++ {
+					col.D[k][i] = make([]float64, nwbl)
+					for j := 0; j < nwbl; j++ {
+						col.D[k][i][j] = nan(a[c]) // [date ID][cell ID][type ID]
+						c++
+					}
+				}
+				k++
 			}
-			k++
+		} else if h.prc == 4 {
+			k := 0
+			for dt := h.dtb; !dt.After(h.dte); dt = dt.Add(ts) {
+				// fmt.Println(d)
+				// dc[d] = make(map[int]map[int]float64, h.nloc)
+				// for i := 0; i < int(h.nloc); i++ {
+				// 	dc[d][i] = make(map[int]float64, len(iwbl))
+				// 	for _, j := range iwbl {
+				// 		dc[d][i][int(j)] = nan(float64(mmio.ReadFloat32(b)))
+				// 		cnt++
+				// 	}
+				// }
+				// fmt.Println(cnt)
+				col.T[k] = dt
+				a := make([]float32, int(h.nloc)*len(iwbl))
+				if err := binary.Read(b, binary.LittleEndian, &a); err != nil {
+					log.Fatalf(" met.ReadMET failed: %v", err)
+				}
+				col.D[k] = make([][]float64, int(h.nloc))
+				c := 0
+				for i := 0; i < int(h.nloc); i++ {
+					col.D[k][i] = make([]float64, nwbl)
+					for j := 0; j < nwbl; j++ {
+						col.D[k][i][j] = nan(float64(a[c])) // [date ID][cell ID][type ID]
+						c++
+					}
+				}
+				k++
+			}
+		} else {
+			return nil, nil, fmt.Errorf(" met.ReadMET error: unknown data type")
 		}
 	} else {
-		return nil, nil, fmt.Errorf(" met.ReadMET error: unknown data type")
+		if h.prc == 4 {
+			dts, as := []time.Time{}, [][]float64{}
+			for {
+				var i64 int64
+				if err := binary.Read(b, binary.LittleEndian, &i64); err != nil {
+					if err == io.EOF {
+						break
+					}
+					fmt.Println("ReadInt64 failed:", err)
+				}
+				dts = append(dts, time.Unix(i64, 0).UTC())
+				a := make([]float32, len(iwbl))
+				if err := binary.Read(b, binary.LittleEndian, &a); err != nil {
+					log.Fatalf(" met.ReadMET failed: %v", err)
+				}
+				af := make([]float64, len(iwbl))
+				for k, v := range a {
+					af[k] = nan(float64(v))
+				}
+				as = append(as, af)
+			}
+			col = Coll{T: make([]time.Time, len(dts)), D: make([][][]float64, len(dts))}
+			if h.Nloc() != 1 {
+				log.Fatalf(" met.ReadMET todo")
+			}
+			for i := 0; i < len(dts); i++ {
+				col.T[i] = dts[i]
+				col.D[i] = [][]float64{0: as[i]}
+			}
+		} else {
+			log.Fatalf(" met.ReadMET todo")
+		}
 	}
+
 	return &h, &col, nil
 }
 

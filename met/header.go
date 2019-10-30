@@ -77,6 +77,11 @@ func (h *Header) Print() {
 	fmt.Printf(" coordinate projection (ESPG) %d\n", h.ESPG)
 	if h.lc == 0 {
 		fmt.Printf(" n cells %d\n\n", h.nloc)
+	} else if h.lc == 12 {
+		fmt.Printf(" n locations %d\n\n", h.nloc)
+		for i, c := range h.Locations {
+			fmt.Printf("  %d %v\n", i, c)
+		}
 	} else if h.lc > 0 {
 		if h.nloc == 1 {
 			fmt.Printf(" outlet cell id %d\n\n", h.Locations[0][0])
@@ -133,4 +138,18 @@ func (h *Header) WBDCxr() map[string]int {
 		m[h.wbl[k]] = i
 	}
 	return m
+}
+
+// WBlist return the slice the waterbalance codes
+func (h *Header) WBlist() []string {
+	keys := make([]uint64, 0, len(h.wbl))
+	for k := range h.wbl {
+		keys = append(keys, k)
+	}
+	sort.Slice(keys, func(i, j int) bool { return keys[i] < keys[j] })
+	s := make([]string, len(keys))
+	for i, k := range keys {
+		s[i] = h.wbl[k]
+	}
+	return s
 }
