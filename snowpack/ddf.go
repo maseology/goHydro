@@ -6,11 +6,13 @@ type DDF struct {
 	ddf, ddfc float64
 }
 
+const ddfi = 0.0045
+
 // NewDefaultDDF returns a new CCF struct
 func NewDefaultDDF() DDF {
 	d := DDF{
-		ddf:  0.0045, // DDF temperature index; range .001 to .008 m/°C/d  (pg.275)
-		ddfc: 1.1,    // DDF adjustment factor based on pack density, see DeWalle and Rango, pg. 275; Ref: Martinec (1960)
+		ddf:  ddfi, // degree-day/melt factor; range .001 to .008 m/°C/d  (pg.275)
+		ddfc: 1.1,  // DDF adjustment factor based on pack density, see DeWalle and Rango, pg. 275; Ref: Martinec (1960)
 	}
 	d.tb = 0.  // base/critical temperature (°C)
 	d.tsf = .5 // TSF (surface temperature factor), 0.1-0.5 have been used

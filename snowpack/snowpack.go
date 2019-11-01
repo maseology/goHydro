@@ -19,7 +19,7 @@ const (
 	// parameters/coefficients (kept constant)
 	// densf  = 100. // [kg/m³] (average) density of falling snow; can range from 50-350 kg/m³ (see pg. 55)
 	denmin   = 25.  // [kg/m³] minimum snowfall density
-	den0     = 350. // [kg/m³] density of falling ripe snow (at or above temperatures of 0°C)
+	den0     = 200. // [kg/m³] density of falling ripe snow (at or above temperatures of 0°C)
 	swi      = 0.05 // irreducible liquid saturation, volume of liquid per volume of pore-space
 	denscoef = 1.   // coefficient to the densification factor
 	cdt      = 5.5  // [kg/m³/°C] slope of density-temperature relationship (see func.go SnowFallDensity())
@@ -103,13 +103,13 @@ func (s *snowpack) updateSurfaceTemperature(t float64) { // pg.279
 }
 
 func (s *snowpack) internalFreeze(sweAffected float64) {
-	// internal state change (set sweAffected < 0.0 for internal melting)
+	// internal state change (set sweAffected < 0. for internal melting)
 	if sweAffected > 0. { // internal freezing
 		s.den += sweAffected / s.swe * (pi - pw)
 		if s.den < 0. {
 			log.Fatalf("snowpack.internalFreeze error: density less than zero")
 		}
-	} else if sweAffected > 0. { // internal melting
+	} else if sweAffected < 0. { // internal melting
 		if s.swe == s.lwc-sweAffected {
 			s.den = pw
 		} else {

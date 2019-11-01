@@ -17,10 +17,10 @@ func NewDefaultCCF() CCF {
 	c := CCF{
 		tindex: 0.00035, // CCF temperature index; range .0002 to 0.0005 m/°C/d -- roughly 1/10 DDF (pg.278)
 	}
-	c.ddf = 0.0045 // DDF temperature index; range .001 to .008 m/°C/d  (pg.275)
-	c.ddfc = 1.1   // DDF adjustment factor based on pack density, see DeWalle and Rango, pg. 275; Ref: Martinec (1960)
-	c.tb = 0.      // base/critical temperature (°C)
-	c.tsf = .5     // TSF (surface temperature factor), 0.1-0.5 have been used
+	c.ddf = ddfi // degree-day/melt factor; range .001 to .008 m/°C/d  (pg.275) -- NOTE: this is an initial value if adjustDegreeDayFactor() and ddfc is used
+	c.ddfc = 1.1 // DDF adjustment factor based on pack density, see DeWalle and Rango, pg. 275; Ref: Martinec (1960)
+	c.tb = 0.    // base/critical temperature (°C)
+	c.tsf = .5   // TSF (surface temperature factor), 0.1-0.5 have been used
 	return c
 }
 
@@ -29,7 +29,7 @@ func NewCCF(tindex, ddf, ddfc, baseT, tsf float64) CCF {
 	c := CCF{
 		tindex: tindex, // CCF temperature index; range .0002 to 0.0005 m/°C/d -- roughly 1/10 DDF (pg.278)
 	}
-	c.ddf = ddf   // DDF temperature index; range .001 to .008 m/°C/d  (pg.275)
+	c.ddf = ddf   // degree-day/melt factor; range .001 to .008 m/°C/d  (pg.275) -- NOTE: this is an initial value if adjustDegreeDayFactor() and ddfc is used
 	c.ddfc = ddfc // DDF adjustment factor based on pack density, see DeWalle and Rango, pg. 275; Ref: Martinec (1960)
 	c.tb = baseT  // base/critical temperature (°C)
 	c.tsf = tsf   // TSF (surface temperature factor), 0.1-0.5 have been used
@@ -39,6 +39,9 @@ func NewCCF(tindex, ddf, ddfc, baseT, tsf float64) CCF {
 // Update state
 func (c *CCF) Update(r, s, t float64) (drainage float64) {
 	blNewPack := c.swe == 0.
+	if blNewPack {
+		c.ddf = ddfi // re-initialize ddf
+	}
 	if s > 0. {
 		c.addToPack(s, SnowFallDensity(t))
 	}

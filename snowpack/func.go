@@ -7,7 +7,7 @@ func SnowFallDensity(t float64) float64 {
 	if t > 0. {
 		return den0
 	}
-	d := cdt + den0
+	d := cdt*t + den0
 	if d < denmin {
 		return denmin
 	}
