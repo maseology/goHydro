@@ -16,18 +16,20 @@ const (
 	ci = 2100.    // [J/kg/K] specific heat capacity of ice
 	cw = 4187.6   // [J/kg/K] specific heat of liquid water = 4.1876E3
 
-	// parameters
-	denmin = 25.  // [kg/m³] minimum snowfall density
-	den0   = 350. // [kg/m³] density of falling ripe snow (at or above temperatures of 0°C)
-	densf  = 100. // [kg/m³] (average) density of falling snow; can range from 50-350 kg/m³ (see pg. 55)
-	swi    = 0.05 // irreducible liquid saturation, volume of liquid per volume of pore-space
+	// parameters/coefficients (kept constant)
+	// densf  = 100. // [kg/m³] (average) density of falling snow; can range from 50-350 kg/m³ (see pg. 55)
+	denmin   = 25.  // [kg/m³] minimum snowfall density
+	den0     = 350. // [kg/m³] density of falling ripe snow (at or above temperatures of 0°C)
+	swi      = 0.05 // irreducible liquid saturation, volume of liquid per volume of pore-space
+	denscoef = 1.   // coefficient to the densification factor
+	cdt      = 5.5  // [kg/m³/°C] slope of density-temperature relationship (see func.go SnowFallDensity())
 
 	// other
 	df = 1. // [ts/day] day factor (adjust when daily timesteps are not used)
 )
 
 type snowpack struct {
-	swe, den, ts, tb, lwc float64
+	swe, den, ts, lwc, tb, tsf float64 // tb: base/critical temperature; tsf: surface temperature factor
 }
 
 func (s *snowpack) properties() (porosity, depth float64) {
@@ -43,23 +45,30 @@ func (s *snowpack) properties() (porosity, depth float64) {
 }
 
 func (s *snowpack) addToPack(sweFall, denFall float64) {
-	if sweFall > 0. {
-		if s.swe > 0. {
-			s.den = (s.swe*s.den + sweFall*denFall) / (s.swe + sweFall)
-			s.swe += sweFall
-			if s.den < denmin || s.den > pw {
-				log.Fatalf("snowpack.addToPack error: snowpack density out of physical range")
-			}
-		} else {
-			s.swe = sweFall
-			s.den = denFall
+	if s.swe+sweFall < 0. {
+		log.Fatalf("snowpack.addToPack error: negative swe exceeds actual swe")
+	}
+	if s.swe > 0. {
+		s.den = (s.swe*s.den + sweFall*denFall) / (s.swe + sweFall)
+		s.swe += sweFall
+		if s.den < denmin || s.den > pw*1.000001 {
+			log.Fatalf("snowpack.addToPack error: snowpack density out of physical range")
 		}
 	} else {
-		log.Fatalf("snowpack.addToPack error: negative swe being added")
+		s.swe = sweFall
+		s.den = denFall
 	}
 }
 
 func (s *snowpack) drainFromPack() (drainage float64) {
+	por, depth := s.properties()
+	lwrc := por * depth * (1. - swi) // snowpack liquid water retention capacity
+	exs := 0.
+	if s.lwc > lwrc {
+		exs = s.lwc - lwrc
+		s.lwc = lwrc
+		s.addToPack(-exs, pw)
+	}
 	if s.lwc > 0. {
 		if s.lwc == s.swe {
 			drainage = s.swe
@@ -68,10 +77,8 @@ func (s *snowpack) drainFromPack() (drainage float64) {
 			s.ts = 0.
 			s.den = 0.
 		} else {
-			por, depth := s.properties()
-			lwrc := por * swi * depth // snowpack liquid water retention capacity
-			def := lwrc - s.lwc       // deficit
-			if def < 0. {             // excess water
+			def := lwrc - s.lwc // deficit
+			if def < 0. {       // excess water
 				drainage = -def
 				pfroz := (s.swe*s.den - s.lwc*pw) / (s.swe - s.lwc)
 				s.den = ((s.lwc-drainage)*pw + (s.swe-s.lwc)*pfroz) / (s.swe - drainage)
@@ -80,13 +87,13 @@ func (s *snowpack) drainFromPack() (drainage float64) {
 			}
 		}
 	}
+	drainage += exs
 	return
 }
 
 func (s *snowpack) updateSurfaceTemperature(t float64) { // pg.279
-	const tsf = .5 // TSF (surface temperature factor), 0.1-0.5 have been used
 	if s.swe > 0. {
-		s.ts += tsf * df * (t - s.ts)
+		s.ts += s.tsf * df * (t - s.ts)
 		if s.ts > 0. {
 			s.ts = 0.
 		}
@@ -116,7 +123,6 @@ func (s *snowpack) internalFreeze(sweAffected float64) {
 }
 
 func (s *snowpack) densify() {
-	const denscoef = 1. // coefficient to the densification factor
 	if s.den > 0. {
 		if s.den < pi {
 			f := math.Pow(pi/s.frozenPackDensity(), df*denscoef)

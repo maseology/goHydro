@@ -17,7 +17,22 @@ func NewDefaultCCF() CCF {
 	c := CCF{
 		tindex: 0.00035, // CCF temperature index; range .0002 to 0.0005 m/°C/d -- roughly 1/10 DDF (pg.278)
 	}
-	c.DDF.ddf = 0.0045 // DDF temperature index; range .001 to .008 m/°C/d  (pg.275)
+	c.ddf = 0.0045 // DDF temperature index; range .001 to .008 m/°C/d  (pg.275)
+	c.ddfc = 1.1   // DDF adjustment factor based on pack density, see DeWalle and Rango, pg. 275; Ref: Martinec (1960)
+	c.tb = 0.      // base/critical temperature (°C)
+	c.tsf = .5     // TSF (surface temperature factor), 0.1-0.5 have been used
+	return c
+}
+
+// NewCCF returns a new CCF struct
+func NewCCF(tindex, ddf, ddfc, baseT, tsf float64) CCF {
+	c := CCF{
+		tindex: tindex, // CCF temperature index; range .0002 to 0.0005 m/°C/d -- roughly 1/10 DDF (pg.278)
+	}
+	c.ddf = ddf   // DDF temperature index; range .001 to .008 m/°C/d  (pg.275)
+	c.ddfc = ddfc // DDF adjustment factor based on pack density, see DeWalle and Rango, pg. 275; Ref: Martinec (1960)
+	c.tb = baseT  // base/critical temperature (°C)
+	c.tsf = tsf   // TSF (surface temperature factor), 0.1-0.5 have been used
 	return c
 }
 
@@ -95,4 +110,9 @@ func (c *CCF) satisfyColdContent(t float64) {
 			}
 		}
 	}
+}
+
+// Properties returns the snowpack state
+func (c *CCF) Properties() (porosity, depth float64) {
+	return c.properties()
 }
