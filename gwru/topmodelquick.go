@@ -1,7 +1,6 @@
 package gwru
 
 import (
-	"log"
 	"math"
 
 	"github.com/maseology/goHydro/tem"
@@ -47,9 +46,9 @@ func (t *TMQ) New(ksat map[int]float64, uca map[int]int, strm []int, topo *tem.T
 		tanbeta := math.Tan(topo.TEC[i].G)    // gradient
 		ai := float64(uca[i]) * cw            // contributing area per unit contour [m] (assumes uniform square cells)
 		ti[i] = math.Log(ai / tsat / tanbeta) // soil-topographic index
-		if math.IsNaN(ti[i]) {
-			log.Fatalf(" TMQ.New error: topographic index is NaN. slope = %f\n", topo.TEC[i].G)
-		}
+		// if math.IsNaN(ti[i]) || math.IsInf(ti[i], 0) {
+		// 	log.Fatalf(" TMQ.New error: topographic index is either NaN or Inf. slope = %f\n", topo.TEC[i].G)
+		// }
 		if _, ok := t.Qs[i]; ok {
 			t.Qs[i] = omega * tsat * tanbeta / cw // (Qi) saturated lateral discharge (when Dm=0) at stream cells [m/ts]
 		}
