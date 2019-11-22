@@ -116,6 +116,8 @@ func (c *CCF) satisfyColdContent(t float64) {
 }
 
 // Properties returns the snowpack state
-func (c *CCF) Properties() (porosity, depth float64) {
-	return c.properties()
+func (c *CCF) Properties() (porosity, depth, swe float64) {
+	porosity, depth = c.properties()
+	swe = c.swe
+	return
 }

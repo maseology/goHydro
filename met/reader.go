@@ -191,7 +191,34 @@ func ReadMET(fp string, print bool) (*Header, *Coll, error) {
 				col.D[i] = [][]float64{0: as[i]}
 			}
 		} else {
-			log.Fatalf(" met.ReadMET todo")
+			dts, as := []time.Time{}, [][]float64{}
+			for {
+				var i64 int64
+				if err := binary.Read(b, binary.LittleEndian, &i64); err != nil {
+					if err == io.EOF {
+						break
+					}
+					fmt.Println("ReadInt64 failed:", err)
+				}
+				dts = append(dts, time.Unix(i64, 0).UTC())
+				a := make([]float64, len(iwbl))
+				if err := binary.Read(b, binary.LittleEndian, &a); err != nil {
+					log.Fatalf(" met.ReadMET failed: %v", err)
+				}
+				af := make([]float64, len(iwbl))
+				for k, v := range a {
+					af[k] = nan(v)
+				}
+				as = append(as, af)
+			}
+			col = Coll{T: make([]time.Time, len(dts)), D: make([][][]float64, len(dts))}
+			if h.Nloc() != 1 {
+				log.Fatalf(" met.ReadMET todo")
+			}
+			for i := 0; i < len(dts); i++ {
+				col.T[i] = dts[i]
+				col.D[i] = [][]float64{0: as[i]}
+			}
 		}
 	}
 

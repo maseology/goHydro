@@ -21,7 +21,7 @@ type Header struct {
 }
 
 // NewHeader returns a header
-func NewHeader(dtb, dte time.Time, intvl, nloc int) Header {
+func NewHeader(dtb, dte time.Time, intvl, nloc, prc int) Header {
 	return Header{
 		v:  1,
 		uc: 1,
@@ -31,6 +31,7 @@ func NewHeader(dtb, dte time.Time, intvl, nloc int) Header {
 		dte:   dte,
 		intvl: uint64(intvl),
 		nloc:  uint32(nloc),
+		prc:   int8(prc),
 	}
 }
 
@@ -152,4 +153,12 @@ func (h *Header) WBlist() []string {
 		s[i] = h.wbl[k]
 	}
 	return s
+}
+
+// AddLocationIndex adds locations of code 1
+func (h *Header) AddLocationIndex(iid int) {
+	h.lc = 1
+	h.nloc = 1
+	h.Locations = make(map[int][]interface{}, 1)
+	h.Locations[iid] = []interface{}{iid}
 }

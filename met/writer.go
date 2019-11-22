@@ -70,6 +70,21 @@ func (w *Writer) writeHead(h *Header) error {
 		return chk(err)
 	}
 
+	if h.nloc > 0 {
+		if err := binary.Write(buf, binary.LittleEndian, h.nloc); err != nil {
+			return chk(err)
+		}
+		if h.lc == 1 {
+			for k := range h.Locations {
+				if err := binary.Write(buf, binary.LittleEndian, int32(k)); err != nil {
+					return chk(err)
+				}
+			}
+		} else {
+			return fmt.Errorf("writer.go wrtieHead TODO")
+		}
+	}
+
 	if _, err := w.f.Write(buf.Bytes()); err != nil {
 		return chk(err)
 	}
