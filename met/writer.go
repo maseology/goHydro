@@ -46,7 +46,7 @@ func (w *Writer) writeHead(h *Header) error {
 	if err := binary.Write(buf, binary.LittleEndian, h.tc); err != nil {
 		return chk(err)
 	}
-	if err := binary.Write(buf, binary.LittleEndian, h.wbdc); err != nil {
+	if err := binary.Write(buf, binary.LittleEndian, h.WBCD); err != nil {
 		return chk(err)
 	}
 	if err := binary.Write(buf, binary.LittleEndian, h.prc); err != nil {

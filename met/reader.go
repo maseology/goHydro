@@ -22,11 +22,11 @@ func (h *Header) readHead(b *bytes.Reader) {
 	h.v = mmio.ReadUInt16(b)
 	h.uc = mmio.ReadUInt8(b)
 	h.tc = mmio.ReadUInt8(b)
-	h.wbdc = mmio.ReadUInt64(b)
-	if h.wbdc == 0 {
-		log.Panicf("waterbalance data code %d currently not supported\n", h.wbdc)
+	h.WBCD = mmio.ReadUInt64(b)
+	if h.WBCD == 0 {
+		log.Panicf("waterbalance data code %d currently not supported\n", h.WBCD)
 	}
-	h.wbl = WBcodeToMap(h.wbdc)
+	h.wbl = WBcodeToMap(h.WBCD)
 	h.prc = mmio.ReadInt8(b)
 	h.intvl = mmio.ReadUInt64(b)
 	if h.intvl > 0 {

@@ -12,7 +12,7 @@ type Header struct {
 	Locations  map[int][]interface{}
 	v          uint16            // version
 	uc, tc     uint8             // unit code, time code, location code
-	wbdc       uint64            // waterbalance data code
+	WBCD       uint64            // waterbalance data code
 	wbl        map[uint64]string // waterbalance data map
 	prc, lc    int8              // precision, location code
 	intvl      uint64            // timestep interval [s]
@@ -110,9 +110,9 @@ func (h *Header) Copy() *Header {
 // SetWBDC changes the water budget data code
 func (h *Header) SetWBDC(wbdc uint64) {
 	if wbdc == 0 {
-		log.Panicf("waterbalance data code %d currently not supported\n", h.wbdc)
+		log.Panicf("waterbalance data code %d currently not supported\n", wbdc)
 	}
-	h.wbdc = wbdc
+	h.WBCD = wbdc
 	h.wbl = WBcodeToMap(wbdc)
 }
 
