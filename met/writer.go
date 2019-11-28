@@ -81,7 +81,16 @@ func (w *Writer) writeHead(h *Header) error {
 				}
 			}
 		} else {
-			return fmt.Errorf("writer.go wrtieHead TODO")
+			for k, v := range h.Locations {
+				if err := binary.Write(buf, binary.LittleEndian, int32(k)); err != nil {
+					return chk(err)
+				}
+				for _, vv := range v {
+					if err := binary.Write(buf, binary.LittleEndian, vv.(float64)); err != nil {
+						return chk(err)
+					}
+				}
+			}
 		}
 	}
 
