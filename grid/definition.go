@@ -263,6 +263,27 @@ func (gd *Definition) ToASCheader(t *mmio.TXTwriter) {
 	t.WriteLine(fmt.Sprintf("nodata_value %d", -9999))
 }
 
+// ToHDR creates an ESRI-grid based on grid definition header
+func (gd *Definition) ToHDR(fp string, nbands int) error {
+	t, err := mmio.NewTXTwriter(fp)
+	if err != nil {
+		return fmt.Errorf(" Definition.ToASC: %v", err)
+	}
+	defer t.Close()
+	t.WriteLine(fmt.Sprintf("ncols %d", gd.nc))
+	t.WriteLine(fmt.Sprintf("nrows %d", gd.nr))
+	t.WriteLine(fmt.Sprintf("nbands %d", nbands))
+	t.WriteLine(fmt.Sprintf("xllcorner %f", gd.eorig))
+	t.WriteLine(fmt.Sprintf("yllcorner %f", gd.norig-float64(gd.nr)*gd.cs))
+	t.WriteLine(fmt.Sprintf("cellsize %f", gd.cs))
+	t.WriteLine(fmt.Sprintf("nodata_value %d", -32768))
+	t.WriteLine(fmt.Sprintf("nbits %d", 16))
+	t.WriteLine(fmt.Sprintf("pixeltype %s", "signedint"))
+	t.WriteLine(fmt.Sprintf("byteorder %s", "lsbfirst"))
+	t.WriteLine(fmt.Sprintf("layout %s", "bip"))
+	return nil
+}
+
 // ToASC creates an ascii-grid based on grid definition.
 // If the grid definition contains active cells,
 // they will be given a value of 1 in the raster.
