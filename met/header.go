@@ -77,17 +77,17 @@ func (h *Header) Print() {
 	fmt.Printf(" location code %d\n", h.lc)
 	fmt.Printf(" coordinate projection (ESPG) %d\n", h.ESPG)
 	if h.lc == 0 {
-		fmt.Printf(" n cells %d\n\n", h.nloc)
+		fmt.Printf(" n cells %d\n", h.nloc)
 	} else if h.lc == 12 {
-		fmt.Printf(" n locations %d\n\n", h.nloc)
+		fmt.Printf(" n locations %d\n", h.nloc)
 		for i, c := range h.Locations {
 			fmt.Printf("  %d %v\n", i, c)
 		}
 	} else if h.lc > 0 {
 		if h.nloc == 1 {
-			fmt.Printf(" outlet cell id %d\n\n", h.Locations[0][0])
+			fmt.Printf(" outlet cell id %d\n", h.Locations[0][0])
 		} else {
-			fmt.Printf(" n locations %d\n\n", h.nloc)
+			fmt.Printf(" n locations %d\n", h.nloc)
 			for i, c := range h.Locations {
 				fmt.Printf("  %d %v\n", i, c)
 			}
