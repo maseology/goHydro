@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"math"
 	"os"
 	"strconv"
 	"strings"
@@ -17,12 +16,36 @@ import (
 
 // Definition struct
 type Definition struct {
-	Coord map[int]mmaths.Point
-	// act                   map[int]bool
+	Coord                 map[int]mmaths.Point
+	act                   map[int]bool
 	Sactives              []int // a sorted slice of active cell IDs
 	eorig, norig, rot, cs float64
 	nr, nc, na            int
 	Name                  string
+}
+
+// NewDefinition constructs a basic grid definition
+func NewDefinition(nam string, nr, nc int, UniformCellSize float64) *Definition {
+	var gd Definition
+	gd.Name = nam
+	gd.nr, gd.nc, gd.na = nr, nc, nr*nc
+	gd.cs = UniformCellSize
+	gd.Sactives = make([]int, gd.na)
+	gd.act = make(map[int]bool, gd.na)
+	for i := 0; i < gd.na; i++ {
+		gd.Sactives[i] = i
+		gd.act[i] = true
+	}
+	gd.Coord = make(map[int]mmaths.Point, gd.na)
+	cid := 0
+	for i := 0; i < gd.nr; i++ {
+		for j := 0; j < gd.nc; j++ {
+			p := mmaths.Point{X: gd.eorig + gd.cs*(float64(j)+0.5), Y: gd.norig - gd.cs*(float64(i)+0.5)}
+			gd.Coord[cid] = p
+			cid++
+		}
+	}
+	return &gd
 }
 
 // ReadGDEF imports a grid definition file
@@ -51,6 +74,9 @@ func ReadGDEF(fp string, print bool) (*Definition, error) {
 	gd, err := parseHeader(a, print)
 	if err != nil {
 		return nil, err
+	}
+	if gd.rot != 0. {
+		return nil, fmt.Errorf("ReadGDEF error: rotation no yet supported")
 	}
 
 	nc := gd.nr * gd.nc
@@ -83,12 +109,12 @@ func ReadGDEF(fp string, print bool) (*Definition, error) {
 			return nil, fmt.Errorf("Fatal error: EOF not reached when expected")
 		}
 		gd.Sactives = []int{}
-		m := make(map[int]bool, cx)
+		gd.act = make(map[int]bool, cx)
 		for _, b := range b1 {
 			for i := uint(0); i < 8; i++ {
 				if b&(1<<i)>>i == 1 {
 					gd.Sactives = append(gd.Sactives, cn)
-					m[cn] = true
+					gd.act[cn] = true
 					gd.na++
 				}
 				cn++
@@ -107,7 +133,7 @@ func ReadGDEF(fp string, print bool) (*Definition, error) {
 		cid := 0
 		for i := 0; i < gd.nr; i++ {
 			for j := 0; j < gd.nc; j++ {
-				if _, ok := m[cid]; ok {
+				if _, ok := gd.act[cid]; ok {
 					p := mmaths.Point{X: gd.eorig + gd.cs*(float64(j)+0.5), Y: gd.norig - gd.cs*(float64(i)+0.5)}
 					gd.Coord[cid] = p
 				}
@@ -116,7 +142,6 @@ func ReadGDEF(fp string, print bool) (*Definition, error) {
 		}
 	}
 	fmt.Println()
-
 	return &gd, nil
 }
 
@@ -180,6 +205,11 @@ func parseHeader(a []string, print bool) (Definition, error) {
 	return gd, nil
 }
 
+// IsActive returns whether a cell ID is of an active cell
+func (gd *Definition) IsActive(cid int) bool {
+	return gd.act[cid]
+}
+
 // // Actives returns a slice of active cell IDs
 // func (gd *Definition) Actives() []int {
 // 	out, i := make([]int, gd.na), 0
@@ -237,149 +267,11 @@ func (gd *Definition) CellArea() float64 {
 	return gd.cs * gd.cs
 }
 
-// SaveAs writes a grid definition file of format *.gdef
-func (gd *Definition) SaveAs(fp string) error {
-	t, err := mmio.NewTXTwriter(fp)
-	if err != nil {
-		return fmt.Errorf(" Definition.SaveAs: %v", err)
+// CellIndexXR returns a mapping of cell id to an array index
+func (gd *Definition) CellIndexXR() map[int]int {
+	m := make(map[int]int, len(gd.Sactives))
+	for i, c := range gd.Sactives {
+		m[c] = i
 	}
-	defer t.Close()
-	t.WriteLine(fmt.Sprintf("%f", gd.eorig))
-	t.WriteLine(fmt.Sprintf("%f", gd.norig))
-	t.WriteLine(fmt.Sprintf("%f", gd.rot))
-	t.WriteLine(fmt.Sprintf("%d", gd.nr))
-	t.WriteLine(fmt.Sprintf("%d", gd.nc))
-	t.WriteLine(fmt.Sprintf("U%f", gd.cs))
-	return nil
-}
-
-// ToASCheader writes ASC grid header info to writer
-func (gd *Definition) ToASCheader(t *mmio.TXTwriter) {
-	t.WriteLine(fmt.Sprintf("ncols %d", gd.nc))
-	t.WriteLine(fmt.Sprintf("nrows %d", gd.nr))
-	t.WriteLine(fmt.Sprintf("xllcorner %f", gd.eorig))
-	t.WriteLine(fmt.Sprintf("yllcorner %f", gd.norig-float64(gd.nr)*gd.cs))
-	t.WriteLine(fmt.Sprintf("cellsize %f", gd.cs))
-	t.WriteLine(fmt.Sprintf("nodata_value %d", -9999))
-}
-
-// ToHDR creates an ESRI-grid based on grid definition header
-func (gd *Definition) ToHDR(fp string, nbands int) error {
-	t, err := mmio.NewTXTwriter(fp)
-	if err != nil {
-		return fmt.Errorf(" Definition.ToASC: %v", err)
-	}
-	defer t.Close()
-	t.WriteLine(fmt.Sprintf("ncols %d", gd.nc))
-	t.WriteLine(fmt.Sprintf("nrows %d", gd.nr))
-	t.WriteLine(fmt.Sprintf("nbands %d", nbands))
-	t.WriteLine(fmt.Sprintf("xllcorner %f", gd.eorig))
-	t.WriteLine(fmt.Sprintf("yllcorner %f", gd.norig-float64(gd.nr)*gd.cs))
-	t.WriteLine(fmt.Sprintf("cellsize %f", gd.cs))
-	t.WriteLine(fmt.Sprintf("nodata_value %d", -32768))
-	t.WriteLine(fmt.Sprintf("nbits %d", 16))
-	t.WriteLine(fmt.Sprintf("pixeltype %s", "signedint"))
-	t.WriteLine(fmt.Sprintf("byteorder %s", "lsbfirst"))
-	t.WriteLine(fmt.Sprintf("layout %s", "bip"))
-	return nil
-}
-
-// ToASC creates an ascii-grid based on grid definition.
-// If the grid definition contains active cells,
-// they will be given a value of 1 in the raster.
-func (gd *Definition) ToASC(fp string) error {
-	t, err := mmio.NewTXTwriter(fp)
-	if err != nil {
-		return fmt.Errorf(" Definition.ToASC: %v", err)
-	}
-	defer t.Close()
-	gd.ToASCheader(t)
-	if gd.na > 0 {
-		m := make(map[int]bool, gd.na)
-		for _, c := range gd.Sactives {
-			m[c] = true
-		}
-		c := 0
-		for i := 0; i < gd.nr; i++ {
-			for j := 0; j < gd.nc; j++ {
-				if _, ok := m[c]; ok {
-					t.Write("1 ")
-				} else {
-					t.Write("-9999 ")
-				}
-				c++
-			}
-			t.Write("\n")
-		}
-	} else {
-		for i := 0; i < gd.nr; i++ {
-			for j := 0; j < gd.nc; j++ {
-				t.Write("-9999 ")
-			}
-			t.Write("\n")
-		}
-	}
-	return nil
-}
-
-// ToAscData converts a map referenced to cell id to an ASCII grid
-func (gd *Definition) ToAscData(fp string, d map[int]float64) error {
-	t, err := mmio.NewTXTwriter(fp)
-	if err != nil {
-		return fmt.Errorf("GDEF ToASC: %v", err)
-	}
-	defer t.Close()
-	gd.ToASCheader(t)
-	cid := 0
-	for i := 0; i < gd.nr; i++ {
-		for j := 0; j < gd.nc; j++ {
-			if v, ok := d[cid]; ok {
-				t.Write(fmt.Sprintf("%.6f ", v))
-			} else {
-				t.Write("-9999 ")
-			}
-			cid++
-		}
-		t.Write("\n")
-	}
-	return nil
-}
-
-// Intersect returns a mapping from current Definition to inputted Definition
-// for now, only Definitions that share the same origin, and cell sizes are mulitples can be considered
-func (gd *Definition) Intersect(toGD *Definition) map[int][]int {
-	// checks
-	if gd.eorig != toGD.eorig || gd.norig != toGD.norig {
-		log.Fatalf("Definition.Intersect error: Definitions must have the same origin")
-	}
-	if gd.rot != toGD.rot {
-		log.Fatalf("Definition.Intersect error: Definitions not in same orientation (i.e., rotation)")
-	}
-	intsct := make(map[int][]int, gd.Nactives())
-	if gd.cs > toGD.cs {
-		log.Fatalf("Definition.Intersect TODO")
-		log.Fatalf("Definition.Intersect: NNED TO CHECK CODE, not yet used.....")
-		if math.Mod(gd.cs, toGD.cs) != 0. {
-			log.Fatalf("Definition.Intersect error: Definitions grid definitions are not multiples: fromGD: %f, toGD: %f", gd.cs, toGD.cs)
-		}
-		scale := int(toGD.cs / gd.cs)
-		for _, c := range gd.Sactives {
-			i, j := gd.RowCol(c)
-			tocid := toGD.CellID(i*scale, j*scale)
-			intsct[c] = []int{tocid} // THIS IS INCONSISTENT ++++++++++++++++++++++++++++++++++++++++++++++++++++++
-		}
-	} else if gd.cs < toGD.cs {
-		if math.Mod(toGD.cs, gd.cs) != 0. {
-			log.Fatalf("Definition.Intersect error: Definitions grid definitions are not multiples: fromGD: %f, toGD: %f", gd.cs, toGD.cs)
-		}
-		scale := toGD.cs / gd.cs
-		for _, c := range gd.Sactives {
-			i, j := gd.RowCol(c)
-			tocid := toGD.CellID(int(float64(i)/scale), int(float64(j)/scale))
-			intsct[c] = []int{tocid}
-		}
-	} else {
-		log.Fatalf("Definition.Intersect TODO")
-	}
-	return intsct
+	return m
 }

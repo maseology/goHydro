@@ -1,0 +1,260 @@
+package lia
+
+import "log"
+
+// 'Function SetGhostNodes(bFace As List(Of Integer)) As List(Of Integer)
+// '    Dim lstC As New List(Of Integer)
+// '    For Each f In bFace
+// '        If Not _bf(f) Then Stop ' only applicable to boundary faces
+// '        With _f(f)
+// '            If .NodeIDs(0) = -1 And .NodeIDs(1) = -1 Then
+// '                Stop ' error
+// '            ElseIf .NodeIDs(0) = -1 Then
+// '                lstC.Add(_n.Count)
+// '                .NodeFromID = _n.Count
+// '                _s.Add(f, New _state)
+// '                Dim bfd = IIf(_gf.IsUpwardFace(f), 1, 0), nid = .NodeIDs(1)
+// '                _fxr.Add(f, { .NodeIDs(0), nid, _n(nid).FaceID(bfd)})
+// '                _n.Add(_n.Count, New _node With {.Head = _n(nid).Elevation, .Elevation = _n(nid).Elevation - 0.001, .Mannings_n = _n(nid).Mannings_n})
+// '                .Initialize(_n(.NodeIDs(0)), _n(nid), _theta, _dx)
+// '            ElseIf .NodeIDs(1) = -1 Then
+// '                lstC.Add(_n.Count)
+// '                .NodeToID = _n.Count
+// '                _s.Add(f, New _state)
+// '                Dim bfd = IIf(_gf.IsUpwardFace(f), 0, 2), nid = .NodeIDs(0)
+// '                _fxr.Add(f, {nid, .NodeIDs(1), _n(nid).FaceID(bfd)})
+// '                _n.Add(_n.Count, New _node With {.Head = _n(nid).Elevation, .Elevation = _n(nid).Elevation - 0.001, .Mannings_n = _n(nid).Mannings_n})
+// '                .Initialize(_n(nid), _n(.NodeIDs(1)), _theta, _dx)
+// '            Else
+// '                Stop ' error
+// '            End If
+// '            _bf(f) = False
+// '        End With
+// '    Next
+// '    Return lstC
+// 'End Function
+
+func (l *LIA) SetHeadBCfromFaces(fk []int, val float64) []int {
+	m1 := make(map[int]float64, len(fk))
+	for _, k := range fk {
+		m1[k] = val
+	}
+	return l.SetHeadBC(m1)
+}
+func (l *LIA) SetHeadBC(m map[int]float64) []int {
+	lout := make([]int, len(m))
+	for k, v := range m {
+		if !l.bf[k] {
+			log.Fatalf("LIA.SetHeadBC() error 1: only applicable to boundary faces")
+		}
+		fk := l.f[k]
+		fnid0, fnid1 := fk.nodeIDs()
+		if fnid0 == -1 && fnid1 == -1 {
+			log.Fatalf("LIA.SetHeadBC() error 2")
+		} else if fnid0 == -1 {
+			ncnt := len(l.n)
+			lout[ncnt] = ncnt
+			fk = l.f[k]
+			fk.nfrom = ncnt
+			l.s[k] = state{}
+			bfd, nid := 0, fnid1
+			if l.gf.IsUpwardFace(k) {
+				bfd = 1
+			}
+			l.fxr[k] = []int{fnid0, nid, l.n[nid].fid[bfd]}
+			l.n[ncnt] = node{h: v, z: l.n[nid].z, n: l.n[nid].n} // ghost node
+			fk.Initialize(l.n[fnid0], l.n[nid], l.theta, l.dx)
+			l.f[k] = fk
+		} else if fnid1 == -1 {
+			ncnt := len(l.n)
+			lout[ncnt] = ncnt
+			fk := l.f[k]
+			fk.nto = ncnt
+			l.s[k] = state{}
+			bfd, nid := 2, fnid0
+			if l.gf.IsUpwardFace(k) {
+				bfd = 0
+			}
+			l.fxr[k] = []int{nid, fnid1, l.n[nid].fid[bfd]}
+			l.n[ncnt] = node{h: v, z: l.n[nid].z - 0.001, n: l.n[nid].n} // ghost node
+			fk.Initialize(l.n[nid], l.n[fnid1], l.theta, l.dx)
+			l.f[k] = fk
+		} else {
+			log.Fatalf("LIA.SetHeadBC() error 3")
+		}
+		l.bf[k] = false
+	}
+	return lout
+}
+
+// Function SetHeadBC(faces As List(Of Integer), Value As Double) As List(Of Integer)
+// 	Dim dic1 As New Dictionary(Of Integer, Double)
+// 	For Each f In faces
+// 		dic1.Add(f, Value)
+// 	Next
+// 	Return Me.SetHeadBC(dic1)
+// End Function
+// Function SetHeadBC(fbc As Dictionary(Of Integer, Double)) As List(Of Integer)
+// 	Dim lstC As New List(Of Integer)
+// 	For Each f In fbc
+// 		If Not _bf(f.Key) Then Stop // only applicable to boundary faces
+// With _f(f.Key)
+// 	If .NodeIDs(0) = -1 And .NodeIDs(1) = -1 Then
+// 		Stop // error
+// ElseIf .NodeIDs(0) = -1 Then
+// 	lstC.Add(_n.Count)
+// 	.NodeFromID = _n.Count
+// 	_s.Add(f.Key, New _state)
+// 	Dim bfd = IIf(_gf.IsUpwardFace(f.Key), 1, 0), nid = .NodeIDs(1)
+// 	_fxr.Add(f.Key, { .NodeIDs(0), nid, _n(nid).FaceID(bfd)})
+// 	_n.Add(_n.Count, New _node With {.Head = f.Value, .Elevation = _n(nid).Elevation - 0.001, .Mannings_n = _n(nid).Mannings_n}) // ghost node
+// 	.Initialize(_n(.NodeIDs(0)), _n(nid), _theta, _dx)
+// ElseIf .NodeIDs(1) = -1 Then
+// 	lstC.Add(_n.Count)
+// 	.NodeToID = _n.Count
+// 	_s.Add(f.Key, New _state)
+// 	Dim bfd = IIf(_gf.IsUpwardFace(f.Key), 0, 2), nid = .NodeIDs(0)
+// 	_fxr.Add(f.Key, {nid, .NodeIDs(1), _n(nid).FaceID(bfd)})
+// 	_n.Add(_n.Count, New _node With {.Head = f.Value, .Elevation = _n(nid).Elevation - 0.001, .Mannings_n = _n(nid).Mannings_n}) // ghost node
+// 	.Initialize(_n(nid), _n(.NodeIDs(1)), _theta, _dx)
+// Else
+// 	Stop // error
+// End If
+// 	_bf(f.Key) = False
+// End With
+// 	Next
+// 	Return lstC
+// End Function
+
+func (l *LIA) SetFluxBCfromFaces(fs []int, val float64) []int {
+	m1 := make(map[int]float64, len(fs))
+	for _, k := range fs {
+		m1[k] = val
+	}
+	return l.SetFluxBC(m1)
+}
+
+func (l *LIA) SetFluxBC(m map[int]float64) []int {
+	lout := []int{}
+	for k, f := range m {
+		if !l.bf[k] {
+			log.Fatalf("LIA.SetFluxBC() error 1: only applicable to boundary faces")
+		}
+		fk := l.f[k]
+		fnid0, fnid1 := fk.nodeIDs()
+		if fnid0 == -1 && fnid1 == -1 {
+			log.Fatalf("LIA.SetFluxBC() error 2")
+		} else if fnid0 == -1 {
+			fk.q = f
+		} else if fnid1 == -1 {
+			fk.q = -f
+		} else {
+			log.Fatalf("LIA.SetFluxBC() error 3")
+		}
+		l.f[k] = fk
+		lout = append(lout, k)
+	}
+	return lout
+}
+
+// Function SetFluxBC(fs As List(Of Integer), Value As Double) As List(Of Integer)
+// 	Dim dic1 As New Dictionary(Of Integer, Double)
+// 	For Each f In fs
+// 		dic1.Add(f, Value)
+// 	Next
+// 	Return Me.SetFluxBC(dic1)
+// End Function
+// Function SetFluxBC(fbc As Dictionary(Of Integer, Double)) As List(Of Integer)
+// 	Dim lstC As New List(Of Integer)
+// 	For Each f In fbc
+// 		If Not _bf(f.Key) Then Stop // only applicable to boundary faces
+// 		With _f(f.Key)
+// 			If .NodeIDs(0) = -1 And .NodeIDs(1) = -1 Then
+// 				Stop // error
+// 			ElseIf .NodeIDs(0) = -1 Then
+// 				.Flux = f.Value
+// 			ElseIf .NodeIDs(1) = -1 Then
+// 				.Flux = -f.Value
+// 			Else
+// 				Stop // error
+// 			End If
+// 		End With
+// 		lstC.Add(f.Key)
+// 	Next
+// 	Return lstC
+// End Function
+
+func (l *LIA) SetFlux(fs []int, val float64) {
+	for _, k := range fs {
+		if !l.bf[k] {
+			log.Fatalf("LIA.SetFlux() error 1: only applicable to boundary faces")
+		}
+		fk := l.f[k]
+		fnid0, fnid1 := fk.nodeIDs()
+		if fnid0 == -1 && fnid1 == -1 {
+			log.Fatalf("LIA.SetFlux() error 2")
+		} else if fnid0 == -1 {
+			fk.q = val
+		} else if fnid1 == -1 {
+			fk.q = -val
+		} else {
+			log.Fatalf("LIA.SetFlux() error 3")
+		}
+		l.f[k] = fk
+	}
+}
+
+// Sub SetFlux(fs As List(Of Integer), Value As Double)
+// 	For Each f In fs
+// 		If Not _bf(f) Then Stop // only applicable to boundary faces
+// 		With _f(f)
+// 			If .NodeIDs(0) = -1 And .NodeIDs(1) = -1 Then
+// 				Stop // error
+// 			ElseIf .NodeIDs(0) = -1 Then
+// 				.Flux = Value
+// 			ElseIf .NodeIDs(1) = -1 Then
+// 				.Flux = -Value
+// 			Else
+// 				Stop // error
+// 			End If
+// 		End With
+// 	Next
+// End Sub
+
+func (l *LIA) SetHeadsManySame(ns []int, h float64) {
+	for _, k := range ns {
+		nk := l.n[k]
+		nk.h = h
+		l.n[k] = nk
+	}
+}
+func (l *LIA) SetHeadsMany(nh map[int]float64) {
+	for k, h := range nh {
+		nk := l.n[k]
+		nk.h = h
+		l.n[k] = nk
+	}
+}
+func (l *LIA) SetHeadsAll(h float64) {
+	for k := range l.n {
+		nk := l.n[k]
+		nk.h = h
+		l.n[k] = nk
+	}
+}
+
+// Sub SetHeads(ns As List(Of Integer), Value As Double)
+// 	For Each n In ns
+// 		_n(n).Head = Value
+// 	Next
+// End Sub
+// Sub SetHeads(nh As Dictionary(Of Integer, Double))
+// 	For Each n In nh
+// 		_n(n.Key).Head = n.Value
+// 	Next
+// End Sub
+// Sub SetHeads(h As Double)
+// 	For Each n In _n.Values
+// 		n.Head = h
+// 	Next
+// End Sub

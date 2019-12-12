@@ -1,0 +1,160 @@
+package lia
+
+import (
+	"fmt"
+	"math"
+)
+
+func (l *LIA) solve() map[int]float64 {
+	// steady state
+	sf := make(map[int]face, len(l.f))
+	for k, f := range l.f {
+		if l.bf[k] {
+			continue
+		}
+		sf[k] = f
+	}
+	for {
+		l.setCurrentState()
+		l.tacum += l.dt
+		for k := range sf {
+			sfk, lsk := sf[k], l.s[k]
+			sfk.UpdateFlux(&lsk, l.dt) ////////////////// GO
+			sf[k] = sfk
+		}
+		r := l.updateHeads()
+		fmt.Printf("%.5f %.5f\n", l.tacum, r)
+		if math.Abs(r) < l.tresid {
+			break
+		}
+
+	}
+
+	mout := map[int]float64{}
+	for k, n := range l.n { ///////////////////////////  dic are not ordered assumes orderd map
+		if k > l.nc {
+			break
+		}
+		mout[k] = n.h
+	}
+	return mout
+}
+
+// Public Function Solve() As Dictionary(Of Integer, Double)
+// ' steady-state
+// Dim sf As New Dictionary(Of Integer, face)
+// For Each f In _f
+// 	If _bf(f.Key) Then Continue For
+// 	sf.Add(f.Key, f.Value)
+// Next
+// 100:        Me.SetCurrentState()
+// _tacum += _dt
+// 'For Each f In sf
+// '    f.Value.UpdateFlux(_s(f.Key), _dt)
+// 'Next
+// Parallel.ForEach(sf, Sub(f) f.Value.UpdateFlux(_s(f.Key), _dt))
+// Dim r = Me.UpdateHeads
+// Console.WriteLine("{0:0.00000}  {1:0.0000}", _tacum, r)
+// If Math.Abs(r) > _tresid Then GoTo 100
+// Dim dicOut As New Dictionary(Of Integer, Double)
+// For Each n In _n
+// 	If n.Key >= _gf.nCells Then Exit For ' ghost node boundary condition
+// 	dicOut.Add(n.Key, n.Value.Head)
+// Next
+// Return dicOut
+// End Function
+
+
+
+// Public Function Solve(TimeStepSec As Double) As Dictionary(Of Integer, Double)
+// _tacum = 0.0
+// _dt = TimeStepSec
+// Dim sf As New Dictionary(Of Integer, _face)
+// For Each f In _f
+// 	If _bf(f.Key) Then Continue For
+// 	sf.Add(f.Key, f.Value)
+// Next
+// Do
+// Me.SetCurrentState()
+// _tacum += _dt
+// If _tacum > TimeStepSec Then
+// 	_dt -= _tacum - TimeStepSec
+// 	_tacum = TimeStepSec
+// End If
+// 'For Each f In sf
+// '    f.Value.UpdateFlux(_s(f.Key), _dt)
+// 'Next
+// Parallel.ForEach(sf, Sub(f) f.Value.UpdateFlux(_s(f.Key), _dt))
+// Me.pUpdateHeads()
+// 	Console.Write(".")
+// Loop Until _tacum = TimeStepSec
+
+// Dim dicOut As New Dictionary(Of Integer, Double)
+// For Each n In _n
+// 	If n.Key >= _gf.nCells Then Exit For ' ghost node boundary condition
+// 	dicOut.Add(n.Key, n.Value.Head)
+// Next
+// Return dicOut
+// End Function
+
+func (l *LIA) Velocities() map[int]float64 {
+	mout := map[int]float64{}
+	for k, n := range l.n {
+		if k > l.nc { ///////////////////////////  dic are not ordered assumes orderd map
+			break
+		}
+		if n.h - n.z > .002*l.dx {
+			mout[k] = math.Sqrt(math.Pow(((l.f[n.fid[2]].q+l.f[n.fid[0]].q)/2.), 2.)+math.Pow(((l.f[n.fid[3]].q+l.f[n.fid[1]].q)/2.), 2.)) / (n.h - n.z)
+		} else {
+			mout[k] = 0.
+		}
+	}
+	return mout
+}
+
+// Public Function Velocities() As Dictionary(Of Integer, Double)
+// Dim dicOut As New Dictionary(Of Integer, Double)
+// For Each n In _n
+// 	If n.Key >= _gf.nCells Then Exit For ' ghost node boundary condition
+// 	With n.Value
+// 		If .Depth > 0.002 * _dx Then dicOut.Add(n.Key, Math.Sqrt(((_f(.FaceID(2)).Flux + _f(.FaceID(0)).Flux) / 2.0) ^ 2.0 + ((_f(.FaceID(3)).Flux + _f(.FaceID(1)).Flux) / 2.0) ^ 2.0) / .Depth) Else dicOut.Add(n.Key, 0.0)
+// 	End With
+// Next
+// Return dicOut
+// End Function
+
+
+// Private Function UpdateHeads() As Double
+// Dim resid As Double = 0.0, aresid As Double = 0.0, d1 = _dt / _dx //^ 2.0 ' error in equation 11, see eq. 20 in de Almeda etal 2012
+// For Each n In _n
+// 	If n.Key >= _gf.nCells Then Exit For ' ghost node boundary condition
+// 	With n.Value
+// 		Dim dh = d1 * (_f(.FaceID(2)).Flux - _f(.FaceID(0)).Flux + _f(.FaceID(3)).Flux - _f(.FaceID(1)).Flux) ' eq 11
+// 		If Not IsNothing(_r) AndAlso _r.ContainsKey(n.Key) Then dh += _r(n.Key)
+// 		Dim adh = Math.Abs(dh)
+// 		If adh > aresid Then
+// 			aresid = adh
+// 			resid = dh
+// 		End If
+// 		.Head += dh
+// 	End With
+// Next
+// Return resid
+// End Function
+// Private Sub pUpdateHeads()
+// Dim d1 = _dt / _dx '^ 2.0 ' error in equation 11, see eq. 20 in de Almeda etal 2012
+// Parallel.ForEach(_n, Sub(n)
+// 						 If n.Key < _gf.nCells Then ' ghost node boundary condition
+// 							 With n.Value
+// 								 .Head += d1 * (_f(.FaceID(2)).Flux - _f(.FaceID(0)).Flux + _f(.FaceID(3)).Flux - _f(.FaceID(1)).Flux) ' eq 11
+// 							 End With
+// 						 End If
+// 					 End Sub)
+// If Not IsNothing(_r) Then
+// 	Parallel.ForEach(_r, Sub(r)
+// 							 With _n(r.Key)
+// 								 .Head += r.Value * _dt ' m
+// 							 End With
+// 						 End Sub)
+// End If
+// End Sub
