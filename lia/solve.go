@@ -1,4 +1,4 @@
-package lia// VERSION 2
+package lia // VERSION 2
 
 import (
 	"fmt"

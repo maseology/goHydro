@@ -8,9 +8,9 @@ import (
 )
 
 const (
-	dhmin = 0.00001 // minimum of maximum global head change threshold (for steady-state simulations only)
+	dhmin = 1.e-5 // minimum of maximum global head change threshold (for steady-state simulations only)
+	dmin  = 1.e-5 // minimum depth for variable timestep calculation
 	g     = 9.80665
-	dmin  = 0.001 // minimum depth for timestep calculation
 )
 
 // Domain is a model domain for a local inertial approximation to the 2D SWE solver
@@ -25,21 +25,13 @@ type Domain struct {
 	ns                         []node
 	gns                        map[int]*node // ghost nodes (indexed by face id)
 	tcum, dt, dx, Alpha, Theta float64       // cumulative time; time-step; space-step; timestep limiter; numerical diffusion (Theta<1)
-	// fgxr                       map[int]int // face to ghost node xr
-
-	// // gxr                        map[int]int // cell id to index
-	r []float64 // vertical influx [m/s]
-	// fxr                        [][]int   // face to node
-	// bf                         []bool    // boundary face
-	// nn, ngn, nf, nfi           int       // number of nodes/cells, number of ghost/sacrificial nodes, number of faces, number of internal faces
+	r                          []float64     // vertical influx [m/s]
 }
 
 // Build a new global LIA model
 func (d *Domain) Build(gd *grid.Definition, z, h0, n map[int]float64) {
 	d.dx = gd.Cw // goHydro grid.Definition (currently) only supports square-uniform grids
 	d.GF = grid.NewFace(gd)
-
-	// d.nn = gd.Na
 
 	// build nodes
 	d.ns = make([]node, gd.Na)
@@ -83,12 +75,6 @@ func (d *Domain) Build(gd *grid.Definition, z, h0, n map[int]float64) {
 		fc := d.GF.FaceCell[fid]
 		nidb := fc[0]
 		nidf := fc[1]
-		// if nidb == -1 || nidf == -1 {
-		// 	continue // boundary node
-		// }
-		// if !gd.IsActive(nidb) || gd.IsActive(nidf) {
-		// 	continue // boundary node
-		// }
 		//   1
 		// 2   0
 		//   3
@@ -122,10 +108,6 @@ func (d *Domain) Build(gd *grid.Definition, z, h0, n map[int]float64) {
 			zx:  math.Max(d.ns[nidb].z, d.ns[nidf].z),
 			n2:  math.Pow(((d.ns[nidb].n + d.ns[nidf].n) / 2.), 2.),
 		}
-		// // check
-		// fmt.Printf("%d %p %p -- ", i, &d.ns[i], d.WKR[i].nb)
-		// d.WKR[i].nb.h += 10.
-		// fmt.Printf("%f %f\n", d.ns[i].h, d.WKR[i].nb.h)
 	}
 }
 
