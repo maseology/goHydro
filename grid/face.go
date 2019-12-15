@@ -16,7 +16,7 @@ import "github.com/maseology/mmaths"
 //  | 15| 16| 17| 18| 19|       |   |   |   |   |   |     43  44  45  46  47  48               /              from
 //  o---o---o---o---o---o       o-20o-21o-22o-23o-24o      o---o---o---o---o---o
 type Face struct {
-	gd                 *Definition
+	GD                 *Definition
 	cxy                map[int]mmaths.Point
 	CellFace, FaceCell map[int][]int
 	boundface          []int
@@ -26,21 +26,21 @@ type Face struct {
 // NewFace creates a new Face struct
 func NewFace(gd *Definition) *Face {
 	var f Face
-	f.gd = gd
+	f.GD = gd
 	ncell := gd.Ncells()
-	f.Nfaces = 2*gd.nr*gd.nc + gd.nr + gd.nc
+	f.Nfaces = 2*gd.Nr*gd.Nc + gd.Nr + gd.Nc
 	f.CellFace = make(map[int][]int, ncell)
 	f.cxy = make(map[int]mmaths.Point, ncell)
 	f.FaceCell = make(map[int][]int, f.Nfaces)
-	f.isplit = (gd.nr + 1) * gd.nc
-	for i := 0; i < gd.nr; i++ {
-		for j := 0; j < gd.nc; j++ {
+	f.isplit = (gd.Nr + 1) * gd.Nc
+	for i := 0; i < gd.Nr; i++ {
+		for j := 0; j < gd.Nc; j++ {
 			//   1
 			// 2   0
 			//   3
 			in1, cid := make([]int, 4), gd.CellID(i, j)
 			in1[1] = cid                    // up
-			in1[3] = cid + gd.nc            // down
+			in1[3] = cid + gd.Nc            // down
 			in1[2] = cid + f.isplit + i     // left
 			in1[0] = cid + f.isplit + i + 1 // right
 			f.CellFace[cid] = in1
@@ -75,4 +75,22 @@ func NewFace(gd *Definition) *Face {
 // IsUpwardFace returns whether the orientation of the face is normal to the vertical
 func (f *Face) IsUpwardFace(fid int) bool {
 	return fid < f.isplit
+}
+
+// LeftFaces returns the face indices of all 'left' faces
+func (f *Face) LeftFaces() []int {
+	lst := []int{}
+	for i := 0; i < f.GD.Nr; i++ {
+		lst = append(lst, i*(f.GD.Nc+1)+f.isplit)
+	}
+	return lst
+}
+
+// RightFaces returns the face indices of all 'right' faces
+func (f *Face) RightFaces() []int {
+	lst := []int{}
+	for i := 0; i < f.GD.Nr; i++ {
+		lst = append(lst, f.GD.Nc*(f.GD.Nr+1)+(i+1)*(f.GD.Nc+1)-1)
+	}
+	return lst
 }

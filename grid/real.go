@@ -8,8 +8,8 @@ import (
 
 // Real data type array
 type Real struct {
-	gd *Definition
-	a  map[int]float64
+	GD *Definition
+	A  map[int]float64
 }
 
 // New constructor
@@ -20,25 +20,25 @@ func (r *Real) New(fp string) {
 
 func (r *Real) getGDef(fp string) {
 	var err error
-	r.gd, err = ReadGDEF(fp, true)
+	r.GD, err = ReadGDEF(fp, true)
 	if err != nil {
 		log.Fatalf("%v", err)
 	}
 }
 
 func (r *Real) getBinary(fp string) {
-	r.a = make(map[int]float64, r.gd.na)
+	r.A = make(map[int]float64, r.GD.Na)
 	b, n, err := mmio.ReadBinaryFloats(fp, 1)
 	if err != nil {
 		log.Fatalf("%v", err)
 	}
-	if n != r.gd.na {
+	if n != r.GD.Na {
 		log.Fatalf(" grid does not match definition length")
 	}
 	c := 0
-	if len(r.gd.Sactives) > 0 {
-		for _, i := range r.gd.Sactives {
-			r.a[i] = b[0][c]
+	if len(r.GD.Sactives) > 0 {
+		for _, i := range r.GD.Sactives {
+			r.A[i] = b[0][c]
 			c++
 		}
 	}

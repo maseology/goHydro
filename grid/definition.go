@@ -19,8 +19,8 @@ type Definition struct {
 	Coord                 map[int]mmaths.Point
 	act                   map[int]bool
 	Sactives              []int // a sorted slice of active cell IDs
-	eorig, norig, rot, cs float64
-	nr, nc, na            int
+	eorig, norig, rot, Cw float64
+	Nr, Nc, Na            int
 	Name                  string
 }
 
@@ -28,19 +28,19 @@ type Definition struct {
 func NewDefinition(nam string, nr, nc int, UniformCellSize float64) *Definition {
 	var gd Definition
 	gd.Name = nam
-	gd.nr, gd.nc, gd.na = nr, nc, nr*nc
-	gd.cs = UniformCellSize
-	gd.Sactives = make([]int, gd.na)
-	gd.act = make(map[int]bool, gd.na)
-	for i := 0; i < gd.na; i++ {
+	gd.Nr, gd.Nc, gd.Na = nr, nc, nr*nc
+	gd.Cw = UniformCellSize
+	gd.Sactives = make([]int, gd.Na)
+	gd.act = make(map[int]bool, gd.Na)
+	for i := 0; i < gd.Na; i++ {
 		gd.Sactives[i] = i
 		gd.act[i] = true
 	}
-	gd.Coord = make(map[int]mmaths.Point, gd.na)
+	gd.Coord = make(map[int]mmaths.Point, gd.Na)
 	cid := 0
-	for i := 0; i < gd.nr; i++ {
-		for j := 0; j < gd.nc; j++ {
-			p := mmaths.Point{X: gd.eorig + gd.cs*(float64(j)+0.5), Y: gd.norig - gd.cs*(float64(i)+0.5)}
+	for i := 0; i < gd.Nr; i++ {
+		for j := 0; j < gd.Nc; j++ {
+			p := mmaths.Point{X: gd.eorig + gd.Cw*(float64(j)+0.5), Y: gd.norig - gd.Cw*(float64(i)+0.5)}
 			gd.Coord[cid] = p
 			cid++
 		}
@@ -79,7 +79,7 @@ func ReadGDEF(fp string, print bool) (*Definition, error) {
 		return nil, fmt.Errorf("ReadGDEF error: rotation no yet supported")
 	}
 
-	nc := gd.nr * gd.nc
+	nc := gd.Nr * gd.Nc
 	cn, cx := 0, nc
 	if nc%8 != 0 {
 		nc += 8 - nc%8 // add padding
@@ -92,13 +92,20 @@ func ReadGDEF(fp string, print bool) (*Definition, error) {
 			return nil, fmt.Errorf("Fatal error: read actives failed: %v", err)
 		}
 		if print {
-			fmt.Printf(" no active cells)\n")
+			fmt.Printf(" (no active cells)\n")
+		}
+		gd.Sactives = make([]int, cx)
+		gd.act = make(map[int]bool, cx)
+		gd.Na = cx
+		for i := 0; i < cx; i++ {
+			gd.Sactives[i] = i
+			gd.act[i] = true
 		}
 		gd.Coord = make(map[int]mmaths.Point, cx)
 		cid := 0
-		for i := 0; i < gd.nr; i++ {
-			for j := 0; j < gd.nc; j++ {
-				p := mmaths.Point{X: gd.eorig + gd.cs*(float64(j)+0.5), Y: gd.norig - gd.cs*(float64(i)+0.5)}
+		for i := 0; i < gd.Nr; i++ {
+			for j := 0; j < gd.Nc; j++ {
+				p := mmaths.Point{X: gd.eorig + gd.Cw*(float64(j)+0.5), Y: gd.norig - gd.Cw*(float64(i)+0.5)}
 				gd.Coord[cid] = p
 				cid++
 			}
@@ -115,7 +122,7 @@ func ReadGDEF(fp string, print bool) (*Definition, error) {
 				if b&(1<<i)>>i == 1 {
 					gd.Sactives = append(gd.Sactives, cn)
 					gd.act[cn] = true
-					gd.na++
+					gd.Na++
 				}
 				cn++
 				if cn >= cx {
@@ -126,15 +133,15 @@ func ReadGDEF(fp string, print bool) (*Definition, error) {
 		if cn != cx {
 			return nil, fmt.Errorf("Fatal error(s): ReadGDEF:\n   number of cells found (%d) not equal to total (%d): %v", cn, cx, err)
 		}
-		if gd.na > 0 && print {
-			fmt.Printf(" %s active cells\n", mmio.Thousands(int64(gd.na))) //11,118,568
+		if gd.Na > 0 && print {
+			fmt.Printf(" %s active cells\n", mmio.Thousands(int64(gd.Na))) //11,118,568
 		}
-		gd.Coord = make(map[int]mmaths.Point, gd.na)
+		gd.Coord = make(map[int]mmaths.Point, gd.Na)
 		cid := 0
-		for i := 0; i < gd.nr; i++ {
-			for j := 0; j < gd.nc; j++ {
+		for i := 0; i < gd.Nr; i++ {
+			for j := 0; j < gd.Nc; j++ {
 				if _, ok := gd.act[cid]; ok {
-					p := mmaths.Point{X: gd.eorig + gd.cs*(float64(j)+0.5), Y: gd.norig - gd.cs*(float64(i)+0.5)}
+					p := mmaths.Point{X: gd.eorig + gd.Cw*(float64(j)+0.5), Y: gd.norig - gd.Cw*(float64(i)+0.5)}
 					gd.Coord[cid] = p
 				}
 				cid++
@@ -191,7 +198,7 @@ func parseHeader(a []string, print bool) (Definition, error) {
 		return Definition{}, fmt.Errorf("Fatal error(s): ReadGDEF.parseHeader:\n%s", strings.Join(stErr, "\n"))
 	}
 
-	gd := Definition{eorig: oe, norig: on, rot: rot, cs: cs, nr: int(nr), nc: int(nc)}
+	gd := Definition{eorig: oe, norig: on, rot: rot, Cw: cs, Nr: int(nr), Nc: int(nc)}
 	if print {
 		fmt.Printf(" xul\t\t%.1f\n", oe)
 		fmt.Printf(" yul\t\t%.1f\n", on)
@@ -231,40 +238,30 @@ func (gd *Definition) IsActive(cid int) bool {
 
 // RowCol returns row and column index for a given cell ID
 func (gd *Definition) RowCol(cid int) (row, col int) {
-	if cid < 0 || cid > gd.nr*gd.nc {
+	if cid < 0 || cid > gd.Nr*gd.Nc {
 		log.Fatalf("Definition.RowCol error: invalid cell ID: %d", cid)
 	}
-	row = int(float64(cid) / float64(gd.nc))
-	col = cid - row*gd.nc
+	row = int(float64(cid) / float64(gd.Nc))
+	col = cid - row*gd.Nc
 	return
 }
 
 // CellID returns cell ID for a given row and column index
 func (gd *Definition) CellID(row, col int) int {
-	if row < 0 || row >= gd.nr || col < 0 || col >= gd.nc {
+	if row < 0 || row >= gd.Nr || col < 0 || col >= gd.Nc {
 		log.Fatalf("Definition.CellID error: invalid [row,col]: [%d,%d]", row, col)
 	}
-	return row*gd.nc + col
-}
-
-// Nactives returns the count of active grid cells
-func (gd *Definition) Nactives() int {
-	return gd.na
+	return row*gd.Nc + col
 }
 
 // Ncells returns the count of grid cells
 func (gd *Definition) Ncells() int {
-	return gd.nc * gd.nr
-}
-
-// CellWidth returns the (uniform) width of the grid cells
-func (gd *Definition) CellWidth() float64 {
-	return gd.cs
+	return gd.Nc * gd.Nr
 }
 
 // CellArea returns the (uniform) area of the grid cells
 func (gd *Definition) CellArea() float64 {
-	return gd.cs * gd.cs
+	return gd.Cw * gd.Cw
 }
 
 // CellIndexXR returns a mapping of cell id to an array index

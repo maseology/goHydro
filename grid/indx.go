@@ -109,17 +109,17 @@ func (r *Indx) getBinaryShort(fp string, rowmajor bool) {
 		log.Fatalf(" Indx.getBinary(): %v", err)
 	}
 	switch n {
-	case r.gd.na:
-		r.a = make(map[int]int, r.gd.na)
+	case r.gd.Na:
+		r.a = make(map[int]int, r.gd.Na)
 		log.Fatalln(" Indx.getBinary: active grids not yet supported (TODO)")
-	case r.gd.nr * r.gd.nc:
-		r.a = make(map[int]int, r.gd.nr*r.gd.nc)
+	case r.gd.Nr * r.gd.Nc:
+		r.a = make(map[int]int, r.gd.Nr*r.gd.Nc)
 		if rowmajor {
 			for i := 0; i < n; i++ {
 				r.a[i] = int(b[0][i])
 			}
 		} else {
-			c, nr, nc := 0, r.gd.nr, r.gd.nc
+			c, nr, nc := 0, r.gd.Nr, r.gd.Nc
 			for j := 0; j < nc; j++ {
 				for i := 0; i < nr; i++ {
 					r.a[i*nc+j] = int(b[0][c])
@@ -127,7 +127,7 @@ func (r *Indx) getBinaryShort(fp string, rowmajor bool) {
 				}
 			}
 		}
-	case 2 * r.gd.nr * r.gd.nc, 2 * r.gd.na:
+	case 2 * r.gd.Nr * r.gd.Nc, 2 * r.gd.Na:
 		// log.Fatalf(" Indx.getBinaryShort: %s is not of type short", fp)
 		r.getBinary(fp, rowmajor)
 	default:
@@ -141,19 +141,19 @@ func (r *Indx) getBinary(fp string, rowmajor bool) {
 		log.Fatalf(" Indx.getBinary(): %v", err)
 	}
 	switch n {
-	case r.gd.na:
-		r.a = make(map[int]int, r.gd.na)
+	case r.gd.Na:
+		r.a = make(map[int]int, r.gd.Na)
 		for i, cid := range r.gd.Sactives {
 			r.a[cid] = int(b[0][i])
 		}
-	case r.gd.nr * r.gd.nc:
-		r.a = make(map[int]int, r.gd.nr*r.gd.nc)
+	case r.gd.Nr * r.gd.Nc:
+		r.a = make(map[int]int, r.gd.Nr*r.gd.Nc)
 		if rowmajor {
 			for i := 0; i < n; i++ {
 				r.a[i] = int(b[0][i])
 			}
 		} else {
-			c, nr, nc := 0, r.gd.nr, r.gd.nc
+			c, nr, nc := 0, r.gd.Nr, r.gd.Nc
 			for j := 0; j < nc; j++ {
 				for i := 0; i < nr; i++ {
 					r.a[i*nc+j] = int(b[0][c])
@@ -174,14 +174,14 @@ func (r *Indx) ToASC(fp string, ignoreActives bool) error {
 	}
 	defer t.Close()
 	r.gd.ToASCheader(t)
-	if r.gd.na > 0 && ignoreActives {
-		m := make(map[int]bool, r.gd.na)
+	if r.gd.Na > 0 && ignoreActives {
+		m := make(map[int]bool, r.gd.Na)
 		for _, c := range r.gd.Sactives {
 			m[c] = true
 		}
 		c := 0
-		for i := 0; i < r.gd.nr; i++ {
-			for j := 0; j < r.gd.nc; j++ {
+		for i := 0; i < r.gd.Nr; i++ {
+			for j := 0; j < r.gd.Nc; j++ {
 				if _, ok := m[c]; ok {
 					t.Write(fmt.Sprintf("%d ", r.a[c]))
 				} else {
@@ -193,8 +193,8 @@ func (r *Indx) ToASC(fp string, ignoreActives bool) error {
 		}
 	} else {
 		c := 0
-		for i := 0; i < r.gd.nr; i++ {
-			for j := 0; j < r.gd.nc; j++ {
+		for i := 0; i < r.gd.Nr; i++ {
+			for j := 0; j < r.gd.Nc; j++ {
 				if v, ok := r.a[c]; ok {
 					t.Write(fmt.Sprintf("%d ", v))
 				} else {

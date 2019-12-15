@@ -15,24 +15,24 @@ func (gd *Definition) Intersect(toGD *Definition) map[int][]int {
 	if gd.rot != toGD.rot {
 		log.Fatalf("Definition.Intersect error: Definitions not in same orientation (i.e., rotation)")
 	}
-	intsct := make(map[int][]int, gd.Nactives())
-	if gd.cs > toGD.cs {
+	intsct := make(map[int][]int, gd.Na)
+	if gd.Cw > toGD.Cw {
 		log.Fatalf("Definition.Intersect TODO")
 		log.Fatalf("Definition.Intersect: NNED TO CHECK CODE, not yet used.....")
-		if math.Mod(gd.cs, toGD.cs) != 0. {
-			log.Fatalf("Definition.Intersect error: Definitions grid definitions are not multiples: fromGD: %f, toGD: %f", gd.cs, toGD.cs)
+		if math.Mod(gd.Cw, toGD.Cw) != 0. {
+			log.Fatalf("Definition.Intersect error: Definitions grid definitions are not multiples: fromGD: %f, toGD: %f", gd.Cw, toGD.Cw)
 		}
-		scale := int(toGD.cs / gd.cs)
+		scale := int(toGD.Cw / gd.Cw)
 		for _, c := range gd.Sactives {
 			i, j := gd.RowCol(c)
 			tocid := toGD.CellID(i*scale, j*scale)
 			intsct[c] = []int{tocid} // THIS IS INCONSISTENT ++++++++++++++++++++++++++++++++++++++++++++++++++++++
 		}
-	} else if gd.cs < toGD.cs {
-		if math.Mod(toGD.cs, gd.cs) != 0. {
-			log.Fatalf("Definition.Intersect error: Definitions grid definitions are not multiples: fromGD: %f, toGD: %f", gd.cs, toGD.cs)
+	} else if gd.Cw < toGD.Cw {
+		if math.Mod(toGD.Cw, gd.Cw) != 0. {
+			log.Fatalf("Definition.Intersect error: Definitions grid definitions are not multiples: fromGD: %f, toGD: %f", gd.Cw, toGD.Cw)
 		}
-		scale := toGD.cs / gd.cs
+		scale := toGD.Cw / gd.Cw
 		for _, c := range gd.Sactives {
 			i, j := gd.RowCol(c)
 			tocid := toGD.CellID(int(float64(i)/scale), int(float64(j)/scale))
