@@ -7,12 +7,6 @@ import (
 	"github.com/maseology/goHydro/grid"
 )
 
-const (
-	dhmin = 1.e-5 // minimum of maximum global head change threshold (for steady-state simulations only)
-	dmin  = 1.e-5 // minimum depth for variable timestep calculation
-	g     = 9.80665
-)
-
 // Domain is a model domain for a local inertial approximation to the 2D SWE solver
 // ref: de Almeida, G.A.M., P. Bates, 2013. Applicability of the local intertial approximation of the shallow water equations to flood modeling. Water Resources Research 49: 4833-4844.
 // see also: - de Almeida Bates Freer Souvignet 2012 Improving the stability of a simple formulation of the shallow water equations for 2-D flood modeling
@@ -21,7 +15,7 @@ const (
 type Domain struct {
 	GF                         *grid.Face
 	WKR                        []worker
-	qs                         []flux
+	qs                         []face
 	ns                         []node
 	gns                        map[int]*node // ghost nodes (indexed by face id)
 	tcum, dt, dx, Alpha, Theta float64       // cumulative time; time-step; space-step; timestep limiter; numerical diffusion (Theta<1)
@@ -52,14 +46,14 @@ func (d *Domain) Build(gd *grid.Definition, z, h0, n map[int]float64) {
 
 	// build faces
 	nf := d.GF.Nfaces
-	d.qs = make([]flux, nf)
+	d.qs = make([]face, nf)
 	fxr := make(map[int]int, nf)
 	nfi := 0
 	for fid := 0; fid < nf; fid++ {
 		fc := d.GF.FaceCell[fid]
 		nidb := fc[0]
 		nidf := fc[1]
-		var q flux
+		var q face
 		d.qs[fid] = q
 		if nidb == -1 || nidf == -1 { // boundary
 			continue

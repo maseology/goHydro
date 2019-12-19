@@ -1,4 +1,4 @@
-package lia// VERSION 2
+package lia // VERSION 2
 
 import (
 	"log"
@@ -16,6 +16,7 @@ func (d *Domain) addGhostNodes(n int) {
 }
 
 // SetHeadBC sets specified head (type 1) boundary conditions
+// returns node index list for this set of head BCs
 func (d *Domain) SetHeadBC(m map[int]float64) {
 	wid := len(d.WKR)
 	d.addGhostNodes(len(m))
@@ -58,9 +59,9 @@ func (d *Domain) SetFluxBC(m map[int]float64) {
 		if fnid[0] == -1 && fnid[1] == -1 {
 			log.Fatalf("LIA.SetFluxBC() error 2")
 		} else if fnid[0] == -1 {
-			d.qs[k] = flux(f)
+			d.qs[k].q = f
 		} else if fnid[1] == -1 {
-			d.qs[k] = flux(-f)
+			d.qs[k].q = -f
 		} else {
 			log.Fatalf("LIA.SetFluxBC() error 3")
 		}

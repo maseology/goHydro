@@ -272,3 +272,30 @@ func (gd *Definition) CellIndexXR() map[int]int {
 	}
 	return m
 }
+
+// PointToCellID returns the cell id that contains the xy coordinates
+func (gd *Definition) PointToCellID(x, y float64) int {
+	return gd.CellID(gd.PointToRowCol(x, y))
+}
+
+// PointToRowCol returns the row and column grid cell that contains the xy coordinates
+func (gd *Definition) PointToRowCol(x, y float64) (row, col int) {
+	row = -1
+	col = -1
+	if gd.rot != 0. {
+		log.Fatalf(" Definition.PointToRowCol todo")
+	}
+	for {
+		row++
+		if gd.norig-float64(row+1)*gd.Cw <= y {
+			break
+		}
+	}
+	for {
+		col++
+		if gd.eorig+float64(col+1)*gd.Cw >= x {
+			break
+		}
+	}
+	return
+}
