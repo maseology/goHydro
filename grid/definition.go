@@ -299,3 +299,20 @@ func (gd *Definition) PointToRowCol(x, y float64) (row, col int) {
 	}
 	return
 }
+
+// ConatainsPoint returns whether a point exists within a grid definition, with a specified buffer
+func (gd *Definition) ConatainsPoint(x, y, buf float64) bool {
+	if x < gd.eorig-buf {
+		return false
+	}
+	if x > gd.eorig+float64(gd.Nc)*gd.Cw+buf {
+		return false
+	}
+	if y > gd.norig+buf {
+		return false
+	}
+	if y < gd.norig-float64(gd.Nr)*gd.Cw-buf {
+		return false
+	}
+	return true
+}
