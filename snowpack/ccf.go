@@ -84,8 +84,8 @@ func (c *CCF) Update(r, s, t float64) (drainage float64) {
 
 func (c *CCF) satisfyColdContent(t float64) {
 	if (c.swe - c.lwc) <= 0. {
-		if c.swe != c.lwc {
-			log.Fatalf("CCF.satisfyColdContent error: swe and lwc should be equivalent.\n  swe = %f;  lwc = %f", c.swe, c.lwc)
+		if math.Abs((c.swe-c.lwc)/c.lwc) > 1.e-8 {
+			log.Fatalf("CCF.satisfyColdContent error: swe and lwc should be equivalent:  swe = %f;  lwc = %f", c.swe, c.lwc)
 		}
 		c.swe = c.lwc
 		c.cc = 0.
