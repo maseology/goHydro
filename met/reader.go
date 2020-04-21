@@ -56,6 +56,10 @@ func (h *Header) readLoc(b *bytes.Reader) {
 			for i := 0; i < int(h.nloc); i++ {
 				h.Locations[int(mmio.ReadInt32(b))] = []interface{}{mmio.ReadFloat64(b), mmio.ReadFloat64(b)}
 			}
+		} else if h.lc == 16 {
+			for i := 0; i < int(h.nloc); i++ {
+				h.Locations[int(mmio.ReadInt32(b))] = []interface{}{mmio.ReadFloat64(b), mmio.ReadFloat64(b), mmio.ReadFloat64(b), mmio.ReadFloat64(b), mmio.ReadFloat64(b), mmio.ReadFloat64(b)}
+			}
 		} else {
 			log.Panicf("location code %d currently not supported\n", h.lc)
 		}

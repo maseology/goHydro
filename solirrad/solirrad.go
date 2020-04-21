@@ -21,7 +21,7 @@ const (
 
 // SolIrad a stuct used to compute potential solar irradiation given latitude, slope and aspect.
 type SolIrad struct {
-	Lat, Slope, Aspect               float64      // representative/average latitude of interested area in radians; slope in radians; aspect CW from north
+	Lat, Slope, Azimuth              float64      // representative/average latitude of interested area in radians; slope in radians; azimuth ~ CW from north
 	solardec, radivectsq             [366]float64 // Solar irradtion constants: solar declination (degrees); radius vector squared (DeWalle and Rango, 2006, pg.395).
 	psih                             [366]float64 // Daily Potential Solar Irradiation on a horizontal surface in MJ/m² from sunrise to sunset
 	zeffh                            [366]float64 // Average effective zenith angle per Julian day on a horizontal surface
@@ -30,12 +30,13 @@ type SolIrad struct {
 }
 
 // New constructor
-func New(LatitudeDeg, SlopeRad, AspectCwnRad float64) SolIrad {
+func New(LatitudeDeg, SlopeRad, AzimuthRad float64) SolIrad {
+	// Azimuth (CWN) in radians
 	// southern Ontario Latitude_deg = 43.6
 	var si SolIrad
 	si.Lat = LatitudeDeg * Pi / 180.
 	si.Slope = SlopeRad
-	si.Aspect = AspectCwnRad
+	si.Azimuth = AzimuthRad
 	si.buildSolarDeclination()
 	si.buildRadiusVectorSquared()
 	si.horizontalSurfaceCompute()
@@ -96,11 +97,11 @@ func (si *SolIrad) horizontalSurfaceCompute() {
 }
 
 func (si *SolIrad) slopingSurfaceCompute() {
-	// Solar Irradiation theory for sloping surfaces (see B.2.2 of DeWalle and Rango, 2008); AspectCWN_rad in Radians clockwise from north
-	d := Sin(si.Slope)*Cos(si.Aspect)*Cos(si.Lat) + Cos(si.Slope)*Sin(si.Lat)
+	// Solar Irradiation theory for sloping surfaces (see B.2.2 of DeWalle and Rango, 2008); Azimuth in Radians clockwise from north
+	d := Sin(si.Slope)*Cos(si.Azimuth)*Cos(si.Lat) + Cos(si.Slope)*Sin(si.Lat)
 	lateq := Asin(d) // Eq B.6
-	d = Cos(si.Slope)*Cos(si.Lat) - Cos(si.Aspect)*Sin(si.Slope)*Sin(si.Lat)
-	a := Atan2(Sin(si.Aspect)*Sin(si.Slope), d) // Eq B.8 difference in longitude between equivalent horizontal surface and slope
+	d = Cos(si.Slope)*Cos(si.Lat) - Cos(si.Azimuth)*Sin(si.Slope)*Sin(si.Lat)
+	a := Atan2(Sin(si.Azimuth)*Sin(si.Slope), d) // Eq B.8 difference in longitude between equivalent horizontal surface and slope
 	for i := 0; i <= 365; i++ {
 		d = -Tan(lateq) * Tan(si.solardec[i]) // Eq B.10
 		if d >= 1. {                          // no sun exposure
@@ -149,9 +150,9 @@ func (si *SolIrad) slopingSurfaceCompute() {
 
 // PSI potential solar irradiation for any instant in time [W/m²]
 func (si *SolIrad) PSI(HourRelativeToNoon float64, DayOfYear int) float64 {
-	d := Sin(si.Slope)*Cos(si.Aspect)*Cos(si.Lat) + Cos(si.Slope)*Sin(si.Lat)
+	d := Sin(si.Slope)*Cos(si.Azimuth)*Cos(si.Lat) + Cos(si.Slope)*Sin(si.Lat)
 	lateq := Asin(d) // Eq B.6
-	a := Atan(Sin(si.Aspect) * Sin(si.Slope) / (Cos(si.Slope)*Cos(si.Lat) - Cos(si.Aspect)*Sin(si.Slope)*Sin(si.Lat)))
+	a := Atan(Sin(si.Azimuth) * Sin(si.Slope) / (Cos(si.Slope)*Cos(si.Lat) - Cos(si.Azimuth)*Sin(si.Slope)*Sin(si.Lat)))
 	wt := HourRelativeToNoon*angvel + a // Eq B.7
 	return solcnst / .0036 / si.radivectsq[DayOfYear-1] * (Sin(lateq)*Sin(si.solardec[DayOfYear-1]) + Cos(lateq)*Cos(si.solardec[DayOfYear-1])*Cos(wt))
 }
