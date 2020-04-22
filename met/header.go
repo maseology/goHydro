@@ -83,6 +83,11 @@ func (h *Header) Print() {
 		for i, c := range h.Locations {
 			fmt.Printf("  %d %v\n", i, c)
 		}
+	} else if h.lc == 16 {
+		fmt.Printf(" n locations %d\n", h.nloc)
+		for i, c := range h.Locations {
+			fmt.Printf("  %d %v\n", i, c)
+		}
 	} else if h.lc > 0 {
 		if h.nloc == 1 {
 			fmt.Printf(" outlet cell id %d\n", h.Locations[0][0])
