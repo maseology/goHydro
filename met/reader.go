@@ -41,6 +41,9 @@ func (h *Header) readHead(b *bytes.Reader) {
 func (h *Header) readLoc(b *bytes.Reader) {
 	if h.lc == 0 {
 		h.nloc = mmio.ReadUInt32(b)
+		if h.nloc == 0 { // special case: simple timeseries
+			h.nloc = 1
+		}
 	} else if h.lc > 0 {
 		h.nloc = mmio.ReadUInt32(b)
 		h.Locations = make(map[int][]interface{})
@@ -102,8 +105,9 @@ func ReadMET(fp string, print bool) (*Header, *Coll, error) {
 	var col Coll
 	if h.intvl > 0 {
 		ts := time.Second * time.Duration(h.intvl)
-		col = Coll{T: make([]time.Time, h.Nstep()), D: make([][][]float64, h.Nstep())}
-		// dc := make(map[time.Time]map[int]map[int]float64, h.Nstep())
+		nstp := h.Nstep()
+		col = Coll{T: make([]time.Time, nstp), D: make([][][]float64, nstp)}
+		// dc := make(map[time.Time]map[int]map[int]float64, nstp)
 		if h.prc == 8 {
 			// for d := h.dtb; !d.After(h.dte); d = d.Add(ts) {
 			// 	dc[d] = make(map[int]map[int]float64, h.nloc)
@@ -135,7 +139,7 @@ func ReadMET(fp string, print bool) (*Header, *Coll, error) {
 		} else if h.prc == 4 {
 			k := 0
 			for dt := h.dtb; !dt.After(h.dte); dt = dt.Add(ts) {
-				// fmt.Println(d)
+				// fmt.Println(dt)
 				// dc[d] = make(map[int]map[int]float64, h.nloc)
 				// for i := 0; i < int(h.nloc); i++ {
 				// 	dc[d][i] = make(map[int]float64, len(iwbl))

@@ -3,6 +3,7 @@ package met
 import (
 	"fmt"
 	"log"
+	"math"
 	"sort"
 	"time"
 )
@@ -52,6 +53,13 @@ func (h *Header) LocationCode() int {
 
 // Nstep returns the number of timesteps in the .met file
 func (h *Header) Nstep() int {
+	if h.dte.Sub(h.dtb) == time.Duration(math.MaxInt64) { // brute-force handling for large time spans
+		ts, cnt := time.Second*time.Duration(h.intvl), 0
+		for dt := h.dtb; !dt.After(h.dte); dt = dt.Add(ts) {
+			cnt++
+		}
+		return cnt
+	}
 	n := h.dte.Add(time.Second*time.Duration(h.intvl)).Sub(h.dtb).Seconds() / float64(h.intvl)
 	return int(n)
 }
@@ -144,6 +152,11 @@ func (h *Header) WBDCxr() map[string]int {
 		m[h.wbl[k]] = i
 	}
 	return m
+}
+
+// HasWBDC checks whether a certain datatype is present
+func (h *Header) HasWBDC(wbdc uint64) bool {
+	return h.WBCD&wbdc == wbdc
 }
 
 // WBlist return the slice the waterbalance codes

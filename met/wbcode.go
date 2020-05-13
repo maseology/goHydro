@@ -1,6 +1,6 @@
 package met
 
-// WaterBalanceDataType
+// WaterBalanceDataType (bit-wise type code)
 const (
 	Temperature = 1 << iota
 	MaxDailyT
@@ -69,198 +69,198 @@ const (
 )
 
 // WBcodeToMap converts a wbdc into a list of metrics
-func WBcodeToMap(wdcb uint64) map[uint64]string {
+func WBcodeToMap(wbdc uint64) map[uint64]string {
 	s := make(map[uint64]string)
-	if wdcb&Temperature == Temperature {
+	if wbdc&Temperature == Temperature {
 		s[Temperature] = "Temperature"
 	}
-	if wdcb&MaxDailyT == MaxDailyT {
+	if wbdc&MaxDailyT == MaxDailyT {
 		s[MaxDailyT] = "MaxDailyT"
 	}
-	if wdcb&MinDailyT == MinDailyT {
+	if wbdc&MinDailyT == MinDailyT {
 		s[MinDailyT] = "MinDailyT"
 	}
-	if wdcb&Precipitation == Precipitation {
+	if wbdc&Precipitation == Precipitation {
 		s[Precipitation] = "Precipitation"
 	}
-	if wdcb&Rainfall == Rainfall {
+	if wbdc&Rainfall == Rainfall {
 		s[Rainfall] = "Rainfall"
 	}
-	if wdcb&Snowfall == Snowfall {
+	if wbdc&Snowfall == Snowfall {
 		s[Snowfall] = "Snowfall"
 	}
-	if wdcb&Snowdepth == Snowdepth {
+	if wbdc&Snowdepth == Snowdepth {
 		s[Snowdepth] = "Snowdepth"
 	}
-	if wdcb&SnowpackSWE == SnowpackSWE {
+	if wbdc&SnowpackSWE == SnowpackSWE {
 		s[SnowpackSWE] = "SnowpackSWE"
 	}
-	if wdcb&SnowMelt == SnowMelt {
+	if wbdc&SnowMelt == SnowMelt {
 		s[SnowMelt] = "SnowMelt"
 	}
-	if wdcb&AtmosphericYield == AtmosphericYield {
+	if wbdc&AtmosphericYield == AtmosphericYield {
 		s[AtmosphericYield] = "AtmosphericYield"
 	}
-	if wdcb&AtmosphericDemand == AtmosphericDemand {
+	if wbdc&AtmosphericDemand == AtmosphericDemand {
 		s[AtmosphericDemand] = "AtmosphericDemand"
 	}
-	if wdcb&Radiation == Radiation {
+	if wbdc&Radiation == Radiation {
 		s[Radiation] = "Radiation"
 	}
-	if wdcb&RadiationSW == RadiationSW {
+	if wbdc&RadiationSW == RadiationSW {
 		s[RadiationSW] = "RadiationSW"
 	}
-	if wdcb&RadiationLW == RadiationLW {
+	if wbdc&RadiationLW == RadiationLW {
 		s[RadiationLW] = "RadiationLW"
 	}
-	if wdcb&CloudCover == CloudCover {
+	if wbdc&CloudCover == CloudCover {
 		s[CloudCover] = "CloudCover"
 	}
-	if wdcb&RH == RH {
+	if wbdc&RH == RH {
 		s[RH] = "RH"
 	}
-	if wdcb&AtmosphericPressure == AtmosphericPressure {
+	if wbdc&AtmosphericPressure == AtmosphericPressure {
 		s[AtmosphericPressure] = "AtmosphericPressure"
 	}
-	if wdcb&Windspeed == Windspeed {
+	if wbdc&Windspeed == Windspeed {
 		s[Windspeed] = "Windspeed"
 	}
-	if wdcb&Windgust == Windgust {
+	if wbdc&Windgust == Windgust {
 		s[Windgust] = "Windgust"
 	}
-	if wdcb&WindDirection == WindDirection {
+	if wbdc&WindDirection == WindDirection {
 		s[WindDirection] = "WindDirection"
 	}
-	if wdcb&HeatDegreeDays == HeatDegreeDays {
+	if wbdc&HeatDegreeDays == HeatDegreeDays {
 		s[HeatDegreeDays] = "HeatDegreeDays"
 	}
-	if wdcb&CoolDegreeDays == CoolDegreeDays {
+	if wbdc&CoolDegreeDays == CoolDegreeDays {
 		s[CoolDegreeDays] = "CoolDegreeDays"
 	}
-	if wdcb&Unspecified23 == Unspecified23 {
+	if wbdc&Unspecified23 == Unspecified23 {
 		s[Unspecified23] = "Unspecified23"
 	}
-	if wdcb&HeadStage == HeadStage {
+	if wbdc&HeadStage == HeadStage {
 		s[HeadStage] = "HeadStage"
 	}
-	if wdcb&Flux == Flux {
+	if wbdc&Flux == Flux {
 		s[Flux] = "Flux"
 	}
-	if wdcb&UnitDischarge == UnitDischarge {
+	if wbdc&UnitDischarge == UnitDischarge {
 		s[UnitDischarge] = "UnitDischarge"
 	}
-	if wdcb&Unspecified27 == Unspecified27 {
+	if wbdc&Unspecified27 == Unspecified27 {
 		s[Unspecified27] = "Unspecified27"
 	}
-	if wdcb&Unspecified28 == Unspecified28 {
+	if wbdc&Unspecified28 == Unspecified28 {
 		s[Unspecified28] = "Unspecified28"
 	}
-	if wdcb&Unspecified29 == Unspecified29 {
+	if wbdc&Unspecified29 == Unspecified29 {
 		s[Unspecified29] = "Unspecified29"
 	}
-	if wdcb&Unspecified30 == Unspecified30 {
+	if wbdc&Unspecified30 == Unspecified30 {
 		s[Unspecified30] = "Unspecified30"
 	}
-	if wdcb&Storage == Storage {
+	if wbdc&Storage == Storage {
 		s[Storage] = "Storage"
 	}
-	if wdcb&SnowPackCover == SnowPackCover {
+	if wbdc&SnowPackCover == SnowPackCover {
 		s[SnowPackCover] = "SnowPackCover"
 	}
-	if wdcb&SnowPackLWC == SnowPackLWC {
+	if wbdc&SnowPackLWC == SnowPackLWC {
 		s[SnowPackLWC] = "SnowPackLWC"
 	}
-	if wdcb&SnowPackAlbedo == SnowPackAlbedo {
+	if wbdc&SnowPackAlbedo == SnowPackAlbedo {
 		s[SnowPackAlbedo] = "SnowPackAlbedo"
 	}
-	if wdcb&SnowSurfaceTemp == SnowSurfaceTemp {
+	if wbdc&SnowSurfaceTemp == SnowSurfaceTemp {
 		s[SnowSurfaceTemp] = "SnowSurfaceTemp"
 	}
-	if wdcb&Unspecified36 == Unspecified36 {
+	if wbdc&Unspecified36 == Unspecified36 {
 		s[Unspecified36] = "Unspecified36"
 	}
-	if wdcb&Unspecified37 == Unspecified37 {
+	if wbdc&Unspecified37 == Unspecified37 {
 		s[Unspecified37] = "Unspecified37"
 	}
-	if wdcb&DepressionWaterContent == DepressionWaterContent {
+	if wbdc&DepressionWaterContent == DepressionWaterContent {
 		s[DepressionWaterContent] = "DepressionWaterContent"
 	}
-	if wdcb&InterceptionWaterContent == InterceptionWaterContent {
+	if wbdc&InterceptionWaterContent == InterceptionWaterContent {
 		s[InterceptionWaterContent] = "InterceptionWaterContent"
 	}
-	if wdcb&SoilSurfaceTemp == SoilSurfaceTemp {
+	if wbdc&SoilSurfaceTemp == SoilSurfaceTemp {
 		s[SoilSurfaceTemp] = "SoilSurfaceTemp"
 	}
-	if wdcb&SoilSurfaceRH == SoilSurfaceRH {
+	if wbdc&SoilSurfaceRH == SoilSurfaceRH {
 		s[SoilSurfaceRH] = "SoilSurfaceRH"
 	}
-	if wdcb&SoilMoistureContent == SoilMoistureContent {
+	if wbdc&SoilMoistureContent == SoilMoistureContent {
 		s[SoilMoistureContent] = "SoilMoistureContent"
 	}
-	if wdcb&SoilMoisturePressure == SoilMoisturePressure {
+	if wbdc&SoilMoisturePressure == SoilMoisturePressure {
 		s[SoilMoisturePressure] = "SoilMoisturePressure"
 	}
-	if wdcb&Unspecified44 == Unspecified44 {
+	if wbdc&Unspecified44 == Unspecified44 {
 		s[Unspecified44] = "Unspecified44"
 	}
-	if wdcb&Unspecified45 == Unspecified45 {
+	if wbdc&Unspecified45 == Unspecified45 {
 		s[Unspecified45] = "Unspecified45"
 	}
-	if wdcb&Unspecified46 == Unspecified46 {
+	if wbdc&Unspecified46 == Unspecified46 {
 		s[Unspecified46] = "Unspecified46"
 	}
-	if wdcb&Unspecified47 == Unspecified47 {
+	if wbdc&Unspecified47 == Unspecified47 {
 		s[Unspecified47] = "Unspecified47"
 	}
-	if wdcb&Evaporation == Evaporation {
+	if wbdc&Evaporation == Evaporation {
 		s[Evaporation] = "Evaporation"
 	}
-	if wdcb&Transpiration == Transpiration {
+	if wbdc&Transpiration == Transpiration {
 		s[Transpiration] = "Transpiration"
 	}
-	if wdcb&Evapotranspiration == Evapotranspiration {
+	if wbdc&Evapotranspiration == Evapotranspiration {
 		s[Evapotranspiration] = "Evapotranspiration"
 	}
-	if wdcb&Infiltration == Infiltration {
+	if wbdc&Infiltration == Infiltration {
 		s[Infiltration] = "Infiltration"
 	}
-	if wdcb&Runoff == Runoff {
+	if wbdc&Runoff == Runoff {
 		s[Runoff] = "Runoff"
 	}
-	if wdcb&Recharge == Recharge {
+	if wbdc&Recharge == Recharge {
 		s[Recharge] = "Recharge"
 	}
-	if wdcb&TotalHead == TotalHead {
+	if wbdc&TotalHead == TotalHead {
 		s[TotalHead] = "TotalHead"
 	}
-	if wdcb&PressureHead == PressureHead {
+	if wbdc&PressureHead == PressureHead {
 		s[PressureHead] = "PressureHead"
 	}
-	if wdcb&SubSurfaceLateralFlux == SubSurfaceLateralFlux {
+	if wbdc&SubSurfaceLateralFlux == SubSurfaceLateralFlux {
 		s[SubSurfaceLateralFlux] = "SubSurfaceLateralFlux"
 	}
-	if wdcb&FluxLeft == FluxLeft {
+	if wbdc&FluxLeft == FluxLeft {
 		s[FluxLeft] = "FluxLeft"
 	}
-	if wdcb&FluxRight == FluxRight {
+	if wbdc&FluxRight == FluxRight {
 		s[FluxRight] = "FluxRight"
 	}
-	if wdcb&FluxFront == FluxFront {
+	if wbdc&FluxFront == FluxFront {
 		s[FluxFront] = "FluxFront"
 	}
-	if wdcb&FluxBack == FluxBack {
+	if wbdc&FluxBack == FluxBack {
 		s[FluxBack] = "FluxBack"
 	}
-	if wdcb&FluxBottom == FluxBottom {
+	if wbdc&FluxBottom == FluxBottom {
 		s[FluxBottom] = "FluxBottom"
 	}
-	if wdcb&FluxTop == FluxTop {
+	if wbdc&FluxTop == FluxTop {
 		s[FluxTop] = "FluxTop"
 	}
-	if wdcb&OutgoingRadiationLW == OutgoingRadiationLW {
+	if wbdc&OutgoingRadiationLW == OutgoingRadiationLW {
 		s[OutgoingRadiationLW] = "OutgoingRadiationLW"
 	}
-	if wdcb&Reserved == Reserved {
+	if wbdc&Reserved == Reserved {
 		s[Reserved] = "Reserved"
 	}
 	return s
