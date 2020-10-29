@@ -131,6 +131,7 @@ func (r *Indx) getBinaryShort(fp string, rowmajor bool) {
 		// log.Fatalf(" Indx.getBinaryShort: %s is not of type short", fp)
 		r.getBinary(fp, rowmajor)
 	default:
+		fmt.Printf("   %d %d %d", n, r.gd.Nr*r.gd.Nc, r.gd.Na)
 		log.Fatalf(" Indx.getBinaryShort: %s does not match definition length", fp)
 	}
 }

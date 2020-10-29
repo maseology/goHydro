@@ -148,7 +148,9 @@ func ReadGDEF(fp string, print bool) (*Definition, error) {
 			}
 		}
 	}
-	fmt.Println()
+	if print {
+		fmt.Println()
+	}
 	return &gd, nil
 }
 

@@ -8,7 +8,7 @@ import . "math"
 // coef = 0.6 smoggy air to 0.9 clean and clear, typical values 0.84 (see Oke and references therein)
 // Note: altitude angle (A) is complementary to zenith (i.e., A = 90-Z; or sin(A) = cos(Z))
 func (si *SolIrad) ApplyAtmosphericTransmissionCoefficient(coef float64) {
-	if si.Lat > 60.*Pi { // upper limit acording to Budyko - offers other methods (see below)
+	if si.Lat > 60.*Pi { // upper limit according to Budyko - offers other methods (see below)
 		panic("upper latitude limit for applying the Atmospheric Transmission Coefficient")
 	}
 	for i := 0; i <= 365; i++ {
@@ -17,7 +17,7 @@ func (si *SolIrad) ApplyAtmosphericTransmissionCoefficient(coef float64) {
 	}
 }
 
-// NetSWfromPotential is an empirical conversion from incoming potential radiantion to incomming SW radiation arriving at the surface
+// NetSWfromPotential is an empirical conversion from incoming potential radiantion to incoming SW radiation arriving at the surface
 // see pg 151 in DeWalle & Rango; Also attributed to Linacre (1992), but the above form is preferred as sunshine hours are easiest to determine
 func (si *SolIrad) NetSWfromPotential(CloudCoverFraction float64, DayOfYear int) float64 {
 	return (0.85 - 0.47*CloudCoverFraction) * si.psi[DayOfYear-1]

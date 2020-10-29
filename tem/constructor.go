@@ -6,7 +6,6 @@ import (
 	"math"
 	"path/filepath"
 
-	"github.com/maseology/goHydro/grid"
 	"github.com/maseology/mmaths"
 	"github.com/maseology/mmio"
 )
@@ -151,32 +150,69 @@ func (t *TEM) loadHDEM(fp string) (map[int]mmaths.Point, error) {
 		if mmio.ReachedEOF(buf) {
 			return coord, nil
 		}
-	case "":
-		// old/raw version
-		if _, ok := mmio.FileExists(mmio.RemoveExtension(fp) + ".gdef"); !ok {
-			return nil, fmt.Errorf("Fatal error: gdef required to read %s", fp)
-		}
-		gd, err := grid.ReadGDEF(mmio.RemoveExtension(fp)+".gdef", false)
-		if err != nil {
-			return nil, err
-		}
-		nc := gd.Ncells()
-		t.TEC = make(map[int]TEC, nc)
-		coord := make(map[int]mmaths.Point, nc)
-		hc := make([]hdemReader, nc)
-		buf = mmio.OpenBinary(fp) // re-open buf
-		if err := binary.Read(buf, binary.LittleEndian, hc); err != nil {
-			return nil, fmt.Errorf("Fatal error: loadHDEM hdem read failed: %v", err)
-		}
-		for i, h := range hc {
-			t.TEC[i] = h.toTEC()
-			coord[i] = gd.Coord[i]
-		}
-		if mmio.ReachedEOF(buf) {
-			return coord, nil
-		}
+
 	default:
 		return nil, fmt.Errorf("Fatal error: unsupported HDEM filetype: '%s'", typ)
+
+		// default:
+		// 	// case "":
+		// 	// old/raw version --- grid-based hdem's not working, use uhdem
+		// 	if _, ok := mmio.FileExists(mmio.RemoveExtension(fp) + ".gdef"); !ok {
+		// 		return nil, fmt.Errorf("Fatal error: gdef required to read %s", fp)
+		// 	}
+		// 	gd, err := grid.ReadGDEF(mmio.RemoveExtension(fp)+".gdef", false)
+		// 	if err != nil {
+		// 		return nil, err
+		// 	}
+		// 	// nc := gd.Ncells()
+		// 	nc := gd.Na
+		// 	t.TEC = make(map[int]TEC, nc)
+		// 	coord := make(map[int]mmaths.Point, nc)
+		// 	hc := make([]hdemReader, nc)
+		// 	buf = mmio.OpenBinary(fp) // re-open buf
+		// 	if err := binary.Read(buf, binary.LittleEndian, hc); err != nil {
+		// 		return nil, fmt.Errorf("Fatal error: loadHDEM hdem read failed: %v", err)
+		// 	}
+		// 	for i, h := range hc {
+		// 		if i < 0 {
+		// 			print()
+		// 		}
+		// 		t.TEC[i] = h.toTEC()
+		// 		coord[i] = gd.Coord[i]
+		// 	}
+
+		// 	if mmio.ReachedEOF(buf) {
+		// 		return coord, nil
+		// 	}
+
+		// 	// read flowpaths
+		// 	for {
+		// 		var uid int32
+		// 		var n uint8
+		// 		binary.Read(buf, binary.LittleEndian, &uid) // flowpath upslope (from) cell
+		// 		binary.Read(buf, binary.LittleEndian, &n)   // number of flowpaths
+		// 		if uid < 0 {
+		// 			fmt.Print()
+		// 		}
+		// 		for ii := 0; ii < int(n); ii++ {
+		// 			var did int32
+		// 			var frac float64
+
+		// 			binary.Read(buf, binary.LittleEndian, &did)  // flowpath downslope (to) cell
+		// 			binary.Read(buf, binary.LittleEndian, &frac) // flow fraction
+		// 			if did < 0 {
+		// 				fmt.Print()
+		// 			}
+
+		// 			var x = t.TEC[int(uid)]
+		// 			x.Ds = int(did)
+		// 			t.TEC[int(uid)] = x
+		// 		}
+
+		// 		if mmio.ReachedEOF(buf) {
+		// 			return coord, nil
+		// 		}
+		// 	}
 	}
 	return nil, fmt.Errorf("Fatal error: HDEM file contains extra data")
 }
