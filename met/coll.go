@@ -39,11 +39,11 @@ func (c *Coll) Print(wbl []string) {
 }
 
 // Get returns a column of values
-func (c *Coll) Get(col int) ([]time.Time, []float64) {
+func (c *Coll) Get(loc, col int) ([]time.Time, []float64) {
 	d, o := make([]time.Time, len(c.T)), make([]float64, len(c.T))
 	for i, dt := range c.T {
 		d[i] = dt
-		o[i] = c.D[i][0][col]
+		o[i] = c.D[i][loc][col]
 	}
 	return d, o
 }

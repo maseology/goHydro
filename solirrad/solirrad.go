@@ -2,6 +2,7 @@ package solirrad
 
 import (
 	"fmt"
+	"math"
 	. "math"
 	"strconv"
 	"time"
@@ -61,7 +62,6 @@ func (si *SolIrad) buildSolarDeclination() {
 	for i := 0; i <= 365; i++ {
 		si.solardec[i] = Asin(Sin(-earthAxialTilt) * Cos(2.*Pi*float64(i+11)/365.24+2.*earthEccentricity*Sin(2.*Pi*float64(i-1)/365.24)))
 	}
-	//si.solardec[37] = Pi * -15.583 / 180. ///////////////////////////HARD-CODED FOR TESTING///////////////////////////////////////////////////
 }
 
 func (si *SolIrad) buildRadiusVectorSquared() {
@@ -149,12 +149,15 @@ func (si *SolIrad) slopingSurfaceCompute() {
 }
 
 // PSI potential solar irradiation for any instant in time [W/m²]
+// only applicable between sunrise and sunset
 func (si *SolIrad) PSI(HourRelativeToNoon float64, DayOfYear int) float64 {
 	d := Sin(si.Slope)*Cos(si.Azimuth)*Cos(si.Lat) + Cos(si.Slope)*Sin(si.Lat)
 	lateq := Asin(d) // Eq B.6
 	a := Atan(Sin(si.Azimuth) * Sin(si.Slope) / (Cos(si.Slope)*Cos(si.Lat) - Cos(si.Azimuth)*Sin(si.Slope)*Sin(si.Lat)))
 	wt := HourRelativeToNoon*angvel + a // Eq B.7
-	return solcnst / .0036 / si.radivectsq[DayOfYear-1] * (Sin(lateq)*Sin(si.solardec[DayOfYear-1]) + Cos(lateq)*Cos(si.solardec[DayOfYear-1])*Cos(wt))
+	cosZ := (Sin(lateq)*Sin(si.solardec[DayOfYear-1]) + Cos(lateq)*Cos(si.solardec[DayOfYear-1])*Cos(wt))
+	Is := solcnst / .0036 / si.radivectsq[DayOfYear-1] * cosZ // Eq. B.5
+	return math.Max(0., Is)
 }
 
 // PSIdaily potential solar irradiation for a given day of year [MJ/m²]
