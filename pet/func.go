@@ -38,9 +38,12 @@ func latenHeatVapouration(tC float64) float64 { // \lambda [MJ/kg]
 }
 
 // psychrometricConstant [Pa/°C]
-func psychrometricConstant(tC, presPa float64) float64 { // \gamma [Pa/°C]
+func psychrometricConstant(tC, Pa float64) float64 { // \gamma [Pa/°C]
 	// The psychrometric constant relates the partial pressure of water in air to the air temperature.
-	return ca / 1000. * presPa / latenHeatVapouration(tC) / mwr // Pa/°C
+	if Pa <= 10000 {
+		log.Fatalf("ERROR [psychrometricConstant] pressure value looks suspect: %.0f Pa", Pa)
+	}
+	return ca / 1000. * Pa / latenHeatVapouration(tC) / mwr // Pa/°C
 }
 
 ///////////////

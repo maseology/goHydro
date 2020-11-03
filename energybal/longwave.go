@@ -19,7 +19,7 @@ func saturationVapourPressure(tC float64) float64 { // [Pa]
 func NetLW(tC, rh, ccf, b float64) float64 {
 	// from pg:373-375 Oke, 1987. Boundary Layer Climates 2nd ed.
 	// also pg. 233 Novak;
-	ea := saturationVapourPressure(tC) / 100.                              // vapour pressure [mb] (=100Pa)
-	eao := .575 * math.Pow(ea, oneseventh)                                 // Brutseart (1975) atmospheric emissivity with cloudless skies
-	return stefBoltz * math.Pow(273.16+tC, 4.) * (eao - 1.) * (1. - b*ccf) // L* = f(T)f(ea)f(ccf)
+	ea := saturationVapourPressure(tC) / 100.                                  // vapour pressure [mb] (=100Pa)
+	eao := .575 * math.Pow(ea, oneseventh)                                     // Brutseart (1975) atmospheric emissivity with cloudless skies
+	return stefBoltz * math.Pow(273.16+tC, 4.) * (eao - 1.) * (1. - b*ccf*ccf) // L* = f(T)f(ea)f(ccf)
 }
