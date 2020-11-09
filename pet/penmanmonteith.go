@@ -1,6 +1,7 @@
 package pet
 
 import (
+	"log"
 	"math"
 )
 
@@ -32,28 +33,21 @@ func aerodynamicResistance(u, t, rh, zo, q float64) float64 {
 	return ra / vonK / us
 }
 
-func windFunction(u, a, b float64) float64 {
-	// ref: Penman (1948)
-	// return math.Pow(a, b)
-	return a + b*u
-}
-
 // PenmanMonteith mass density flux m/s ~m³/m²/s
 // Monteith, J.L. (1965) Evaporation and environment. Symposia of the Society for Experimental Biology 19: 205–224.
 // see eq.10.25 in Hydrology in Practice pg.211
 // Rn [W/m²]; t [°C]; p [Pa]; rh [0,1]; u [m/s]; rc [s/m]
-func PenmanMonteith(Rn, t, p, rh, u, rc, a, b float64) (float64, float64) {
+func PenmanMonteith(Rn, t, p, rh, u, rc, zo float64) (float64, float64) {
 	m, g, l := slopeSaturationCurve(t), psychrometricConstant(t, p), latenHeatVapouration(t) // [Pa/°C],[Pa/°C],[MJ/kg]
 	pa, pw := densityDryAir(t)/1000., densityLiquidWater(t)                                  // [kg/m³]      // pa := densityMoistAir(t, rh)/1000.
 	l *= 1.e6 * pw                                                                           // [W·s/m³]
 
 	de := vapourPressureDeficit(t, rh) // [Pa]
-	// ra := aerodynamicResistance(u, t, rh, zo, 1111111.) // [s/m]
-	Dv := windFunction(u, a, b) // [m/s]
-	o := m / (m + g)            // [--]
-	H := o * Rn / l             // [m/s]
-	// Ea := (1. - o) * pa * mwr / p * de / ra / pw        // [m/s]
-	Ea := (1. - o) * pa * mwr / p * de * Dv / pw // [m/s]
+	log.Fatalln("need to work out atmosphic stability; rc not accounted for in it's current form")
+	ra := aerodynamicResistance(u, t, rh, zo, 1111111.) // [s/m]
+	o := m / (m + g)                                    // [--]
+	H := o * Rn / l                                     // [m/s]
+	Ea := (1. - o) * pa * mwr / p * de / ra / pw        // [m/s]
 
 	return H, Ea // [m/s]
 
