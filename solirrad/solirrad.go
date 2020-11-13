@@ -17,17 +17,19 @@ const (
 	angvel            = 0.261799387799149 // rad/hr: angular velocity = 2*PI/24hr
 	earthAxialTilt    = 23.43689 * Pi / 180.
 	earthEccentricity = 0.0167
-	minf              = 0.5 // minimum radiation factor si.f
+	minf              = 0.5 // minimum radiation factor PSIfactor
 )
 
-// SolIrad a stuct used to compute potential solar irradiation given latitude, slope and aspect.
+// SolIrad a struct used to compute potential solar irradiation given latitude, slope and aspect.
 type SolIrad struct {
-	Lat, Slope, Azimuth              float64      // representative/average latitude of interested area in radians; slope in radians; azimuth ~ CW from north
-	solardec, radivectsq             [366]float64 // Solar irradtion constants: solar declination (degrees); radius vector squared (DeWalle and Rango, 2006, pg.395).
-	psih                             [366]float64 // Daily Potential Solar Irradiation on a horizontal surface in MJ/m² from sunrise to sunset
-	zeffh                            [366]float64 // Average effective zenith angle per Julian day on a horizontal surface
-	dayhoursh                        [366]float64 // time of sunrise to sunset in hours for a horizontal surface, per Julian day
-	psi, dayhours, zeff, srh, ssh, f [366]float64
+	Lat, Slope, Azimuth           float64      // representative/average latitude of interested area in radians; slope in radians; azimuth ~ CW from north
+	solardec, radivectsq          [366]float64 // Solar irradiation constants: solar declination (degrees); radius vector squared (DeWalle and Rango, 2006, pg.395).
+	psih                          [366]float64 // Daily Potential Solar Irradiation on a horizontal surface in MJ/m² from sunrise to sunset
+	zeffh                         [366]float64 // Average effective zenith angle per Julian day on a horizontal surface
+	dayhoursh                     [366]float64 // time of sunrise to sunset in hours for a horizontal surface, per Julian day
+	psi, dayhours, zeff, srh, ssh [366]float64
+	// PSIfactor returns the ratio of potential solar irradiation of a sloped surface to the horizontal
+	PSIfactor [366]float64 // was si.f
 }
 
 // New constructor
@@ -44,18 +46,18 @@ func New(LatitudeDeg, SlopeRad, AzimuthRad float64) SolIrad {
 	si.slopingSurfaceCompute()
 	if minf > 0. {
 		for d := 0; d < 366; d++ {
-			if si.f[d] < 1. {
-				si.f[d] = si.f[d]*(1.-minf) + minf
+			if si.PSIfactor[d] < 1. {
+				si.PSIfactor[d] = si.PSIfactor[d]*(1.-minf) + minf
 			}
 		}
 	}
 	return si
 }
 
-// PSIfactor returns the ratio of potential solar irradiation of a sloped surface to the horitontal
-func (si *SolIrad) PSIfactor() [366]float64 {
-	return si.f
-}
+// // PSIfactor returns the ratio of potential solar irradiation of a sloped surface to the horizontal
+// func (si *SolIrad) PSIfactor() [366]float64 {
+// 	return si.f
+// }
 
 func (si *SolIrad) buildSolarDeclination() {
 	// based on Wikipedia page: Position of the Sun
@@ -110,7 +112,7 @@ func (si *SolIrad) slopingSurfaceCompute() {
 			si.zeff[i] = -9999.
 			si.srh[i] = -9999. // sun rise hour
 			si.ssh[i] = -9999. // sun set hour
-			si.f[i] = 0.
+			si.PSIfactor[i] = 0.
 		} else {
 			if d < -1. { // when <= -1.0, sun exposure all day (pg. 397)
 				d = -1.
@@ -131,7 +133,7 @@ func (si *SolIrad) slopingSurfaceCompute() {
 				si.zeff[i] = -9999.
 				si.srh[i] = -9999.
 				si.ssh[i] = -9999.
-				si.f[i] = 0.
+				si.PSIfactor[i] = 0.
 			} else {
 				d = si.dayhours[i]*Sin(lateq)*Sin(si.solardec[i]) + Cos(lateq)*Cos(si.solardec[i])*(Sin(angvel*t2+a)-Sin(angvel*t1+a))/angvel // Eq B.11
 				si.psi[i] = solcnst / si.radivectsq[i] * d                                                                                    // MJ/m²
@@ -142,7 +144,7 @@ func (si *SolIrad) slopingSurfaceCompute() {
 				si.zeff[i] = Acos(d)
 				si.srh[i] = 12. + t1 // assuming solar noon is 12PM
 				si.ssh[i] = 12. + t2
-				si.f[i] = si.psi[i] / si.psih[i]
+				si.PSIfactor[i] = si.psi[i] / si.psih[i]
 			}
 		}
 	}
