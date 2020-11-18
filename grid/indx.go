@@ -20,7 +20,7 @@ func (r *Indx) New(fp string, rowmajor bool) {
 		if _, b := mmio.FileExists(fp + ".gdef"); b {
 			r.getGDef(fp + ".gdef")
 		} else {
-			log.Fatalf("getGDef: no grid definition loaded")
+			log.Fatalf(" Indx.New: no grid definition loaded")
 		}
 	}
 	r.getBinary(fp, rowmajor)
@@ -38,7 +38,7 @@ func (r *Indx) NewShort(fp string, rowmajor bool) {
 		if _, b := mmio.FileExists(fp + ".gdef"); b {
 			r.getGDef(fp + ".gdef")
 		} else {
-			log.Fatalf("getGDef: no grid definition loaded")
+			log.Fatalf(" Indx.NewShort: no grid definition loaded")
 		}
 	}
 	r.getBinaryShort(fp, rowmajor)
@@ -53,7 +53,7 @@ func (r *Indx) NewShortGD(bfp, gdfp string, rowmajor bool) {
 // NewIMAP constructor
 func (r *Indx) NewIMAP(imap map[int]int) {
 	if r.gd == nil {
-		log.Fatalf("grid.Indx.NewIMAP: grid definition needs defining\n")
+		log.Fatalf(" Indx.NewIMAP: grid definition needs defining\n")
 	}
 	r.a = make(map[int]int, len(imap))
 	for k, v := range imap {
@@ -76,7 +76,7 @@ func (r *Indx) Value(cid int) int {
 	if v, ok := r.a[cid]; ok {
 		return v
 	}
-	log.Fatalf("Indx.Value: no value asigned to cell ID %d", cid)
+	log.Fatalf("Indx.Value: no value assigned to cell ID %d", cid)
 	return -1
 }
 
