@@ -1,5 +1,7 @@
 package hru
 
+import "log"
+
 // // bit-wise status flag
 // const (
 // 	snowOnGround = 1 << iota
@@ -36,7 +38,7 @@ func (h *HRU) PercFimpCap() (perc, fimp, smacap, srfcap float64) {
 // Initialize HRU
 func (h *HRU) Initialize(rzsto, srfsto, fimp, ksat float64) {
 	if rzsto < 0. || srfsto < 0. || fimp < 0. || fimp > 1. || ksat < 0. {
-		panic("HRU Initialize parameter error")
+		log.Fatalf("HRU Initialize parameter error: rzsto=%.5f srfsto=%.5f fimp=%.5f ksat=%.5f\n", rzsto, srfsto, fimp, ksat)
 	}
 	h.sma.sto = 0.     // inital soil moisture storage
 	h.srf.sto = 0.     // inital surface/depression storage
