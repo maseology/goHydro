@@ -13,7 +13,7 @@ import "log"
 // WtrShd is an alias for a set of HRUs making up a watershed
 type WtrShd = map[int]*HRU
 
-// CopyWtrShd reutrns a deep copy of a WtrShd
+// CopyWtrShd returns a deep copy of a WtrShd
 func CopyWtrShd(origWtrShd WtrShd) (newWtrShd WtrShd) {
 	newWtrShd = make(map[int]*HRU, len(origWtrShd))
 	for k, v := range origWtrShd {
@@ -25,45 +25,46 @@ func CopyWtrShd(origWtrShd WtrShd) (newWtrShd WtrShd) {
 
 // HRU the Hydrologic Response Unit
 type HRU struct {
-	sma, srf         Res
-	fimp, fprv, perc float64
+	Sma, Srf         Res
+	Fimp, Fprv, Perc float64
 	// stat             byte
 }
 
-// PercFimpCap returns percolation rates, fraction impervious, and storage capacity on the HRU
-func (h *HRU) PercFimpCap() (perc, fimp, smacap, srfcap float64) {
-	return h.perc, h.fimp, h.sma.cap, h.srf.cap
-}
+// // PercFimpCap returns percolation rates, fraction impervious, and storage capacity on the HRU
+// func (h *HRU) PercFimpCap() (perc, fimp, smacap, srfcap float64) {
+// 	return h.Perc, h.Fimp, h.Sma.Cap, h.Srf.Cap
+// }
 
 // Initialize HRU
 func (h *HRU) Initialize(rzsto, srfsto, fimp, ksat float64) {
 	if rzsto < 0. || srfsto < 0. || fimp < 0. || fimp > 1. || ksat < 0. {
 		log.Fatalf("HRU Initialize parameter error: rzsto=%.5f srfsto=%.5f fimp=%.5f ksat=%.5f\n", rzsto, srfsto, fimp, ksat)
 	}
-	h.sma.sto = 0.     // inital soil moisture storage
-	h.srf.sto = 0.     // inital surface/depression storage
-	h.sma.cap = rzsto  // soil moisture storage (i.e., rootzone/drainable storage)
-	h.srf.cap = srfsto // surface/depression storage
-	h.fimp = fimp      // fraction impervious
-	h.fprv = 1. - fimp // fraction pervious
-	// h.perc =  h.fprv * ksat // gravity-driven percolation rate m/ts
-	h.perc = ksat // gravity-driven percolation rate m/ts (unit gradient)
+	h.Sma.Sto = 0.     // inital soil moisture storage
+	h.Srf.Sto = 0.     // inital surface/depression storage
+	h.Sma.Cap = rzsto  // soil moisture storage (i.e., rootzone/drainable storage)
+	h.Srf.Cap = srfsto // surface/depression storage
+	h.Fimp = fimp      // fraction impervious
+	h.Fprv = 1. - fimp // fraction pervious
+	h.Perc = ksat      // gravity-driven percolation rate m/ts (unit gradient)
+	// h.Perc =  h.Fprv * ksat // gravity-driven percolation rate m/ts
+
 }
 
 // Reset state
 func (h *HRU) Reset() {
-	h.sma.sto = 0. // inital storage
-	h.srf.sto = 0. // inital storage
+	h.Sma.Sto = 0. // inital storage
+	h.Srf.Sto = 0. // inital storage
 }
 
 // Update hru given a set of forcings
 func (h *HRU) Update(p, ep float64) (aet, ro, rch float64) {
-	rp := h.srf.Overflow(p) //potential runoff
-	sri := h.fimp * rp      // impervious runoff
-	ro = h.sma.Overflow(rp-sri) + sri
-	rch = h.sma.Overflow(-h.perc) + h.perc
-	avail := h.srf.Overflow(-ep) // remaining available ep
-	avail = h.sma.Overflow(avail*h.fprv) + avail*h.fimp
+	rp := h.Srf.Overflow(p) //potential runoff
+	sri := h.Fimp * rp      // impervious runoff
+	ro = h.Sma.Overflow(rp-sri) + sri
+	rch = h.Sma.Overflow(-h.Perc) + h.Perc
+	avail := h.Srf.Overflow(-ep) // remaining available ep
+	avail = h.Sma.Overflow(avail*h.Fprv) + avail*h.Fimp
 	aet = ep + avail
 	// h.updateStatus()
 	return
@@ -72,14 +73,14 @@ func (h *HRU) Update(p, ep float64) (aet, ro, rch float64) {
 // UpdateWT hru given a set of forcings and the presence of a watertable
 func (h *HRU) UpdateWT(p, ep, zwt float64) (aet, ro, rch float64) {
 	if zwt < 0. { // upward gradient
-		x := h.sma.Skim() // excess water (note: the srf always overflows to sma)
+		x := h.Sma.Skim() // excess water (note: the srf always overflows to sma)
 		if x < 0. {
 			rch = x               // groundwater discharge (negative recharge)
-			h.sma.sto = h.sma.cap // fill drainable porosity
+			h.Sma.Sto = h.Sma.Cap // fill drainable porosity
 			x = 0.
 		}
-		ro = h.srf.Overflow(p) + x // fulfill surface storage
-		aet = h.fprv * ep          // completely satisfied over a high watertable
+		ro = h.Srf.Overflow(p) + x // fulfill surface storage
+		aet = h.Fprv * ep          // completely satisfied over a high watertable
 		rch -= aet                 // ep assumed equal to gw flux
 	} else {
 		aet, ro, rch = h.Update(p, ep)
@@ -89,11 +90,11 @@ func (h *HRU) UpdateWT(p, ep, zwt float64) (aet, ro, rch float64) {
 
 // // Update hru given a set of forcings
 // func (h *HRU) Update(p, ep float64) (aet, ro, rch float64) {
-// 	sri := h.fimp * p // impervious runoff
-// 	ro = h.sma.Overflow(h.srf.Overflow(p-sri)) + sri
-// 	rch = h.sma.Overflow(-h.perc) + h.perc
-// 	avail := h.srf.Overflow(-ep) // remaining available ep
-// 	avail = h.sma.Overflow(avail*h.fprv) + avail*h.fimp
+// 	sri := h.Fimp * p // impervious runoff
+// 	ro = h.Sma.Overflow(h.Srf.Overflow(p-sri)) + sri
+// 	rch = h.Sma.Overflow(-h.Perc) + h.Perc
+// 	avail := h.Srf.Overflow(-ep) // remaining available ep
+// 	avail = h.Sma.Overflow(avail*h.Fprv) + avail*h.Fimp
 // 	aet = ep + avail
 // 	// h.updateStatus()
 // 	return
@@ -102,22 +103,22 @@ func (h *HRU) UpdateWT(p, ep, zwt float64) (aet, ro, rch float64) {
 // // UpdateWT hru given a set of forcings and the presence of a watertable
 // func (h *HRU) UpdateWT(p, ep, zwt float64) (aet, ro, rch float64) {
 // 	if zwt < 0. { // upward gradient
-// 		x := h.sma.Skim() // excess water (note: the srf always overflows to sma)
+// 		x := h.Sma.Skim() // excess water (note: the srf always overflows to sma)
 // 		if x < 0. {
 // 			rch = x               // groundwater discharge (negative recharge)
-// 			h.sma.sto = h.sma.cap // fill drainable porosity
+// 			h.Sma.Sto = h.Sma.Cap // fill drainable porosity
 // 			x = 0.
 // 		}
-// 		sri := h.fimp * p                    // impervious runoff
-// 		ro = h.srf.Overflow(p-sri) + sri + x // fulfill surface storage
-// 		aet = h.fprv * ep                    // completely satisfied over a high watertable
+// 		sri := h.Fimp * p                    // impervious runoff
+// 		ro = h.Srf.Overflow(p-sri) + sri + x // fulfill surface storage
+// 		aet = h.Fprv * ep                    // completely satisfied over a high watertable
 // 		rch -= aet                           // ep assumed equal to gw flux
 
-// 		// rch = -h.sma.Deficit()           // groundwater discharge (negative recharge)
-// 		// h.sma.sto = h.sma.cap            // fill drainable porosity
-// 		// sri := h.fimp * p                // impervious runoff
-// 		// ro = h.srf.Overflow(p-sri) + sri // fulfill surface storage
-// 		// rch += h.srf.Overflow(-ep)       // remaining available ep assumed to be taken from high watertable
+// 		// rch = -h.Sma.Deficit()           // groundwater discharge (negative recharge)
+// 		// h.Sma.Sto = h.Sma.Cap            // fill drainable porosity
+// 		// sri := h.Fimp * p                // impervious runoff
+// 		// ro = h.Srf.Overflow(p-sri) + sri // fulfill surface storage
+// 		// rch += h.Srf.Overflow(-ep)       // remaining available ep assumed to be taken from high watertable
 // 		// aet = ep
 // 	} else {
 // 		aet, ro, rch = h.Update(p, ep)
@@ -127,20 +128,20 @@ func (h *HRU) UpdateWT(p, ep, zwt float64) (aet, ro, rch float64) {
 
 // UpdateP adds precip to the hru and returns runoff
 func (h *HRU) UpdateP(p float64) float64 {
-	sri := h.fimp * p // impervious runoff
-	return h.sma.Overflow(h.srf.Overflow(p-sri)) + sri
+	sri := h.Fimp * p // impervious runoff
+	return h.Sma.Overflow(h.Srf.Overflow(p-sri)) + sri
 }
 
 // UpdateEp removes evaporation from hru
 func (h *HRU) UpdateEp(ep float64) float64 {
-	avail := h.srf.Overflow(-ep) // remaining available ep
-	avail = h.sma.Overflow(avail*h.fprv) + avail*h.fimp
+	avail := h.Srf.Overflow(-ep) // remaining available ep
+	avail = h.Sma.Overflow(avail*h.Fprv) + avail*h.Fimp
 	return ep + avail
 }
 
 // UpdatePerc updates hru given no forcings (percolation only)
 func (h *HRU) UpdatePerc() float64 {
-	return h.sma.Overflow(-h.perc) + h.perc // amount recharged
+	return h.Sma.Overflow(-h.Perc) + h.Perc // amount recharged
 }
 
 // UpdatePercWT updates hru over a high water table
@@ -148,63 +149,63 @@ func (h *HRU) UpdatePerc() float64 {
 // zwt: depth to watertable [m]
 func (h *HRU) UpdatePercWT(zwt float64) float64 {
 	if zwt < 0. { // upward gradient
-		return h.sma.Overflow(h.perc * -zwt) // groundwater seepage, assumes unit gradient, unit thickness
+		return h.Sma.Overflow(h.Perc * -zwt) // groundwater seepage, assumes unit gradient, unit thickness
 	}
-	return -(h.sma.Overflow(-h.perc) + h.perc) // returns the amount recharged
+	return -(h.Sma.Overflow(-h.Perc) + h.Perc) // returns the amount recharged
 }
 
 // UpdateIN updates hru given a set of input forcings only
 func (h *HRU) UpdateIN(p float64) (ro, rch float64) {
-	sri := h.fimp * p // impervious runoff
-	ro = h.sma.Overflow(h.srf.Overflow(p-sri)) + sri
-	rch = h.sma.Overflow(-h.perc) + h.perc
+	sri := h.Fimp * p // impervious runoff
+	ro = h.Sma.Overflow(h.Srf.Overflow(p-sri)) + sri
+	rch = h.Sma.Overflow(-h.Perc) + h.Perc
 	// h.updateStatus()
 	return
 }
 
 // UpdateStorage simply adds infiltration to storage (soil first, excess to surface depressions)
 func (h *HRU) UpdateStorage(f float64) float64 {
-	return h.srf.Overflow(h.sma.Overflow(f))
+	return h.Srf.Overflow(h.Sma.Overflow(f))
 }
 
-// AddToStorage simply adds infiltration to storage (soil first, excess to surface depressions), but keeps water onsite
-func (h *HRU) AddToStorage(f float64) {
-	// h.srf.sto += h.sma.Overflow(f)
-	// h.sma.sto += h.srf.Overflow(f)
-	h.srf.sto += f
-}
+// // AddToStorage simply adds infiltration to storage (soil first, excess to surface depressions), but keeps water onsite
+// func (h *HRU) AddToStorage(f float64) {
+// 	// h.Srf.Sto += h.Sma.Overflow(f)
+// 	// h.Sma.Sto += h.Srf.Overflow(f)
+// 	h.Srf.Sto += f
+// }
 
 // Storage returns total current storages
 func (h *HRU) Storage() float64 {
-	return h.sma.Storage() + h.srf.Storage()
+	return h.Sma.Sto + h.Srf.Sto
 }
 
-// Storage2 returns total current storages (individually)
-func (h *HRU) Storage2() (float64, float64) {
-	return h.sma.Storage(), h.srf.Storage()
-}
+// // Storage2 returns total current storages (individually)
+// func (h *HRU) Storage2() (float64, float64) {
+// 	return h.Sma.Sto, h.Srf.Sto
+// }
 
 // Deficit returns current storage deficit
 func (h *HRU) Deficit() float64 {
-	return h.sma.Deficit() + h.srf.Deficit()
+	return h.Sma.Deficit() + h.Srf.Deficit()
 }
 
 // Infiltrability returns the amount of potential infiltration
 func (h *HRU) Infiltrability() float64 {
-	return (h.sma.Deficit() + h.srf.Deficit()) * h.fprv
+	return (h.Sma.Deficit() + h.Srf.Deficit()) * h.Fprv
 }
 
 // func (h *HRU) updateStatus() {
-// 	if h.sma.sto < h.sma.cap {
+// 	if h.Sma.Sto < h.Sma.Cap {
 // 		h.stat |= deficitPoreWater
-// 		if h.sma.sto > 0. {
+// 		if h.Sma.Sto > 0. {
 // 			h.stat |= availPoreWater
 // 		} else {
 // 			h.stat &^= availPoreWater
 // 		}
 // 	} else {
 // 		h.stat &^= deficitPoreWater
-// 		if h.sma.sto > h.sma.cap {
+// 		if h.Sma.Sto > h.Sma.Cap {
 // 			h.stat |= waterOnSurface
 // 		} else {
 // 			h.stat &^= waterOnSurface
