@@ -71,14 +71,14 @@ func (h *HRU) Update(p, ep float64) (aet, ro, rch float64) {
 }
 
 // UpdateWT hru given a set of forcings and the presence of a watertable
-func (h *HRU) UpdateWT(p, ep, zwt float64) (aet, ro, rch float64) {
-	if zwt < 0. { // upward gradient
-		x := h.Sma.Skim() // excess water (note: the srf always overflows to sma)
-		if x < 0. {
-			rch = x               // groundwater discharge (negative recharge)
-			h.Sma.Sto = h.Sma.Cap // fill drainable porosity
+func (h *HRU) UpdateWT(p, ep float64, upwardGradient bool) (aet, ro, rch float64) {
+	if upwardGradient {
+		x := h.Sma.Sto - h.Sma.Cap
+		if x < 0. { // fill remaining deficit, assume discharge
+			rch = x // groundwater discharge (negative recharge)
 			x = 0.
 		}
+		h.Sma.Sto = h.Sma.Cap      // fill drainable porosity
 		ro = h.Srf.Overflow(p) + x // fulfill surface storage
 		aet = h.Fprv * ep          // completely satisfied over a high watertable
 		rch -= aet                 // ep assumed equal to gw flux
