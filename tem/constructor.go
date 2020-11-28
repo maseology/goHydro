@@ -36,7 +36,7 @@ func (t *TEM) New(fp string) error {
 	}
 
 	t.checkVals()
-	t.buildUpslopes()
+	t.BuildUpslopes()
 	return nil
 }
 
@@ -52,7 +52,9 @@ func (t *TEM) checkVals() {
 		t.TEC[k] = v1
 	}
 }
-func (t *TEM) buildUpslopes() {
+
+// BuildUpslopes re-builds upslope mapping
+func (t *TEM) BuildUpslopes() {
 	t.USlp = make(map[int][]int)
 	for i, v := range t.TEC {
 		if v.Ds >= 0 {

@@ -18,9 +18,10 @@ type Indx struct {
 func (r *Indx) New(fp string, rowmajor bool) {
 	if r.gd == nil {
 		if _, b := mmio.FileExists(fp + ".gdef"); b {
+			fmt.Println(" loading: " + fp + ".gdef")
 			r.getGDef(fp + ".gdef")
 		} else {
-			log.Fatalf(" Indx.New: no grid definition loaded")
+			log.Fatalf(" Indx.New: no grid definition loaded %s", fp)
 		}
 	}
 	r.getBinary(fp, rowmajor)
@@ -163,7 +164,8 @@ func (r *Indx) getBinary(fp string, rowmajor bool) {
 			}
 		}
 	default:
-		log.Fatalf(" Indx.getBinary: grid does not match definition length")
+		fmt.Println(r.gd.Na, r.gd.Nr*r.gd.Nc, r.gd.Na*4, r.gd.Nr*r.gd.Nc*4)
+		log.Fatalf(" Indx.getBinary: grid does not match definition length %d", n)
 	}
 }
 

@@ -42,7 +42,7 @@ func (t *TMQ) New(ksat map[int]float64, uca map[int]int, strm []int, topo *tem.T
 	ti := make(map[int]float64, n) // soil-topographic index
 	t.D = make(map[int]float64, n) // cell deficits relative to Dm
 	for i, k := range ksat {
-		tsat := k * cw                        // lateral transmisivity when soil is saturated [m²/ts]
+		tsat := k * cw                        // lateral transmissivity when soil is saturated [m²/ts]
 		tanbeta := math.Tan(topo.TEC[i].G)    // gradient
 		ai := float64(uca[i]) * cw            // contributing area per unit contour [m] (assumes uniform square cells)
 		ti[i] = math.Log(ai / tsat / tanbeta) // soil-topographic index
