@@ -36,12 +36,12 @@ type HRU struct {
 // }
 
 // Initialize HRU
-func (h *HRU) Initialize(rzsto, srfsto, fimp, ksat float64) {
-	if rzsto < 0. || srfsto < 0. || fimp < 0. || fimp > 1. || ksat < 0. {
+func (h *HRU) Initialize(rzsto, srfsto, fimp, ksat, sma0, srf0 float64) {
+	if rzsto < 0. || srfsto < 0. || fimp < 0. || fimp > 1. || ksat < 0. || sma0 < 0. || srf0 < 0. {
 		log.Fatalf("HRU Initialize parameter error: rzsto=%.5f srfsto=%.5f fimp=%.5f ksat=%.5f\n", rzsto, srfsto, fimp, ksat)
 	}
-	h.Sma.Sto = 0.     // inital soil moisture storage
-	h.Srf.Sto = 0.     // inital surface/depression storage
+	h.Sma.Sto = sma0   // initial soil moisture storage
+	h.Srf.Sto = srf0   // initial surface/depression storage
 	h.Sma.Cap = rzsto  // soil moisture storage (i.e., rootzone/drainable storage)
 	h.Srf.Cap = srfsto // surface/depression storage
 	h.Fimp = fimp      // fraction impervious
