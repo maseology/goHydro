@@ -13,7 +13,7 @@ const (
 
 // TMQ is an optimized, distributed variation of the TOPMODEL struct
 type TMQ struct {
-	D, Qs map[int]float64 // cell deficit relative to Dm; saturated lateral discharge (=w To tan(beta)/a)
+	D, Qs map[int]float64 // cell deficit relative to Dm; saturated lateral discharge (=omega To tan(beta)/w)
 	M     float64
 }
 
