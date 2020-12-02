@@ -1,7 +1,6 @@
 package hru
 
-// Res simple linear reservoir
-// Sto returns total current storage
+// Res simple linear reservoir; Sto returns total current storage
 type Res struct {
 	Sto, Cap float64
 }

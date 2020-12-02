@@ -49,6 +49,17 @@ func LoadGob(fp string) (TEM, error) {
 	return t, nil
 }
 
+// Outlets returns cells that flow to farfield
+func (t *TEM) Outlets() []int {
+	var o []int
+	for i, t := range t.TEC {
+		if t.Ds < 0 {
+			o = append(o, i)
+		}
+	}
+	return o
+}
+
 // Peaks returns list of peak cell IDs (cells that do not receive cascading runon) cascading to cellID cid0. cid0<0 returns all peaks.
 func (t *TEM) Peaks(cid0 int) []int {
 	p := make([]int, 0)
