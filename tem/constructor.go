@@ -17,7 +17,7 @@ func NewTEM(fp string) (*TEM, error) {
 	return &t, err
 }
 
-// New contructor
+// New constructor
 func (t *TEM) New(fp string) error {
 	var err error
 	switch filepath.Ext(fp) {

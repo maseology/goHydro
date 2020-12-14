@@ -38,6 +38,12 @@ func (u *uhdemReader) toTEC() (mmaths.Point, TEC) {
 	return xy, t
 }
 
+// type fpReader struct {
+// 	I, Nds int32
+// 	Ids    []int32
+// 	F      []float64
+// }
+
 type fpReader struct {
 	I, Nds, Ids int32
 	F           float64

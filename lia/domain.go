@@ -24,11 +24,11 @@ type Domain struct {
 
 // Build a new global LIA model
 func (d *Domain) Build(gd *grid.Definition, z, h0, n map[int]float64) {
-	d.dx = gd.Cw // goHydro grid.Definition (currently) only supports square-uniform grids
+	d.dx = gd.Cwidth // goHydro grid.Definition (currently) only supports square-uniform grids
 	d.GF = grid.NewFace(gd)
 
 	// build nodes
-	d.ns = make([]node, gd.Na)
+	d.ns = make([]node, gd.Nact)
 	gxr := gd.CellIndexXR() // cell id to index cross-ref
 	for _, c := range gd.Sactives {
 		i := gxr[c]

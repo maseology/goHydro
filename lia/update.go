@@ -50,7 +50,7 @@ func (d *Domain) updateFluxes() {
 func (d *Domain) updateHeads() float64 {
 	d1 := d.dt / d.dx // math.Pow(d.dt/d.dx,2.) // error in equation 11, see eq. 20 in de Almeda etal 2012
 	dhx, adhx := 0., 0.
-	for i := 0; i < d.GF.GD.Na; i++ {
+	for i := 0; i < d.GF.GD.Nact; i++ {
 		cf := d.GF.CellFace[i]
 		dh := d1 * (d.qs[cf[2]].q - d.qs[cf[0]].q + d.qs[cf[3]].q - d.qs[cf[1]].q) // eq.11
 		if d.r != nil {

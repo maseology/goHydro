@@ -110,17 +110,17 @@ func (r *Indx) getBinaryShort(fp string, rowmajor bool) {
 		log.Fatalf(" Indx.getBinary(): %v", err)
 	}
 	switch n {
-	case r.gd.Na:
-		r.a = make(map[int]int, r.gd.Na)
+	case r.gd.Nact:
+		r.a = make(map[int]int, r.gd.Nact)
 		log.Fatalln(" Indx.getBinary: active grids not yet supported (TODO)")
-	case r.gd.Nr * r.gd.Nc:
-		r.a = make(map[int]int, r.gd.Nr*r.gd.Nc)
+	case r.gd.Nrow * r.gd.Ncol:
+		r.a = make(map[int]int, r.gd.Nrow*r.gd.Ncol)
 		if rowmajor {
 			for i := 0; i < n; i++ {
 				r.a[i] = int(b[0][i])
 			}
 		} else {
-			c, nr, nc := 0, r.gd.Nr, r.gd.Nc
+			c, nr, nc := 0, r.gd.Nrow, r.gd.Ncol
 			for j := 0; j < nc; j++ {
 				for i := 0; i < nr; i++ {
 					r.a[i*nc+j] = int(b[0][c])
@@ -128,11 +128,11 @@ func (r *Indx) getBinaryShort(fp string, rowmajor bool) {
 				}
 			}
 		}
-	case 2 * r.gd.Nr * r.gd.Nc, 2 * r.gd.Na:
+	case 2 * r.gd.Nrow * r.gd.Ncol, 2 * r.gd.Nact:
 		// log.Fatalf(" Indx.getBinaryShort: %s is not of type short", fp)
 		r.getBinary(fp, rowmajor)
 	default:
-		fmt.Printf("   %d %d %d", n, r.gd.Nr*r.gd.Nc, r.gd.Na)
+		fmt.Printf("   %d %d %d", n, r.gd.Nrow*r.gd.Ncol, r.gd.Nact)
 		log.Fatalf(" Indx.getBinaryShort: %s does not match definition length", fp)
 	}
 }
@@ -143,19 +143,19 @@ func (r *Indx) getBinary(fp string, rowmajor bool) {
 		log.Fatalf(" Indx.getBinary(): %v", err)
 	}
 	switch n {
-	case r.gd.Na:
-		r.a = make(map[int]int, r.gd.Na)
+	case r.gd.Nact:
+		r.a = make(map[int]int, r.gd.Nact)
 		for i, cid := range r.gd.Sactives {
 			r.a[cid] = int(b[0][i])
 		}
-	case r.gd.Nr * r.gd.Nc:
-		r.a = make(map[int]int, r.gd.Nr*r.gd.Nc)
+	case r.gd.Nrow * r.gd.Ncol:
+		r.a = make(map[int]int, r.gd.Nrow*r.gd.Ncol)
 		if rowmajor {
 			for i := 0; i < n; i++ {
 				r.a[i] = int(b[0][i])
 			}
 		} else {
-			c, nr, nc := 0, r.gd.Nr, r.gd.Nc
+			c, nr, nc := 0, r.gd.Nrow, r.gd.Ncol
 			for j := 0; j < nc; j++ {
 				for i := 0; i < nr; i++ {
 					r.a[i*nc+j] = int(b[0][c])
@@ -164,7 +164,7 @@ func (r *Indx) getBinary(fp string, rowmajor bool) {
 			}
 		}
 	default:
-		fmt.Println(r.gd.Na, r.gd.Nr*r.gd.Nc, r.gd.Na*4, r.gd.Nr*r.gd.Nc*4)
+		fmt.Println(r.gd.Nact, r.gd.Nrow*r.gd.Ncol, r.gd.Nact*4, r.gd.Nrow*r.gd.Ncol*4)
 		log.Fatalf(" Indx.getBinary: grid does not match definition length %d", n)
 	}
 }
@@ -177,14 +177,14 @@ func (r *Indx) ToASC(fp string, ignoreActives bool) error {
 	}
 	defer t.Close()
 	r.gd.ToASCheader(t)
-	if r.gd.Na > 0 && ignoreActives {
-		m := make(map[int]bool, r.gd.Na)
+	if r.gd.Nact > 0 && ignoreActives {
+		m := make(map[int]bool, r.gd.Nact)
 		for _, c := range r.gd.Sactives {
 			m[c] = true
 		}
 		c := 0
-		for i := 0; i < r.gd.Nr; i++ {
-			for j := 0; j < r.gd.Nc; j++ {
+		for i := 0; i < r.gd.Nrow; i++ {
+			for j := 0; j < r.gd.Ncol; j++ {
 				if _, ok := m[c]; ok {
 					t.Write(fmt.Sprintf("%d ", r.a[c]))
 				} else {
@@ -196,8 +196,8 @@ func (r *Indx) ToASC(fp string, ignoreActives bool) error {
 		}
 	} else {
 		c := 0
-		for i := 0; i < r.gd.Nr; i++ {
-			for j := 0; j < r.gd.Nc; j++ {
+		for i := 0; i < r.gd.Nrow; i++ {
+			for j := 0; j < r.gd.Ncol; j++ {
 				if v, ok := r.a[c]; ok {
 					t.Write(fmt.Sprintf("%d ", v))
 				} else {

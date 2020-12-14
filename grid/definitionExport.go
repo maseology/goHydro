@@ -13,22 +13,22 @@ func (gd *Definition) SaveAs(fp string) error {
 		return fmt.Errorf(" Definition.SaveAs: %v", err)
 	}
 	defer t.Close()
-	t.WriteLine(fmt.Sprintf("%f", gd.eorig))
-	t.WriteLine(fmt.Sprintf("%f", gd.norig))
-	t.WriteLine(fmt.Sprintf("%f", gd.rot))
-	t.WriteLine(fmt.Sprintf("%d", gd.Nr))
-	t.WriteLine(fmt.Sprintf("%d", gd.Nc))
-	t.WriteLine(fmt.Sprintf("U%f", gd.Cw))
+	t.WriteLine(fmt.Sprintf("%f", gd.Eorig))
+	t.WriteLine(fmt.Sprintf("%f", gd.Norig))
+	t.WriteLine(fmt.Sprintf("%f", gd.Rotation))
+	t.WriteLine(fmt.Sprintf("%d", gd.Nrow))
+	t.WriteLine(fmt.Sprintf("%d", gd.Ncol))
+	t.WriteLine(fmt.Sprintf("U%f", gd.Cwidth))
 	return nil
 }
 
 // ToASCheader writes ASC grid header info to writer
 func (gd *Definition) ToASCheader(t *mmio.TXTwriter) {
-	t.WriteLine(fmt.Sprintf("ncols %d", gd.Nc))
-	t.WriteLine(fmt.Sprintf("nrows %d", gd.Nr))
-	t.WriteLine(fmt.Sprintf("xllcorner %f", gd.eorig))
-	t.WriteLine(fmt.Sprintf("yllcorner %f", gd.norig-float64(gd.Nr)*gd.Cw))
-	t.WriteLine(fmt.Sprintf("cellsize %f", gd.Cw))
+	t.WriteLine(fmt.Sprintf("ncols %d", gd.Ncol))
+	t.WriteLine(fmt.Sprintf("nrows %d", gd.Nrow))
+	t.WriteLine(fmt.Sprintf("xllcorner %f", gd.Eorig))
+	t.WriteLine(fmt.Sprintf("yllcorner %f", gd.Norig-float64(gd.Nrow)*gd.Cwidth))
+	t.WriteLine(fmt.Sprintf("cellsize %f", gd.Cwidth))
 	t.WriteLine(fmt.Sprintf("nodata_value %d", -9999))
 }
 
@@ -39,12 +39,12 @@ func (gd *Definition) ToHDR(fp string, nbands int) error {
 		return fmt.Errorf(" Definition.ToASC: %v", err)
 	}
 	defer t.Close()
-	t.WriteLine(fmt.Sprintf("ncols %d", gd.Nc))
-	t.WriteLine(fmt.Sprintf("nrows %d", gd.Nr))
+	t.WriteLine(fmt.Sprintf("ncols %d", gd.Ncol))
+	t.WriteLine(fmt.Sprintf("nrows %d", gd.Nrow))
 	t.WriteLine(fmt.Sprintf("nbands %d", nbands))
-	t.WriteLine(fmt.Sprintf("xllcorner %f", gd.eorig))
-	t.WriteLine(fmt.Sprintf("yllcorner %f", gd.norig-float64(gd.Nr)*gd.Cw))
-	t.WriteLine(fmt.Sprintf("cellsize %f", gd.Cw))
+	t.WriteLine(fmt.Sprintf("xllcorner %f", gd.Eorig))
+	t.WriteLine(fmt.Sprintf("yllcorner %f", gd.Norig-float64(gd.Nrow)*gd.Cwidth))
+	t.WriteLine(fmt.Sprintf("cellsize %f", gd.Cwidth))
 	t.WriteLine(fmt.Sprintf("nodata_value %d", -32768))
 	t.WriteLine(fmt.Sprintf("nbits %d", 16))
 	t.WriteLine(fmt.Sprintf("pixeltype %s", "signedint"))
@@ -63,14 +63,14 @@ func (gd *Definition) ToASC(fp string) error {
 	}
 	defer t.Close()
 	gd.ToASCheader(t)
-	if gd.Na > 0 {
-		m := make(map[int]bool, gd.Na)
+	if gd.Nact > 0 {
+		m := make(map[int]bool, gd.Nact)
 		for _, c := range gd.Sactives {
 			m[c] = true
 		}
 		c := 0
-		for i := 0; i < gd.Nr; i++ {
-			for j := 0; j < gd.Nc; j++ {
+		for i := 0; i < gd.Nrow; i++ {
+			for j := 0; j < gd.Ncol; j++ {
 				if _, ok := m[c]; ok {
 					t.Write("1 ")
 				} else {
@@ -81,8 +81,8 @@ func (gd *Definition) ToASC(fp string) error {
 			t.Write("\n")
 		}
 	} else {
-		for i := 0; i < gd.Nr; i++ {
-			for j := 0; j < gd.Nc; j++ {
+		for i := 0; i < gd.Nrow; i++ {
+			for j := 0; j < gd.Ncol; j++ {
 				t.Write("-9999 ")
 			}
 			t.Write("\n")
@@ -100,8 +100,8 @@ func (gd *Definition) ToAscData(fp string, d map[int]float64) error {
 	defer t.Close()
 	gd.ToASCheader(t)
 	cid := 0
-	for i := 0; i < gd.Nr; i++ {
-		for j := 0; j < gd.Nc; j++ {
+	for i := 0; i < gd.Nrow; i++ {
+		for j := 0; j < gd.Ncol; j++ {
 			if v, ok := d[cid]; ok {
 				t.Write(fmt.Sprintf("%.6f ", v))
 			} else {

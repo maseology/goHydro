@@ -33,12 +33,12 @@ func (r *Real) getGDef(fp string) {
 }
 
 func (r *Real) getBinary(fp string) {
-	r.A = make(map[int]float64, r.GD.Na)
+	r.A = make(map[int]float64, r.GD.Nact)
 	b, n, err := mmio.ReadBinaryFloats(fp, 1)
 	if err != nil {
 		log.Fatalf("%v", err)
 	}
-	if n != r.GD.Na {
+	if n != r.GD.Nact {
 		log.Fatalf(" grid does not match definition length")
 	}
 	c := 0
@@ -56,19 +56,19 @@ func (r *Real) getBinary32(fp string, rowmajor bool) {
 		log.Fatalf(" Indx.getBinary(): %v", err)
 	}
 	switch n {
-	case r.GD.Na:
-		r.A = make(map[int]float64, r.GD.Na)
+	case r.GD.Nact:
+		r.A = make(map[int]float64, r.GD.Nact)
 		for i, cid := range r.GD.Sactives {
 			r.A[cid] = float64(b[0][i])
 		}
-	case r.GD.Nr * r.GD.Nc:
-		r.A = make(map[int]float64, r.GD.Nr*r.GD.Nc)
+	case r.GD.Nrow * r.GD.Ncol:
+		r.A = make(map[int]float64, r.GD.Nrow*r.GD.Ncol)
 		if rowmajor {
 			for i := 0; i < n; i++ {
 				r.A[i] = float64(b[0][i])
 			}
 		} else {
-			c, nr, nc := 0, r.GD.Nr, r.GD.Nc
+			c, nr, nc := 0, r.GD.Nrow, r.GD.Ncol
 			for j := 0; j < nc; j++ {
 				for i := 0; i < nr; i++ {
 					r.A[i*nc+j] = float64(b[0][c])

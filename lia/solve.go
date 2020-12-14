@@ -13,14 +13,14 @@ const (
 
 func (d *Domain) wbal() float64 {
 	wbal := 0.
-	for i := 0; i < d.GF.GD.Na; i++ {
+	for i := 0; i < d.GF.GD.Nact; i++ {
 		wbal += math.Max(d.ns[i].h-d.ns[i].z, 0.)
 	}
 	return wbal
 }
 
 func (d *Domain) mh() map[int]float64 {
-	mout := make(map[int]float64, d.GF.GD.Na)
+	mout := make(map[int]float64, d.GF.GD.Nact)
 	for i, c := range d.GF.GD.Sactives {
 		n := d.ns[i]
 		mout[c] = math.Max(n.h, n.z)
@@ -29,7 +29,7 @@ func (d *Domain) mh() map[int]float64 {
 }
 
 func (d *Domain) prn() (map[int]float64, float64) {
-	mout, wbal := make(map[int]float64, d.GF.GD.Na), 0.
+	mout, wbal := make(map[int]float64, d.GF.GD.Nact), 0.
 	for i, c := range d.GF.GD.Sactives {
 		n := d.ns[i]
 		mout[c] = math.Max(n.h, n.z)

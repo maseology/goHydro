@@ -80,10 +80,10 @@ func (t *TEM) Peaks(cid0 int) []int {
 	return p
 }
 
-// UpIDs returns a list of upslope cell IDs
-func (t *TEM) UpIDs(cid int) []int {
-	return t.USlp[cid]
-}
+// // UpIDs returns a list of upslope cell IDs
+// func (t *TEM) UpIDs(cid int) []int {
+// 	return t.USlp[cid]
+// }
 
 // ContributingAreaIDs returns a list of upslope cell IDs that make up the contributing area to cid0
 func (t *TEM) ContributingAreaIDs(cid0 int) []int {
@@ -170,6 +170,9 @@ func (t *TEM) climb(cid int) map[int]bool {
 	c := make(map[int]bool)
 	var climbRecurs func(int)
 	climbRecurs = func(cid int) {
+		if _, ok := c[cid]; ok {
+			return
+		}
 		c[cid] = true
 		for _, i := range t.USlp[cid] {
 			climbRecurs(i)

@@ -4,7 +4,7 @@ import "math"
 
 // GetVelocities returns the current cell velocities
 func (d *Domain) GetVelocities() map[int]float64 {
-	mout := make(map[int]float64, d.GF.GD.Na)
+	mout := make(map[int]float64, d.GF.GD.Nact)
 	for i := range d.GF.GD.Sactives {
 		dpth := d.ns[i].h - d.ns[i].z // depth
 		nfs := d.GF.CellFace[i]       // node faces

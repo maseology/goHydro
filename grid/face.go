@@ -28,19 +28,19 @@ func NewFace(gd *Definition) *Face {
 	var f Face
 	f.GD = gd
 	ncell := gd.Ncells()
-	f.Nfaces = 2*gd.Nr*gd.Nc + gd.Nr + gd.Nc
+	f.Nfaces = 2*gd.Nrow*gd.Ncol + gd.Nrow + gd.Ncol
 	f.CellFace = make(map[int][]int, ncell)
 	f.cxy = make(map[int]mmaths.Point, ncell)
 	f.FaceCell = make(map[int][]int, f.Nfaces)
-	f.isplit = (gd.Nr + 1) * gd.Nc
-	for i := 0; i < gd.Nr; i++ {
-		for j := 0; j < gd.Nc; j++ {
+	f.isplit = (gd.Nrow + 1) * gd.Ncol
+	for i := 0; i < gd.Nrow; i++ {
+		for j := 0; j < gd.Ncol; j++ {
 			//   1
 			// 2   0
 			//   3
 			in1, cid := make([]int, 4), gd.CellID(i, j)
 			in1[1] = cid                    // up
-			in1[3] = cid + gd.Nc            // down
+			in1[3] = cid + gd.Ncol          // down
 			in1[2] = cid + f.isplit + i     // left
 			in1[0] = cid + f.isplit + i + 1 // right
 			f.CellFace[cid] = in1
@@ -80,8 +80,8 @@ func (f *Face) IsUpwardFace(fid int) bool {
 // LeftFaces returns the face indices of all 'left' faces
 func (f *Face) LeftFaces() []int {
 	lst := []int{}
-	for i := 0; i < f.GD.Nr; i++ {
-		lst = append(lst, i*(f.GD.Nc+1)+f.isplit)
+	for i := 0; i < f.GD.Nrow; i++ {
+		lst = append(lst, i*(f.GD.Ncol+1)+f.isplit)
 	}
 	return lst
 }
@@ -89,8 +89,8 @@ func (f *Face) LeftFaces() []int {
 // RightFaces returns the face indices of all 'right' faces
 func (f *Face) RightFaces() []int {
 	lst := []int{}
-	for i := 0; i < f.GD.Nr; i++ {
-		lst = append(lst, f.GD.Nc*(f.GD.Nr+1)+(i+1)*(f.GD.Nc+1)-1)
+	for i := 0; i < f.GD.Nrow; i++ {
+		lst = append(lst, f.GD.Ncol*(f.GD.Nrow+1)+(i+1)*(f.GD.Ncol+1)-1)
 	}
 	return lst
 }
