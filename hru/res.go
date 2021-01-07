@@ -22,7 +22,7 @@ func (r *Res) Overflow(p float64) float64 {
 	} else if r.Sto > r.Cap {
 		d := r.Sto - r.Cap
 		r.Sto = r.Cap
-		return d
+		return d // flush
 	} else {
 		return 0.
 	}

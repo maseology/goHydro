@@ -4,7 +4,6 @@ import (
 	"math"
 
 	"github.com/maseology/goHydro/tem"
-	"github.com/maseology/mmio"
 )
 
 const (
@@ -14,16 +13,16 @@ const (
 // TMQ is an optimized, distributed variation of the TOPMODEL struct
 type TMQ struct {
 	D, Qs map[int]float64 // cell deficit relative to Dm; saturated lateral discharge (=omega To tan(beta)/w)
-	M     float64
+	M     float64         // parameter m, gamma
 }
 
-// Copy TMQ
-func (t *TMQ) Copy() TMQ {
-	return TMQ{
-		D:  mmio.CopyMapif(t.D),
-		Qs: mmio.CopyMapif(t.Qs),
-	}
-}
+// // Copy TMQ
+// func (t *TMQ) Copy() TMQ {
+// 	return TMQ{
+// 		D:  mmio.CopyMapif(t.D),
+// 		Qs: mmio.CopyMapif(t.Qs),
+// 	}
+// }
 
 // New constructor. unit-volum inputs (i.e., [m/ts])
 //  ksat: saturated hydraulic conductivity [m/ts]
