@@ -1,6 +1,8 @@
 package routing
 
 import (
+	"log"
+
 	"github.com/maseology/mmaths"
 )
 
@@ -10,11 +12,7 @@ func SetDirectionFromRoots(ntwk map[*mmaths.Node][]*mmaths.Node, rts []*mmaths.N
 	var walkToJunctions func(*mmaths.Node)
 	var w []*mmaths.Node
 	walkToJunctions = func(n *mmaths.Node) {
-		if v, ok := eval[n]; ok {
-			if !v {
-				print("")
-			}
-		} else {
+		if _, ok := eval[n]; !ok {
 			n.I = append(n.I, cnt)
 			cnt++
 		}
@@ -39,11 +37,7 @@ func SetDirectionFromRoots(ntwk map[*mmaths.Node][]*mmaths.Node, rts []*mmaths.N
 			q := queue[0] // pop
 			queue = queue[1:]
 
-			if v, ok := eval[q]; ok {
-				if !v {
-					print("")
-				}
-			} else {
+			if _, ok := eval[q]; !ok {
 				q.I = append(q.I, cnt)
 				cnt++
 			}
@@ -67,72 +61,10 @@ func SetDirectionFromRoots(ntwk map[*mmaths.Node][]*mmaths.Node, rts []*mmaths.N
 	for n := range ntwk {
 		if len(n.I) != len(rts[0].I) {
 			if len(n.I) > len(rts[0].I) {
-				print("")
+				log.Fatalln("SetDirectionFromRoots dimensioning error")
 			} else {
 				n.I = append(n.I, -1) // isolated segments
 			}
 		}
 	}
 }
-
-// // SetOrder nds: All nodes; rts: Root nodes. elements of rts also belong to nsd
-// func SetOrder(nds, rts []mmaths.Node) {
-// 	for _, r := range rts {
-// 		topologicalSort(nds, r) ///////////////////// go routine ??????????
-// 	}
-// }
-
-// func topologicalSort(nds []mmaths.Node, startNode mmaths.Node) {
-// 	queue := []mmaths.Node{startNode}
-// 	ocol := make(map[*mmaths.Node]bool)
-// 	for {
-// 		if len(queue) == 0 {
-// 			break
-// 		}
-// 		// pop
-// 		nn := queue[0]
-// 		queue = queue[1:]
-
-// 		if _, ok := ocol[&nn]; ok {
-// 			continue
-// 		}
-// 		walkToJuctions(nn)
-
-// 	}
-// 	// Dim osv = _o, cnt = 0
-// 	// Dim ocoll As New Dictionary(Of Integer, Boolean)
-// 	// With New Queue(Of Node)
-// 	// 	.Enqueue(FromNode)
-// 	// 	_o = New Dictionary(Of Integer, Boolean)
-// 	// 	Do While .Count > 0
-// 	// 		'_o = New Dictionary(Of Integer, Boolean)
-// 	// 		Dim nn = .Dequeue
-// 	// 		Dim nnid = _n.IndexOf(nn)
-// 	// 		If ocoll.ContainsKey(nnid) Then Continue Do
-
-// 	// 		Me.WalkToJunctions(nn)
-// 	// 		For Each o In _o
-// 	// 			If ocoll.ContainsKey(o.Key) Then Continue For
-// 	// 			If _n(o.Key).Indices.Count = 0 Then _n(o.Key).Indices.Add(cnt)
-// 	// 			If _n(o.Key).Indices(0) < cnt Then _n(o.Key).Indices(0) = cnt
-// 	// 			If o.Value AndAlso _n(o.Key).Edges.Count > 1 Then .Enqueue(_n(o.Key)) Else ocoll.Add(o.Key, False)
-// 	// 		Next
-// 	// 		cnt += 1
-// 	// 	Loop
-// 	// End With
-// 	// For Each o In osv
-// 	// 	ocoll.Add(o.Key, o.Value)
-// 	// Next
-// 	// _o = ocoll
-// }
-
-// func walkToJuctions(n mmaths.Node) {
-// 	// (*eval)[&n] = false
-// 	// for _, un := range n.US {
-// 	// 	if _, ok := (*eval)[&un]; ok {
-// 	// 		continue
-// 	// 	}
-// 	// }
-// 	i := 1
-// 	_ = i
-// }

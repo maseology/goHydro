@@ -19,7 +19,7 @@ type edge struct {
 // returns map[node][nodes node is connected to]; by "node" I mean pointers to nodes
 func CollectNodes(polylines [][][3]float64, searchRadius float64) map[*mmaths.Node][]*mmaths.Node {
 	am, enf, enl := buildAdjacencyMatrix(polylines, searchRadius)
-	printAdjacencyMatrix(polylines, am) // for testing
+	// printAdjacencyMatrix(polylines, am) // for testing
 	eval := make(map[int]bool, len(am))
 	nvert := func() int {
 		i := 0
@@ -29,30 +29,12 @@ func CollectNodes(polylines [][][3]float64, searchRadius float64) map[*mmaths.No
 		return i
 	}()
 
-	dist2 := func(p0, p1 []float64) float64 {
-		s2 := 0.
-		for j := 0; j < 2; j++ {
-			ds := p0[j] - p1[j]
-			s2 += ds * ds
-		}
-		return s2
-	}
-
 	edges := make([]*edge, 0, nvert)
 	var collectEdges func(int, int)
 	collectEdges = func(aid int, fromid int) {
 		eval[aid] = false
 		blF := func() bool {
 			if fromid != 0 {
-				// afromid := func() int {
-				// 	if fromid < 0 {
-				// 		return -fromid ///////////////////////////////////
-				// 	}
-				// 	return fromid
-				// }()
-				if aid <= 0 {
-					print("")
-				}
 				for _, c := range am[aid] {
 					if c == fromid { // previous connected to my start point
 						return true
@@ -69,7 +51,7 @@ func CollectNodes(polylines [][][3]float64, searchRadius float64) map[*mmaths.No
 		// create nodes
 		if blF { // forward progression
 			if fromid > 0 && enf[aid] != enf[fromid] && enf[aid] != enl[fromid] {
-				print("")
+				fmt.Printf("  warning: segments %d and %d do not share nodes (forward progression)\n", aid, fromid)
 			}
 			n0 := enf[aid]
 			for i := 1; i < len(polylines[aid-1])-2; i++ {
@@ -77,21 +59,15 @@ func CollectNodes(polylines [][][3]float64, searchRadius float64) map[*mmaths.No
 					I: []int{aid},
 					S: polylines[aid-1][i][:],
 				}
-				if dist2(n0.S, n1.S) < .001 {
-					print("")
-				}
 				edges = append(edges, &edge{n0: n0, n1: n1})
 				n0 = n1
 			}
 			if n0 != enl[aid] {
-				if dist2(n0.S, enl[aid].S) < .001 {
-					print("")
-				}
 				edges = append(edges, &edge{n0: n0, n1: enl[aid]})
 			}
 		} else { // backward progression
 			if fromid > 0 && enl[aid] != enf[fromid] && enl[aid] != enl[fromid] {
-				print("")
+				fmt.Printf("  warning: segments %d and %d do not share nodes (backward progression)\n", aid, fromid)
 			}
 			n0 := enl[aid]
 			for i := len(polylines[aid-1]) - 2; i > 0; i-- {
@@ -99,16 +75,10 @@ func CollectNodes(polylines [][][3]float64, searchRadius float64) map[*mmaths.No
 					I: []int{aid},
 					S: polylines[aid-1][i][:],
 				}
-				if dist2(n0.S, n1.S) < .001 {
-					print("")
-				}
 				edges = append(edges, &edge{n0: n0, n1: n1})
 				n0 = n1
 			}
 			if n0 != enf[aid] {
-				if dist2(n0.S, enf[aid].S) < .001 {
-					print("")
-				}
 				edges = append(edges, &edge{n0: n0, n1: enf[aid]})
 			}
 		}
@@ -145,7 +115,7 @@ func CollectNodes(polylines [][][3]float64, searchRadius float64) map[*mmaths.No
 		}
 		for j := 1; j < len(a); j++ {
 			if a[j-1]*a[j] <= 0 {
-				//fmt.Println("routing.CollectNode: check")
+				//fmt.Println("routing.CollectNode: check: may need increase node threshold")
 				continue
 			}
 		}
@@ -158,12 +128,6 @@ func CollectNodes(polylines [][][3]float64, searchRadius float64) map[*mmaths.No
 	return func() map[*mmaths.Node][]*mmaths.Node {
 		ne := make(map[*mmaths.Node][]*mmaths.Node, len(edges)*2)
 		for _, ed := range edges {
-			if ed.n0 == ed.n1 {
-				print("")
-			}
-			if dist2(ed.n0.S, ed.n1.S) < .001 {
-				print("")
-			}
 			if _, ok := ne[ed.n0]; !ok {
 				ne[ed.n0] = []*mmaths.Node{ed.n1}
 			} else {
@@ -182,7 +146,8 @@ func CollectNodes(polylines [][][3]float64, searchRadius float64) map[*mmaths.No
 // am: <0 connection at last node, >0 connection at first node
 func buildAdjacencyMatrix(polylines [][][3]float64, searchRadius float64) ([][]int, []*mmaths.Node, []*mmaths.Node) {
 	// collect endpoints
-	sr2, tooshorts := searchRadius*searchRadius, map[int]bool{}
+	sr2 := searchRadius * searchRadius
+	// tooshorts := map[int]bool{}
 	dist2 := func(p0, p1 [3]float64) float64 {
 		s2 := 0.
 		for j := 0; j < 3; j++ {
@@ -194,9 +159,9 @@ func buildAdjacencyMatrix(polylines [][][3]float64, searchRadius float64) ([][]i
 	epfs, epls := make([][3]float64, len(polylines)+1), make([][3]float64, len(polylines)+1)
 	for i, f := range polylines {
 		epf, epl := f[0], f[len(f)-1]
-		if dist2(epf, epl) < sr2 {
-			tooshorts[i+1] = true
-		}
+		// if dist2(epf, epl) < sr2 {
+		// 	tooshorts[i+1] = true
+		// }
 		epfs[i+1] = epf // first node connections
 		epls[i+1] = epl // last node connections
 	}
@@ -226,14 +191,14 @@ func buildAdjacencyMatrix(polylines [][][3]float64, searchRadius float64) ([][]i
 	}
 	for i := 1; i <= len(polylines); i++ { // need to offset from index-0
 		am[i] = []int{}
-		if _, ok := tooshorts[i]; ok {
-			continue
-		}
+		// if _, ok := tooshorts[i]; ok {
+		// 	continue
+		// }
 
 		for j := 1; j <= len(polylines); j++ {
-			if _, ok := tooshorts[j]; ok {
-				continue
-			}
+			// if _, ok := tooshorts[j]; ok {
+			// 	continue
+			// }
 
 			d := [4]float64{}
 			d[0] = dist2(epfs[i], epls[j])
@@ -260,19 +225,29 @@ func buildAdjacencyMatrix(polylines [][][3]float64, searchRadius float64) ([][]i
 	// merge nodes where intersection is detected
 	enf, enl := make([]*mmaths.Node, len(polylines)+1), make([]*mmaths.Node, len(polylines)+1)
 	for i := 1; i <= len(polylines); i++ {
+		if len(am[i]) == 0 {
+			continue
+		}
+		if len(am[i]) == 1 && am[i][0] == i {
+			am[i] = []int{}
+			continue
+		}
 		if enf[i] == nil {
 			enf[i] = &mmaths.Node{I: []int{i}, S: epfs[i][:]}
 		}
 		if enl[i] == nil {
 			enl[i] = &mmaths.Node{I: []int{i}, S: epls[i][:]}
 		}
+
 		if enf[i] == enl[i] {
-			print("")
+			fmt.Printf("  warning: segment %d non routing: enf==enl\n", i)
+		} else {
+			ddd := dist2([...]float64{enf[i].S[0], enf[i].S[1], 0.}, [...]float64{enl[i].S[0], enl[i].S[1], 0.})
+			if ddd < .001 {
+				fmt.Printf("  warning: segment %d non routing: start point = endpoint, d = %f\n", i, ddd)
+			}
 		}
-		ddd := dist2([...]float64{enf[i].S[0], enf[i].S[1], 0.}, [...]float64{enl[i].S[0], enl[i].S[1], 0.})
-		if ddd < 1.e-8 {
-			print("")
-		}
+
 		for _, c := range am[i] {
 			ca, blN := func() (int, bool) { // false: c connected at the end of am[i]
 				if c < 0 {
@@ -345,7 +320,7 @@ func printAdjacencyMatrix(polylines [][][3]float64, am [][]int) {
 	if err != nil {
 		log.Fatalf("routing.Print: %v\n", err)
 	}
-	if err := ioutil.WriteFile("C:/Users/Mason/Desktop/goAM.geojson", rawJSON, 0644); err != nil {
+	if err := ioutil.WriteFile("M:/goAM.geojson", rawJSON, 0644); err != nil {
 		log.Fatalf("routing.Print: %v\n", err)
 	}
 }

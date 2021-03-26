@@ -96,14 +96,14 @@ func Print(nodes []*mmaths.Node, fp string) {
 
 // Strahler, A.N., 1952. Hypsometric (area-altitude) analysis of erosional topology, Geological Society of America Bulletin 63(11): 1117–1142.
 // the Horton–Strahler system: Horton, R.E., 1945. Erosional Development of Streams and Their Drainage Basins: Hydrophysical Approach To Quantitative Morphology Geological Society of America Bulletin, 56(3):275-370.
-func Strahler(nodes []*mmaths.Node) []int {
+func Strahler(nodes []*mmaths.Node) {
 	queue, nI := make([]*mmaths.Node, 0), -1
 	for _, n := range nodes {
 		n.I = append(n.I, 0)
 		if nI == -1 {
 			nI = len(n.I)
 		} else if nI != len(n.I) {
-			print("")
+			log.Fatalln(" Strahler error: dimensioning error")
 		}
 	}
 	nI-- // to 0-index
@@ -126,57 +126,63 @@ func Strahler(nodes []*mmaths.Node) []int {
 		q := queue[0]
 		queue = queue[1:]
 
-		// push
-		for _, dn := range q.DS {
-			if _, ok := isjn[dn]; ok {
-				uORD := []int{}
-				for _, un := range dn.US {
-					if un.I[nI] == 0 {
-						uORD = []int{}
-						break
-					}
-					uORD = append(uORD, un.I[nI])
+		if len(q.DS) > 1 { // bifurcating (assuming cycle)
+			for _, dn := range q.DS {
+				if q.I[nI] < 0 {
+					dn.I[nI] = q.I[nI] // consecutive cycles
+				} else {
+					dn.I[nI] = -q.I[nI]
 				}
-				if len(uORD) == 0 {
-					print("")
-				}
-				if len(uORD) == 1 {
-					dn.I[nI] = q.I[nI]
-					for _, dn := range dn.DS { // bifurcating (cycle?)
-						dn.I[nI] = -q.I[nI]
-						queue = append(queue, dn)
-					}
-				} else if len(uORD) > 1 { // merging
-					sort.Ints(uORD)
-					if uORD[0] < 0 { // cycle
-						dn.I[nI] = -uORD[0]
-					} else {
-						mmaths.Rev(uORD)
-						if uORD[0] == uORD[1] {
-							dn.I[nI] = uORD[0] + 1
-						} else {
-							dn.I[nI] = uORD[0]
+				queue = append(queue, dn) // push
+			}
+		} else {
+			for _, dn := range q.DS {
+				if _, ok := isjn[dn]; ok {
+					uORD := []int{}
+					for _, un := range dn.US {
+						if un.I[nI] == 0 {
+							uORD = []int{}
+							break
 						}
+						uORD = append(uORD, un.I[nI])
 					}
-					queue = append(queue, dn)
+					if len(uORD) == 1 {
+						dn.I[nI] = q.I[nI]
+						for _, dn := range dn.DS { // bifurcating (cycle?)
+							dn.I[nI] = -q.I[nI]
+							queue = append(queue, dn) // push
+						}
+					} else if len(uORD) > 1 { // merging
+						sort.Ints(uORD)
+						if uORD[0] < 0 { // cycle
+							dn.I[nI] = -uORD[0]
+						} else {
+							mmaths.Rev(uORD)
+							if uORD[0] == uORD[1] {
+								dn.I[nI] = uORD[0] + 1
+							} else {
+								dn.I[nI] = uORD[0]
+							}
+						}
+						queue = append(queue, dn) // push
+					}
+				} else {
+					dn.I[nI] = q.I[nI]
+					queue = append(queue, dn) // push
 				}
-			} else {
-				dn.I[nI] = q.I[nI]
-				queue = append(queue, dn)
 			}
 		}
 	}
 
-	norder := make([]int, len(nodes))
-	for i, n := range nodes {
-		norder[i] = n.I[nI]
+	for _, n := range nodes {
+		if n.I[nI] < 0 {
+			n.I[nI] = -n.I[nI]
+		}
 	}
-	return norder
-
 }
 
 // Shreve R.L., 1966. Statistical Law of Stream Numbers. The Journal of Geology 74(1): 17-37.
-func Shreve(nodes []*mmaths.Node) []int {
+func Shreve(nodes []*mmaths.Node) {
 	queue, nI := make([]*mmaths.Node, 0), 0
 	for _, n := range nodes {
 		n.I = append(n.I, 0)
@@ -204,9 +210,9 @@ func Shreve(nodes []*mmaths.Node) []int {
 		}
 	}
 
-	norder := make([]int, len(nodes))
-	for i, n := range nodes {
-		norder[i] = n.I[nI]
-	}
-	return norder
+	// norder := make([]int, len(nodes))
+	// for i, n := range nodes {
+	// 	norder[i] = n.I[nI]
+	// }
+	// return norder
 }
