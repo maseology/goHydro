@@ -1,6 +1,7 @@
 package hru
 
 import (
+	"fmt"
 	"log"
 	"math"
 )
@@ -28,8 +29,9 @@ func CopyWtrShd(origWtrShd WtrShd) (newWtrShd WtrShd) {
 
 // HRU the Hydrologic Response Unit
 type HRU struct {
-	Sma, Sdet        Res // retention reservoir Sh (where water has the potential to drain); detention reservoir Sk (where water is held locally)
-	Fimp, Fprv, Perc float64
+	Sma, Sdet  Res // retention reservoir Sh (where water has the potential to drain); detention reservoir Sk (where water is held locally)
+	Fimp, Perc float64
+	// Fimp, Fprv, Perc float64
 	// stat             byte // status
 }
 
@@ -48,13 +50,16 @@ func (h *HRU) Initialize(rzsto, srfsto, fimp, ksat, sma0, srf0 float64) {
 	if rzsto < 0. || srfsto < 0. || fimp < 0. || fimp > 1. || ksat < 0. || sma0 < 0. || srf0 < 0. {
 		log.Fatalf("HRU Initialize parameter error: rzsto=%.5f srfsto=%.5f fimp=%.5f ksat=%.5f\n", rzsto, srfsto, fimp, ksat)
 	}
+	if ksat > rzsto {
+		fmt.Printf("HRU Initialize parameter warning: ksat > rzsto; percolation will never exceed drainable storage")
+	}
 	h.Sma.Sto = sma0    // initial soil moisture storage
 	h.Sdet.Sto = srf0   // initial surface/depression storage
 	h.Sma.Cap = rzsto   // soil moisture storage (i.e., rootzone/drainable storage)
 	h.Sdet.Cap = srfsto // surface/depression storage
 	h.Fimp = fimp       // fraction impervious
-	h.Fprv = 1. - fimp  // fraction pervious
-	h.Perc = ksat       // gravity-driven percolation rate m/ts (unit gradient)
+	// h.Fprv = 1. - fimp  // fraction pervious
+	h.Perc = ksat // gravity-driven percolation rate m/ts (unit gradient)
 	// h.Perc =  h.Fprv * ksat // gravity-driven percolation rate m/ts
 
 }
@@ -67,13 +72,13 @@ func (h *HRU) Reset() {
 
 // Update hru given a set of forcings
 func (h *HRU) Update(p, ep float64) (aet, ro, rch float64) {
-	rp := h.Sdet.Overflow(p)                            // flush detention storage
-	sri := h.Fimp * rp                                  // impervious runoff
-	ro = h.Sma.Overflow(rp-sri) + sri                   // flush retention, compute potential runoff
-	rch = h.Sma.Overflow(-h.Perc) + h.Perc              // compute total water percolated
-	avail := h.Sdet.Overflow(-ep)                       // remove ep from detention
-	avail = h.Sma.Overflow(avail*h.Fprv) + avail*h.Fimp // remaining available ep (cannot be >0.)
-	aet = ep + avail                                    // actual et
+	rp := h.Sdet.Overflow(p)                                 // flush detention storage
+	sri := h.Fimp * rp                                       // impervious runoff
+	ro = h.Sma.Overflow(rp-sri) + sri                        // flush retention, compute potential runoff
+	rch = h.Sma.Overflow(-h.Perc) + h.Perc                   // compute total water percolated
+	avail := h.Sdet.Overflow(-ep)                            // remove ep from detention
+	avail = h.Sma.Overflow(avail*(1.-h.Fimp)) + avail*h.Fimp // remaining available ep (cannot be >0.)
+	aet = ep + avail                                         // actual et
 	// h.updateStatus()
 	return
 }
