@@ -3,6 +3,7 @@ package tem
 import (
 	"encoding/binary"
 	"fmt"
+	"log"
 	"math"
 	"path/filepath"
 
@@ -20,14 +21,15 @@ func NewTEM(fp string) (*TEM, error) {
 // New constructor
 func (t *TEM) New(fp string) error {
 	var err error
+	var ds map[int]int // down-slope IDs = map[from]to
 	switch filepath.Ext(fp) {
 	case ".uhdem", ".bin":
-		_, err = t.loadUHDEM(fp)
+		_, ds, err = t.loadUHDEM(fp)
 		if err != nil {
 			return err
 		}
 	case ".hdem":
-		_, err = t.loadHDEM(fp)
+		_, ds, err = t.loadHDEM(fp)
 		if err != nil {
 			return err
 		}
@@ -36,7 +38,7 @@ func (t *TEM) New(fp string) error {
 	}
 
 	t.checkVals()
-	t.BuildUpslopes()
+	t.BuildUpslopes(ds)
 	return nil
 }
 
@@ -54,16 +56,16 @@ func (t *TEM) checkVals() {
 }
 
 // BuildUpslopes re-builds upslope mapping
-func (t *TEM) BuildUpslopes() {
+func (t *TEM) BuildUpslopes(ds map[int]int) {
 	t.USlp = make(map[int][]int)
-	for i, v := range t.TEC {
-		if v.Ds >= 0 {
-			t.USlp[v.Ds] = append(t.USlp[v.Ds], i)
+	for i := range t.TEC {
+		if ds[i] >= 0 {
+			t.USlp[ds[i]] = append(t.USlp[ds[i]], i)
 		}
 	}
 }
 
-func (t *TEM) loadUHDEM(fp string) (map[int]mmaths.Point, error) {
+func (t *TEM) loadUHDEM(fp string) (map[int]mmaths.Point, map[int]int, error) {
 	// load file
 	buf := mmio.OpenBinary(fp)
 
@@ -72,19 +74,19 @@ func (t *TEM) loadUHDEM(fp string) (map[int]mmaths.Point, error) {
 	case "unstructured":
 		// do nothing
 	default:
-		return nil, fmt.Errorf("Fatal error: unsupported UHDEM filetype")
+		return nil, nil, fmt.Errorf("Fatal error: unsupported UHDEM filetype")
 	}
 
 	// read dem data
 	var nc int32
 	if err := binary.Read(buf, binary.LittleEndian, &nc); err != nil { // number of cells
-		return nil, fmt.Errorf("Fatal error: loadUHDEM uhdem read failed: %v", err)
+		return nil, nil, fmt.Errorf("Fatal error: loadUHDEM uhdem read failed: %v", err)
 	}
 	t.TEC = make(map[int]TEC, nc)
 	coord := make(map[int]mmaths.Point, nc)
 	uc := make([]uhdemReader, nc)
 	if err := binary.Read(buf, binary.LittleEndian, uc); err != nil {
-		return nil, fmt.Errorf("Fatal error: loadUHDEM uhdem read failed: %v", err)
+		return nil, nil, fmt.Errorf("Fatal error: loadUHDEM uhdem read failed: %v", err)
 	}
 	for _, u := range uc {
 		ii := int(u.I)
@@ -94,26 +96,31 @@ func (t *TEM) loadUHDEM(fp string) (map[int]mmaths.Point, error) {
 	// read flowpaths
 	var nfp int32
 	if err := binary.Read(buf, binary.LittleEndian, &nfp); err != nil { // number of flowpaths
-		return nil, fmt.Errorf("Fatal error: loadUHDEM flowpath read failed: %v", err)
+		return nil, nil, fmt.Errorf("Fatal error: loadUHDEM flowpath read failed: %v", err)
 	}
 	fc := make([]fpReader, nfp)
 	if err := binary.Read(buf, binary.LittleEndian, fc); err != nil {
-		return nil, fmt.Errorf("Fatal error: loadUHDEM flowpath read failed: %v", err)
+		return nil, nil, fmt.Errorf("Fatal error: loadUHDEM flowpath read failed: %v", err)
 	}
+	dwnSlps := make(map[int]int, len(fc))
 	for _, f := range fc {
+		if f.Nds != 1 {
+			return nil, nil, fmt.Errorf("Fatal error: loadUHDEM TODO: many-to-one only allowed")
+		}
 		ii := int(f.I)
-		var x = t.TEC[ii]
-		x.Ds = int(f.Ids)
-		t.TEC[ii] = x
+		dwnSlps[ii] = int(f.Ids)
+		// var x = t.TEC[ii]
+		// x.Ds = int(f.Ids)
+		// t.TEC[ii] = x
 	}
 
 	if mmio.ReachedEOF(buf) {
-		return coord, nil
+		return coord, dwnSlps, nil
 	}
-	return nil, fmt.Errorf("Fatal error: UHDEM file contains extra data")
+	return nil, nil, fmt.Errorf("Fatal error: UHDEM file contains extra data")
 }
 
-func (t *TEM) loadHDEM(fp string) (map[int]mmaths.Point, error) {
+func (t *TEM) loadHDEM(fp string) (map[int]mmaths.Point, map[int]int, error) {
 	// load file
 	buf := mmio.OpenBinary(fp)
 
@@ -128,7 +135,7 @@ func (t *TEM) loadHDEM(fp string) (map[int]mmaths.Point, error) {
 		coord := make(map[int]mmaths.Point, nc)
 		uc := make([]uhdemReader, nc)
 		if err := binary.Read(buf, binary.LittleEndian, uc); err != nil {
-			return nil, fmt.Errorf("Fatal error: loadHDEM uhdem read failed: %v", err)
+			return nil, nil, fmt.Errorf("Fatal error: loadHDEM uhdem read failed: %v", err)
 		}
 		for _, u := range uc {
 			ii := int(u.I)
@@ -140,21 +147,23 @@ func (t *TEM) loadHDEM(fp string) (map[int]mmaths.Point, error) {
 		binary.Read(buf, binary.LittleEndian, &nfp) // number of flowpaths
 		fc := make([]fpReader, nfp)
 		if err := binary.Read(buf, binary.LittleEndian, fc); err != nil {
-			return nil, fmt.Errorf("Fatal error: loadHDEM flowpath read failed: %v", err)
+			return nil, nil, fmt.Errorf("Fatal error: loadHDEM flowpath read failed: %v", err)
 		}
+		ds := make(map[int]int, len(fc))
 		for _, f := range fc {
 			ii := int(f.I)
-			var x = t.TEC[ii]
-			x.Ds = int(f.Ids)
-			t.TEC[ii] = x
+			ds[ii] = int(f.Ids)
+			// var x = t.TEC[ii]
+			// x.Ds = int(f.Ids)
+			// t.TEC[ii] = x
 		}
 
 		if mmio.ReachedEOF(buf) {
-			return coord, nil
+			return coord, ds, nil
 		}
 
 	default:
-		return nil, fmt.Errorf("Fatal error: unsupported HDEM filetype: '%s'", typ)
+		return nil, nil, fmt.Errorf("Fatal error: unsupported HDEM filetype: '%s'", typ)
 
 		// default:
 		// 	// case "":
@@ -216,5 +225,54 @@ func (t *TEM) loadHDEM(fp string) (map[int]mmaths.Point, error) {
 		// 		}
 		// 	}
 	}
-	return nil, fmt.Errorf("Fatal error: HDEM file contains extra data")
+	return nil, nil, fmt.Errorf("Fatal error: HDEM file contains extra data")
+}
+
+func (t *TEM) SaveUHDEM(fp string) error {
+	nc := len(t.TEC)
+	uc := make([]uhdemReader, nc)
+	mc := make(map[int]bool, nc)
+	ii := 0
+	for i, t := range t.TEC {
+		mc[i] = true
+		uc[ii] = uhdemReader{
+			I: int32(i),
+			A: t.A,
+			G: t.G,
+			Z: t.Z,
+			X: -9999.,
+			Y: -9999.,
+		}
+		ii++
+	}
+
+	type ft struct{ f, t int }
+	m := make([]ft, 0, nc)
+	for i, a := range t.USlp {
+		for _, c := range a {
+			if _, ok := mc[c]; !ok {
+				log.Fatalf("SaveUHDEM error, TEC ID [%d] (upslope of %d) not found in model\n", c, i)
+			}
+			mc[c] = false
+			m = append(m, ft{c, i})
+		}
+	}
+	for c, b := range mc {
+		if b {
+			m = append(m, ft{c, -1}) // farfield
+		}
+	}
+	fc, ii := make([]fpReader, len(m)), 0
+	for _, f := range m {
+		fc[ii] = fpReader{
+			I:   int32(f.f),
+			Ids: int32(f.t),
+			Nds: int32(1),
+			F:   1.,
+		}
+		ii++
+	}
+
+	return mmio.WriteBinary(fp, int8(12), []byte("unstructured"), int32(nc), uc, int32(len(m)), fc)
+	// return mmio.WriteBinary(fp, "unstructured", int32(nc), uc, int32(len(m)), fc)
 }

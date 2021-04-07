@@ -52,8 +52,24 @@ func LoadGob(fp string) (TEM, error) {
 // Outlets returns cells that flow to farfield
 func (t *TEM) Outlets() []int {
 	var o []int
-	for i, t := range t.TEC {
-		if t.Ds < 0 {
+	// for i, t := range t.TEC {
+	// 	if t.Ds < 0 {
+	// 		o = append(o, i)
+	// 	}
+	// }
+	m, nds := make(map[int]bool, len(t.TEC)), make(map[int]int, len(t.TEC))
+	for i := range t.TEC {
+		for _, u := range t.USlp[i] {
+			if _, ok := nds[u]; ok {
+				nds[u]++
+			} else {
+				nds[u] = 1
+			}
+		}
+		m[i] = true
+	}
+	for i := range m {
+		if _, ok := nds[i]; !ok {
 			o = append(o, i)
 		}
 	}

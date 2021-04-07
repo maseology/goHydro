@@ -20,7 +20,7 @@ type uhdemReader struct {
 
 func (h *hdemReader) toTEC() TEC {
 	var t TEC
-	t.New(h.Z, h.G, h.A, -1)
+	t.New(h.Z, h.G, h.A) //, -1)
 	return t
 }
 
@@ -33,7 +33,7 @@ func (u *uhdemReader) uhdemRead(b *bytes.Reader) {
 
 func (u *uhdemReader) toTEC() (mmaths.Point, TEC) {
 	var t TEC
-	t.New(u.Z, u.G, u.A, -1)
+	t.New(u.Z, u.G, u.A) //, -1)
 	xy := mmaths.Point{X: u.X, Y: u.Y}
 	return xy, t
 }

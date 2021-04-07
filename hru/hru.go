@@ -1,7 +1,6 @@
 package hru
 
 import (
-	"fmt"
 	"log"
 	"math"
 )
@@ -50,9 +49,9 @@ func (h *HRU) Initialize(rzsto, srfsto, fimp, ksat, sma0, srf0 float64) {
 	if rzsto < 0. || srfsto < 0. || fimp < 0. || fimp > 1. || ksat < 0. || sma0 < 0. || srf0 < 0. {
 		log.Fatalf("HRU Initialize parameter error: rzsto=%.5f srfsto=%.5f fimp=%.5f ksat=%.5f\n", rzsto, srfsto, fimp, ksat)
 	}
-	if ksat > rzsto {
-		fmt.Printf("HRU Initialize parameter warning: ksat > rzsto; percolation will never exceed drainable storage")
-	}
+	// if ksat > rzsto {
+	// 	fmt.Printf("HRU Initialize parameter warning: ksat > rzsto; percolation will never exceed drainable storage")
+	// }
 	h.Sma.Sto = sma0    // initial soil moisture storage
 	h.Sdet.Sto = srf0   // initial surface/depression storage
 	h.Sma.Cap = rzsto   // soil moisture storage (i.e., rootzone/drainable storage)

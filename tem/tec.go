@@ -3,15 +3,15 @@ package tem
 // TEC topologic elevation model cell
 type TEC struct {
 	Z, G, A float64
-	Ds      int
+	// Ds      int
 }
 
 // New constructor
-func (t *TEC) New(z, g, a float64, ds int) {
-	t.Z = z   // elevation
-	t.G = g   // slope/gradient (rise/run)
-	t.A = a   // aspect (counter-clockwise from east)
-	t.Ds = ds // downslope id
+func (t *TEC) New(z, g, a float64) { //, ds int) {
+	t.Z = z // elevation
+	t.G = g // slope/gradient (rise/run)
+	t.A = a // aspect (counter-clockwise from east)
+	// t.Ds = ds // downslope id
 }
 
 // // TECXY topologic elevation model cell
