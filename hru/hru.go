@@ -83,8 +83,8 @@ func (h *HRU) Update(p, ep float64) (aet, ro, rch float64) {
 }
 
 // UpdateWT hru given a set of forcings and the presence of a high watertable
-func (h *HRU) UpdateWT(p, ep, dwt float64) (aet, ro, rch float64) {
-	if dwt < 0. { // upward gradient
+func (h *HRU) UpdateWT(p, ep float64, upwardGradient bool) (aet, ro, rch float64) {
+	if upwardGradient {
 		x := h.Sma.Sto - h.Sma.Cap // excess stored (drainable)
 		gwd := 0.
 		if x < 0. { // fill remaining deficit, assume discharge
