@@ -47,3 +47,10 @@ func (r *Res) Overflow(p float64) float64 {
 func (r *Res) Deficit() float64 {
 	return r.Cap - r.Sto
 }
+
+func (r *Res) DegreeSat() float64 {
+	if r.Cap == 0. {
+		return 0.
+	}
+	return r.Sto / r.Cap
+}

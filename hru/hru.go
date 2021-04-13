@@ -71,13 +71,15 @@ func (h *HRU) Reset() {
 
 // Update hru given a set of forcings
 func (h *HRU) Update(p, ep float64) (aet, ro, rch float64) {
-	rp := h.Sdet.Overflow(p)                                 // flush detention storage
-	sri := h.Fimp * rp                                       // impervious runoff
-	ro = h.Sma.Overflow(rp-sri) + sri                        // flush retention, compute potential runoff
-	rch = h.Sma.Overflow(-h.Perc) + h.Perc                   // compute total water percolated
-	avail := h.Sdet.Overflow(-ep)                            // remove ep from detention
+	rp := h.Sdet.Overflow(p)          // flush detention storage
+	sri := h.Fimp * rp                // impervious runoff
+	ro = h.Sma.Overflow(rp-sri) + sri // flush retention, compute potential runoff
+	avail := h.Sdet.Overflow(-ep)     // remove ep from detention
+	// f := (1. - h.Fimp) * h.Sma.Deficit()           // note: h.Sma has been flushed
+	// avail = h.Sma.Overflow(avail*f) + avail*(1.-f) // remaining available ep (cannot be >0.)
 	avail = h.Sma.Overflow(avail*(1.-h.Fimp)) + avail*h.Fimp // remaining available ep (cannot be >0.)
 	aet = ep + avail                                         // actual et
+	rch = h.Sma.Overflow(-h.Perc) + h.Perc                   // compute total water percolated
 	// h.updateStatus()
 	return
 }
