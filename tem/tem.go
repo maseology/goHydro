@@ -128,8 +128,8 @@ func (t *TEM) DownslopeContributingAreaIDs(cid0 int) ([]int, map[int]int) {
 		return true
 	}
 
-	dsa := t.downslopes()
-	c, ds, i := make([]int, len(t.TEC)), make(map[int]int, len(dsa)), 0
+	dsa := t.downslopes() // from{to}
+	c, ds, i := make([]int, len(t.TEC)), make(map[int]int), 0
 	for _, k := range t.Peaks(cid0) {
 		queue.PushBack(k) // initial enqueue
 	}
@@ -177,7 +177,7 @@ func (t *TEM) UpCnt(cid int) int {
 	return len(t.climb(cid))
 }
 
-// UnitContributingArea computes the (unit) contributing area to a given cell id
+// UnitContributingArea computes the (unit) contributing area (count) to a given cell id
 func (t *TEM) UnitContributingArea(cid int) int {
 	return t.UpCnt(cid)
 }
@@ -212,15 +212,17 @@ func (t *TEM) downslopes() map[int]int {
 }
 
 // ContributingCellMap returns a map of upslope TEC count for every TEC in TEM
-func (t *TEM) ContributingCellMap() map[int]int {
-	mcnt := make(map[int]int, len(t.TEC))
-	for c := range t.TEC {
+func (t *TEM) ContributingCellMap(cid0 int) map[int]int {
+	o, m := t.DownslopeContributingAreaIDs(cid0)
+	mcnt := make(map[int]int, len(o))
+	for _, c := range o {
 		mcnt[c] = 1
 	}
-	o, m := t.DownslopeContributingAreaIDs(-1)
 	for _, c := range o {
 		if v, ok := m[c]; ok { // outlet/farfield cells would not be included here
-			mcnt[v] += mcnt[c]
+			if v > -1 {
+				mcnt[v] += mcnt[c]
+			}
 		}
 	}
 	return mcnt

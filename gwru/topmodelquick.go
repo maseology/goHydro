@@ -2,8 +2,6 @@ package gwru
 
 import (
 	"math"
-
-	"github.com/maseology/goHydro/tem"
 )
 
 const (
@@ -27,7 +25,7 @@ type TMQ struct {
 // New constructor. unit-volum inputs (i.e., [m/ts])
 //  ksat: saturated hydraulic conductivity [m/ts]
 //  uca: unit contributing areas to every cell
-func (t *TMQ) New(ksat map[int]float64, uca map[int]int, strm []int, topo *tem.TEM, cw, m float64) (map[int]float64, float64) {
+func (t *TMQ) New(ksat, grad map[int]float64, uca map[int]int, strm []int, cw, m float64) (map[int]float64, float64) {
 	t.M = m
 	n := len(ksat)                          // number of cells
 	t.Qs = make(map[int]float64, len(strm)) // saturated lateral discharge [m/ts]
@@ -42,7 +40,7 @@ func (t *TMQ) New(ksat map[int]float64, uca map[int]int, strm []int, topo *tem.T
 	t.D = make(map[int]float64, n) // cell deficits relative to Dm
 	for i, k := range ksat {
 		tsat := k * cw                        // lateral transmissivity when soil is saturated [m²/ts]
-		tanbeta := math.Tan(topo.TEC[i].G)    // tangent slope gradient
+		tanbeta := math.Tan(grad[i])          // tangent slope gradient
 		ai := float64(uca[i]) * cw            // contributing area per unit contour [m] (assumes uniform square cells)
 		ti[i] = math.Log(ai / tsat / tanbeta) // soil-topographic index
 		// if math.IsNaN(ti[i]) || math.IsInf(ti[i], 0) {
