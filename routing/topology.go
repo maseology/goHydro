@@ -179,6 +179,27 @@ func Strahler(nodes []*mmaths.Node) {
 			n.I[nI] = -n.I[nI]
 		}
 	}
+
+	// quick fix for tough cycles
+	for _, ln := range mmaths.Leaves(nodes) {
+		queue = append(queue, ln) // sinks/leaves/headwaters
+	}
+	for {
+		if len(queue) == 0 {
+			break
+		}
+
+		// pop
+		q := queue[0]
+		queue = queue[1:]
+
+		for _, dn := range q.DS {
+			if dn.I[nI] < q.I[nI] {
+				dn.I[nI] = q.I[nI]
+			}
+			queue = append(queue, dn) // push
+		}
+	}
 }
 
 // Shreve R.L., 1966. Statistical Law of Stream Numbers. The Journal of Geology 74(1): 17-37.

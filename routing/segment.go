@@ -137,9 +137,10 @@ func PrintSegments(fp string, nds []*mmaths.Node) {
 			dns = append(dns, d.I[2])
 		}
 		f := geojson.NewLineStringFeature(vs)
-		f.SetProperty("treeID", n.I[1])
 		f.SetProperty("segmentID", i)
-		f.SetProperty("topol", fmt.Sprintf("%d %d %d", ups, i, dns))
+		f.SetProperty("treeID", n.I[1])
+		f.SetProperty("treesegID", n.I[2])
+		f.SetProperty("topol", fmt.Sprintf("%d %d %d", ups, n.I[2], dns))
 		f.SetProperty("order", n.I[3])
 		fc.AddFeature(f)
 	}
