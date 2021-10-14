@@ -15,7 +15,7 @@ type GMET struct {
 
 type dset struct { // daily met set
 	Date                   string
-	Tx, Tn, Rf, Sf, Sd, Pa float64
+	Tx, Tn, Rf, Sf, Sm, Pa float64
 }
 
 func (g *GMET) CheckAndPrint() {

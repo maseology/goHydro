@@ -59,9 +59,9 @@ func (g *GMET) StasToJson(xsids []int) string {
 				sum.Sf += v
 				cnt.Sf++
 			}
-			if v := g.Dat[j][i].Sd; v > -100. {
-				sum.Sd += v
-				cnt.Sd++
+			if v := g.Dat[j][i].Sm; v > -100. {
+				sum.Sm += v
+				cnt.Sm++
 			}
 			if v := g.Dat[j][i].Pa; v > -100. {
 				sum.Pa += v
@@ -74,7 +74,7 @@ func (g *GMET) StasToJson(xsids []int) string {
 			Tn:   div0(sum.Tn, cnt.Tn),
 			Rf:   div0(sum.Rf, cnt.Rf),
 			Sf:   div0(sum.Sf, cnt.Sf),
-			Sd:   div0(sum.Sd, cnt.Sd),
+			Sm:   div0(sum.Sm, cnt.Sm),
 			Pa:   div0(sum.Pa, cnt.Pa),
 		}
 	}

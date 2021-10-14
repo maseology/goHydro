@@ -115,7 +115,7 @@ func LoadNC(fp string, vars []string) (*GMET, error) {
 		tn := getDat(vars[1])
 		rf := getDat(vars[2])
 		sf := getDat(vars[3])
-		sd := getDat(vars[4])
+		sm := getDat(vars[4])
 		pa := getDat(vars[5])
 
 		o := make([][]dset, g.Nsta)
@@ -128,7 +128,7 @@ func LoadNC(fp string, vars []string) (*GMET, error) {
 					Tn:   float64(tn[j][i]),
 					Rf:   float64(rf[j][i]),
 					Sf:   float64(sf[j][i]),
-					Sd:   float64(sd[j][i]),
+					Sm:   float64(sm[j][i]),
 					Pa:   float64(pa[j][i]),
 				}
 			}
@@ -259,7 +259,7 @@ func LoadBin(prfx string, vars []string) (*GMET, error) { // go at the time of w
 					Tn:   float64(d[vars[1]][j][i]),
 					Rf:   float64(d[vars[2]][j][i]),
 					Sf:   float64(d[vars[3]][j][i]),
-					Sd:   float64(d[vars[4]][j][i]),
+					Sm:   float64(d[vars[4]][j][i]),
 					Pa:   float64(d[vars[5]][j][i]),
 				}
 			}
