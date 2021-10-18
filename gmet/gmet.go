@@ -21,10 +21,10 @@ type DSet struct { // daily met set
 }
 
 func (g *GMET) CheckAndPrint() {
-	fmt.Printf("\nN stations %d\n", g.Nsta)
-	fmt.Printf("N timesteps %d\n", g.Nts)
-	fmt.Printf("startdate: %v\n", g.Ts[0])
-	fmt.Printf("end date: %v\n\n", g.Ts[g.Nts-1])
+	fmt.Printf("\n  N stations %d\n", g.Nsta)
+	fmt.Printf("  N timesteps %d\n", g.Nts)
+	fmt.Printf("  startdate: %v\n", g.Ts[0])
+	fmt.Printf("  end date: %v\n\n", g.Ts[g.Nts-1])
 	g.check()
 }
 
