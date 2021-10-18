@@ -17,12 +17,15 @@ import (
 
 func (g GMET) SaveGob(fp string) error {
 	f, err := os.Create(fp)
-	defer f.Close()
 	if err != nil {
 		return err
 	}
 	enc := gob.NewEncoder(f)
 	err = enc.Encode(g)
+	if err != nil {
+		return err
+	}
+	err = f.Close()
 	if err != nil {
 		return err
 	}
@@ -32,12 +35,15 @@ func (g GMET) SaveGob(fp string) error {
 func LoadGob(fp string) (*GMET, error) {
 	var g GMET
 	f, err := os.Open(fp)
-	defer f.Close()
 	if err != nil {
 		return nil, err
 	}
 	enc := gob.NewDecoder(f)
 	err = enc.Decode(&g)
+	if err != nil {
+		return nil, err
+	}
+	err = f.Close()
 	if err != nil {
 		return nil, err
 	}
@@ -52,7 +58,7 @@ func LoadNC(fp string, vars []string) (*GMET, error) {
 		log.Fatalln(err)
 	}
 	defer nc.Close()
-	// fmt.Println(nc.ListVariables())
+	// fmt.Println(nc.ListVariables()) //[8:])
 
 	sids := func() []int {
 		svr, err := nc.GetVariable("station_id")
@@ -91,14 +97,15 @@ func LoadNC(fp string, vars []string) (*GMET, error) {
 	}()
 
 	g := GMET{
-		Nts:  len(times),
-		Nsta: len(sids),
-		Ts:   times,
-		Sids: sids,
+		Nts:   len(times),
+		Nsta:  len(sids),
+		Ts:    times,
+		Sids:  sids,
+		Snams: vars,
 	}
 	tt.Lap("\n loading complete")
 
-	g.Dat = func() [][]dset {
+	g.Dat = func() [][]DSet {
 		getDat := func(v string) [][]float32 {
 			svr, err := nc.GetVariable(v)
 			if err != nil {
@@ -111,25 +118,52 @@ func LoadNC(fp string, vars []string) (*GMET, error) {
 			}
 			return fs
 		}
-		tx := getDat(vars[0])
-		tn := getDat(vars[1])
-		rf := getDat(vars[2])
-		sf := getDat(vars[3])
-		sm := getDat(vars[4])
-		pa := getDat(vars[5])
 
-		o := make([][]dset, g.Nsta)
+		// for _, s := range vars {
+		// 	switch s {
+		// 	case "max_air_temperature":
+		// 		tx := getDat(s)
+		// 	case "min_air_temperature":
+		// 		tn := getDat(s)
+		// 	case "rainfall_amount":
+		// 		rf := getDat(s)
+		// 	case "snowfall_amount":
+		// 		sf := getDat(s)
+		// 	case "snowdepth":
+		// 		sd := getDat(s)
+		// 	}
+		// }
+
+		dat := make([][][]float32, len(vars))
+		for i, s := range vars {
+			dat[i] = getDat(s)
+		}
+		// tx := getDat(vars[0])
+		// tn := getDat(vars[1])
+		// rf := getDat(vars[2])
+		// sf := getDat(vars[3])
+		// sm := getDat(vars[4])
+		// pa := getDat(vars[5])
+
+		o := make([][]DSet, g.Nsta)
 		for i := 0; i < g.Nsta; i++ {
-			o[i] = make([]dset, g.Nts)
+			o[i] = make([]DSet, g.Nts)
 			for j, t := range times {
-				o[i][j] = dset{
+
+				d := make([]float64, len(vars))
+				for k := range vars {
+					d[k] = float64(dat[k][j][i])
+				}
+
+				o[i][j] = DSet{
 					Date: t.Format("2006-01-02"),
-					Tx:   float64(tx[j][i]),
-					Tn:   float64(tn[j][i]),
-					Rf:   float64(rf[j][i]),
-					Sf:   float64(sf[j][i]),
-					Sm:   float64(sm[j][i]),
-					Pa:   float64(pa[j][i]),
+					Dat:  d,
+					// Tx: float64(tx[j][i]),
+					// Tn: float64(tn[j][i]),
+					// Rf: float64(rf[j][i]),
+					// Sf: float64(sf[j][i]),
+					// Sm: float64(sm[j][i]),
+					// Pa: float64(pa[j][i]),
 				}
 			}
 		}
@@ -237,7 +271,7 @@ func LoadBin(prfx string, vars []string) (*GMET, error) { // go at the time of w
 		return out
 	}
 
-	d := func() map[string][][]float32 { // [variable][time][station]
+	dat := func() map[string][][]float32 { // [variable][time][station]
 		d := make(map[string][][]float32, len(vars))
 		for _, v := range vars {
 			dat := getDat(v)
@@ -248,19 +282,26 @@ func LoadBin(prfx string, vars []string) (*GMET, error) { // go at the time of w
 	}()
 	tt.Lap("\n python arrays loading complete")
 
-	g.Dat = func() [][]dset { // [station][row]
-		dsets := make([][]dset, nsta)
+	g.Dat = func() [][]DSet { // [station][row]
+		dsets := make([][]DSet, nsta)
 		for i := 0; i < nsta; i++ {
-			dsets[i] = make([]dset, nts)
+			dsets[i] = make([]DSet, nts)
 			for j, t := range times {
-				dsets[i][j] = dset{
+
+				d := make([]float64, len(vars))
+				for k, s := range vars {
+					d[k] = float64(dat[s][j][i])
+				}
+
+				dsets[i][j] = DSet{
 					Date: t.Format("2006-01-02"),
-					Tx:   float64(d[vars[0]][j][i]),
-					Tn:   float64(d[vars[1]][j][i]),
-					Rf:   float64(d[vars[2]][j][i]),
-					Sf:   float64(d[vars[3]][j][i]),
-					Sm:   float64(d[vars[4]][j][i]),
-					Pa:   float64(d[vars[5]][j][i]),
+					Dat:  d,
+					// Tx: float64(dat[vars[0]][j][i]),
+					// Tn: float64(dat[vars[1]][j][i]),
+					// Rf: float64(dat[vars[2]][j][i]),
+					// Sf: float64(dat[vars[3]][j][i]),
+					// Sm: float64(dat[vars[4]][j][i]),
+					// Pa: float64(dat[vars[5]][j][i]),
 				}
 			}
 		}

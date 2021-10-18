@@ -53,10 +53,10 @@ func (g *GMET) Append(g1 *GMET) bool {
 				tsnew[i+offset] = t
 			}
 
-			datnew := make([][]dset, g.Nsta)
+			datnew := make([][]DSet, g.Nsta)
 			copy(tsnew, g.Ts)
 			for i := 0; i < g.Nsta; i++ {
-				d := make([]dset, ntsnew)
+				d := make([]DSet, ntsnew)
 				copy(d, g.Dat[i])
 				for j, v := range g1.Dat[i] {
 					d[j+offset] = v

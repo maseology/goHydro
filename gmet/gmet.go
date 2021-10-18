@@ -7,15 +7,17 @@ import (
 )
 
 type GMET struct {
-	Dat       [][]dset // [station][]
-	Nts, Nsta int
-	Ts        []time.Time
-	Sids      []int
+	Dat       [][]DSet    // [station][]
+	Nts, Nsta int         // number timesteps/stations
+	Ts        []time.Time // timesteps
+	Sids      []int       // station IDs
+	Snams     []string    // station Names
 }
 
-type dset struct { // daily met set
-	Date                   string
-	Tx, Tn, Rf, Sf, Sm, Pa float64
+type DSet struct { // daily met set
+	Date string
+	Dat  []float64
+	// Tx, Tn, Rf, Sf, Sm, Pa float64
 }
 
 func (g *GMET) CheckAndPrint() {
@@ -23,7 +25,6 @@ func (g *GMET) CheckAndPrint() {
 	fmt.Printf("N timesteps %d\n", g.Nts)
 	fmt.Printf("startdate: %v\n", g.Ts[0])
 	fmt.Printf("end date: %v\n\n", g.Ts[g.Nts-1])
-
 	g.check()
 }
 
