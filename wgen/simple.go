@@ -3,8 +3,6 @@ package wgen
 import (
 	"math/rand"
 	"time"
-
-	mrg63k3a "github.com/maseology/pnrg/MRG63k3a"
 )
 
 type WGEN struct {
@@ -12,11 +10,15 @@ type WGEN struct {
 	rng    *rand.Rand
 }
 
+// src = mrg63k3a.New() or src = rand.NewSource(seed)
+func New(src rand.Source) *WGEN {
+	var w WGEN
+	w.rng = rand.New(src)
+	w.rng.Seed(time.Now().UnixNano())
+	return &w
+}
+
 func (w *WGEN) Generate(last float64) float64 {
-	if w.rng == nil {
-		w.rng = rand.New(mrg63k3a.New())
-		w.rng.Seed(time.Now().UnixNano())
-	}
 	//              |  dry  |  wet  |
 	// ------------ | ----- | ----- |
 	// dry previous |       |       |
