@@ -38,6 +38,17 @@ func NewCCF(tindex, ddf, ddfc, baseT, tsf float64) CCF {
 
 // Update state
 func (c *CCF) Update(r, s, t float64) (drainage float64) {
+	// checks
+	if r > 1. || r < 0. {
+		log.Fatalf(" fatal error in rainfall = %f", r)
+	}
+	if s > 1. || s < 0. {
+		log.Fatalf(" fatal error in snowfall = %f", s)
+	}
+	if t < -60. || t > 50. {
+		log.Fatalf(" fatal error in temperature = %f", t)
+	}
+
 	blNewPack := c.swe == 0.
 	if blNewPack {
 		c.ddf = ddfi // re-initialize ddf
@@ -54,7 +65,7 @@ func (c *CCF) Update(r, s, t float64) (drainage float64) {
 	c.adjustDegreeDayFactor(c.den)
 	melt := c.ddf * df * (t - c.tb) // [m·°C-1·d-1]
 	if melt > 0. {
-		if melt > c.swe-c.lwc {
+		if melt >= c.swe-c.lwc {
 			melt = c.swe - c.lwc
 			c.internalFreeze(-melt)
 			c.lwc = c.swe
@@ -75,15 +86,16 @@ func (c *CCF) Update(r, s, t float64) (drainage float64) {
 
 	c.satisfyColdContent(t)
 	drainage = c.drainFromPack()
-	if c.swe == 0. {
+	if c.swe <= 0. {
 		c.cc = 0.
+		c.swe = 0.
 	}
 	// c.densify() // currently disabled, need to lookup the coefficient to the densification factor
 	return
 }
 
 func (c *CCF) satisfyColdContent(t float64) {
-	if (c.swe - c.lwc) <= 0. {
+	if (c.swe - c.lwc) <= 0. { // excess liquid water
 		if math.Abs((c.swe-c.lwc)/c.lwc) > 1.e-8 {
 			log.Fatalf("CCF.satisfyColdContent error: swe and lwc should be equivalent:  swe = %f;  lwc = %f", c.swe, c.lwc)
 		}
@@ -116,8 +128,9 @@ func (c *CCF) satisfyColdContent(t float64) {
 }
 
 // Properties returns the snowpack state
-func (c *CCF) Properties() (porosity, depth, swe float64) {
+func (c *CCF) Properties() (porosity, depth, swe, cc float64) {
 	porosity, depth = c.properties()
 	swe = c.swe
+	cc = c.cc
 	return
 }

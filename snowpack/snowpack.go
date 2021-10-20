@@ -110,7 +110,7 @@ func (s *snowpack) internalFreeze(sweAffected float64) {
 			log.Fatalf("snowpack.internalFreeze error: density less than zero")
 		}
 	} else if sweAffected < 0. { // internal melting
-		if s.swe == s.lwc-sweAffected {
+		if s.swe == s.lwc-sweAffected { // fully melted
 			s.den = pw
 		} else {
 			pfroz := (s.swe*s.den - s.lwc*pw) / (s.swe - s.lwc)
