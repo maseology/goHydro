@@ -119,40 +119,21 @@ func LoadNC(fp string, vars []string) (*GMET, error) {
 			return fs
 		}
 
-		// for _, s := range vars {
-		// 	switch s {
-		// 	case "max_air_temperature":
-		// 		tx := getDat(s)
-		// 	case "min_air_temperature":
-		// 		tn := getDat(s)
-		// 	case "rainfall_amount":
-		// 		rf := getDat(s)
-		// 	case "snowfall_amount":
-		// 		sf := getDat(s)
-		// 	case "snowdepth":
-		// 		sd := getDat(s)
-		// 	}
-		// }
-
-		tx := getDat(vars[0])
-		tn := getDat(vars[1])
-		rf := getDat(vars[2])
-		sf := getDat(vars[3])
-		sm := getDat(vars[4])
-		pa := getDat(vars[5])
-
+		dd := make([][][]float32, len(vars))
+		for k, s := range vars {
+			dd[k] = getDat(s)
+		}
 		o := make([][]DSet, g.Nsta)
 		for i := 0; i < g.Nsta; i++ {
 			o[i] = make([]DSet, g.Nts)
 			for j, t := range times {
+				d := make([]float64, len(vars))
+				for k := range vars {
+					d[k] = float64(dd[k][j][i])
+				}
 				o[i][j] = DSet{
 					Date: t.Format("2006-01-02"),
-					Tx:   float64(tx[j][i]),
-					Tn:   float64(tn[j][i]),
-					Rf:   float64(rf[j][i]),
-					Sf:   float64(sf[j][i]),
-					Sm:   float64(sm[j][i]),
-					Pa:   float64(pa[j][i]),
+					Dat:  d,
 				}
 			}
 		}
@@ -276,14 +257,13 @@ func LoadBin(prfx string, vars []string) (*GMET, error) { // go at the time of w
 		for i := 0; i < nsta; i++ {
 			dsets[i] = make([]DSet, nts)
 			for j, t := range times {
+				d := make([]float64, len(vars))
+				for k, s := range vars {
+					d[k] = float64(dat[s][j][i])
+				}
 				dsets[i][j] = DSet{
 					Date: t.Format("2006-01-02"),
-					Tx:   float64(dat[vars[0]][j][i]),
-					Tn:   float64(dat[vars[1]][j][i]),
-					Rf:   float64(dat[vars[2]][j][i]),
-					Sf:   float64(dat[vars[3]][j][i]),
-					Sm:   float64(dat[vars[4]][j][i]),
-					Pa:   float64(dat[vars[5]][j][i]),
+					Dat:  d,
 				}
 			}
 		}
