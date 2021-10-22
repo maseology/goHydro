@@ -1,4 +1,4 @@
-package apigmet
+package gmet
 
 import (
 	"fmt"

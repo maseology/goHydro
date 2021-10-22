@@ -9,13 +9,13 @@ import (
 // see pg. 279 in DeWalle, D.R. and A. Rango, 2008. Principles of Snow Hydrology. Cambridge University Press, Cambridge. 410pp.
 type CCF struct {
 	DDF
-	cc, tindex float64
+	cc, ccf float64
 }
 
 // NewDefaultCCF returns a new CCF struct
 func NewDefaultCCF() CCF {
 	c := CCF{
-		tindex: 0.00035, // CCF temperature index; range .0002 to 0.0005 m/°C/d -- roughly 1/10 DDF (pg.278)
+		ccf: 0.00035, // CCF temperature index; range .0002 to 0.0005 m/°C/d -- roughly 1/10 DDF (pg.278)
 	}
 	c.ddf = ddfi // degree-day/melt factor; range .001 to .008 m/°C/d  (pg.275) -- NOTE: this is an initial value if adjustDegreeDayFactor() and ddfc is used
 	c.ddfc = 1.1 // DDF adjustment factor based on pack density, see DeWalle and Rango, pg. 275; Ref: Martinec (1960)
@@ -25,9 +25,9 @@ func NewDefaultCCF() CCF {
 }
 
 // NewCCF returns a new CCF struct
-func NewCCF(tindex, ddf, ddfc, baseT, tsf float64) CCF {
+func NewCCF(ccf, ddf, ddfc, baseT, tsf float64) CCF {
 	c := CCF{
-		tindex: tindex, // CCF temperature index; range .0002 to 0.0005 m/°C/d -- roughly 1/10 DDF (pg.278)
+		ccf: ccf, // CCF temperature index; range .0002 to 0.0005 m/°C/d -- roughly 1/10 DDF (pg.278)
 	}
 	c.ddf = ddf   // degree-day/melt factor; range .001 to .008 m/°C/d  (pg.275) -- NOTE: this is an initial value if adjustDegreeDayFactor() and ddfc is used
 	c.ddfc = ddfc // DDF adjustment factor based on pack density, see DeWalle and Rango, pg. 275; Ref: Martinec (1960)
@@ -108,7 +108,7 @@ func (c *CCF) satisfyColdContent(t float64) {
 			c.den = 0.
 		}
 	} else {
-		c.cc += c.tindex * df * (c.ts - t)
+		c.cc += c.ccf * df * (c.ts - t)
 		if c.cc <= 0. {
 			c.cc = 0.
 			c.ts = 0.
