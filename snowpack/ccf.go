@@ -9,27 +9,27 @@ import (
 // see pg. 279 in DeWalle, D.R. and A. Rango, 2008. Principles of Snow Hydrology. Cambridge University Press, Cambridge. 410pp.
 type CCF struct {
 	DDF
-	cc, ccf float64
+	cc, ccf, ts, tsf float64
 }
 
 // NewDefaultCCF returns a new CCF struct
 func NewDefaultCCF() CCF {
 	c := CCF{
 		ccf: 0.00035, // CCF temperature index; range .0002 to 0.0005 m/°C/d -- roughly 1/10 DDF (pg.278)
+		tsf: .5,      // TSF (surface temperature factor), 0.1-0.5 have been used
 	}
 	c.ddf = ddfi // degree-day/melt factor; range .001 to .008 m/°C/d  (pg.275) -- NOTE: this is an initial value if adjustDegreeDayFactor() and ddfc is used
 	c.ddfc = 1.1 // DDF adjustment factor based on pack density, see DeWalle and Rango, pg. 275; Ref: Martinec (1960)
 	c.tb = 0.    // base/critical temperature (°C)
-	c.tsf = .5   // TSF (surface temperature factor), 0.1-0.5 have been used
 	return c
 }
 
 // NewCCF returns a new CCF struct
-func NewCCF(ccf, ddf, ddfc, baseT, tsf float64) CCF {
+func NewCCF(ccf, ddfc, baseT, tsf float64) CCF {
 	c := CCF{
 		ccf: ccf, // CCF temperature index; range .0002 to 0.0005 m/°C/d -- roughly 1/10 DDF (pg.278)
 	}
-	c.ddf = ddf   // degree-day/melt factor; range .001 to .008 m/°C/d  (pg.275) -- NOTE: this is an initial value if adjustDegreeDayFactor() and ddfc is used
+	c.ddf = ddfi  // degree-day/melt factor; range .001 to .008 m/°C/d  (pg.275) -- NOTE: this is an initial value if adjustDegreeDayFactor() and ddfc is used
 	c.ddfc = ddfc // DDF adjustment factor based on pack density, see DeWalle and Rango, pg. 275; Ref: Martinec (1960)
 	c.tb = baseT  // base/critical temperature (°C)
 	c.tsf = tsf   // TSF (surface temperature factor), 0.1-0.5 have been used
@@ -92,6 +92,17 @@ func (c *CCF) Update(r, s, t float64) (drainage float64) {
 	}
 	// c.densify() // currently disabled, need to lookup the coefficient to the densification factor
 	return
+}
+
+func (c *CCF) updateSurfaceTemperature(t float64) { // pg.279
+	if c.swe > 0. {
+		c.ts += c.tsf * df * (t - c.ts)
+		if c.ts > 0. {
+			c.ts = 0.
+		}
+	} else {
+		c.ts = 0.
+	}
 }
 
 func (c *CCF) satisfyColdContent(t float64) {

@@ -29,7 +29,7 @@ const (
 )
 
 type snowpack struct {
-	swe, den, ts, lwc, tb, tsf float64 // tb: base/critical temperature; tsf: surface temperature factor
+	swe, den, lwc, tb float64 // tb: base/critical temperature; tsf: surface temperature factor
 }
 
 func (s *snowpack) properties() (porosity, depth float64) {
@@ -74,7 +74,7 @@ func (s *snowpack) drainFromPack() (drainage float64) {
 			drainage = s.swe
 			s.swe = 0.
 			s.lwc = 0.
-			s.ts = 0.
+			// s.ts = 0.
 			s.den = 0.
 		} else {
 			def := lwrc - s.lwc // deficit
@@ -89,17 +89,6 @@ func (s *snowpack) drainFromPack() (drainage float64) {
 	}
 	drainage += exs
 	return
-}
-
-func (s *snowpack) updateSurfaceTemperature(t float64) { // pg.279
-	if s.swe > 0. {
-		s.ts += s.tsf * df * (t - s.ts)
-		if s.ts > 0. {
-			s.ts = 0.
-		}
-	} else {
-		s.ts = 0.
-	}
 }
 
 func (s *snowpack) internalFreeze(sweAffected float64) {
