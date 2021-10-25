@@ -32,6 +32,19 @@ type snowpack struct {
 	swe, den, lwc, tb float64 // tb: base/critical temperature; tsf: surface temperature factor
 }
 
+func inputDataCheck(r, s, t float64) {
+	// checks
+	if r > 1. || r < 0. {
+		log.Fatalf(" fatal error in rainfall = %f", r)
+	}
+	if s > 1. || s < 0. {
+		log.Fatalf(" fatal error in snowfall = %f", s)
+	}
+	if t < -60. || t > 50. {
+		log.Fatalf(" fatal error in temperature = %f", t)
+	}
+}
+
 func (s *snowpack) properties() (porosity, depth float64) {
 	// rearranging eq. 3.1 pg. 54 in DeWalle, D.R. and A. Rango, 2008. Principles of Snow Hydrology. Cambridge University Press, Cambridge. 410pp.
 	if s.den == 0. || s.swe == 0. {
@@ -52,7 +65,7 @@ func (s *snowpack) addToPack(sweFall, denFall float64) {
 		s.den = (s.swe*s.den + sweFall*denFall) / (s.swe + sweFall)
 		s.swe += sweFall
 		if s.den < denmin || s.den > pw*1.000001 {
-			log.Fatalf("snowpack.addToPack error: snowpack density out of physical range")
+			log.Fatalf("snowpack.addToPack error: snowpack density out of physical range: %f", s.den)
 		}
 	} else {
 		s.swe = sweFall

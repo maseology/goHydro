@@ -38,16 +38,7 @@ func NewCCF(ccf, ddfc, baseT, tsf float64) CCF {
 
 // Update state
 func (c *CCF) Update(r, s, t float64) (drainage float64) {
-	// checks
-	if r > 1. || r < 0. {
-		log.Fatalf(" fatal error in rainfall = %f", r)
-	}
-	if s > 1. || s < 0. {
-		log.Fatalf(" fatal error in snowfall = %f", s)
-	}
-	if t < -60. || t > 50. {
-		log.Fatalf(" fatal error in temperature = %f", t)
-	}
+	inputDataCheck(r, s, t)
 
 	blNewPack := c.swe == 0.
 	if blNewPack {
