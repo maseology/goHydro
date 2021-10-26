@@ -75,32 +75,40 @@ func (s *snowpack) addToPack(sweFall, denFall float64) {
 
 func (s *snowpack) drainFromPack() (drainage float64) {
 	por, depth := s.properties()
-	lwrc := por * depth * (1. - swi) // snowpack liquid water retention capacity
-	exs := 0.
-	if s.lwc > lwrc {
-		exs = s.lwc - lwrc
-		s.lwc = lwrc
-		s.addToPack(-exs, pw)
-	}
-	if s.lwc > 0. {
-		if s.lwc == s.swe {
-			drainage = s.swe
-			s.swe = 0.
-			s.lwc = 0.
-			// s.ts = 0.
-			s.den = 0.
-		} else {
-			def := lwrc - s.lwc // deficit
-			if def < 0. {       // excess water
-				drainage = -def
-				pfroz := (s.swe*s.den - s.lwc*pw) / (s.swe - s.lwc)
-				s.den = ((s.lwc-drainage)*pw + (s.swe-s.lwc)*pfroz) / (s.swe - drainage)
-				s.lwc = lwrc
-				s.swe += def
+	if por > .99 {
+		drainage = s.swe
+		s.swe = 0.
+		s.lwc = 0.
+		// s.ts = 0.
+		s.den = 0.
+	} else {
+		lwrc := por * depth * (1. - swi) // snowpack liquid water retention capacity
+		exs := 0.
+		if s.lwc > lwrc {
+			exs = s.lwc - lwrc
+			s.lwc = lwrc
+			s.addToPack(-exs, pw)
+		}
+		if s.lwc > 0. {
+			if s.lwc == s.swe {
+				drainage = s.swe
+				s.swe = 0.
+				s.lwc = 0.
+				// s.ts = 0.
+				s.den = 0.
+			} else {
+				def := lwrc - s.lwc // deficit
+				if def < 0. {       // excess water
+					drainage = -def
+					pfroz := (s.swe*s.den - s.lwc*pw) / (s.swe - s.lwc)
+					s.den = ((s.lwc-drainage)*pw + (s.swe-s.lwc)*pfroz) / (s.swe - drainage)
+					s.lwc = lwrc
+					s.swe += def
+				}
 			}
 		}
+		drainage += exs
 	}
-	drainage += exs
 	return
 }
 

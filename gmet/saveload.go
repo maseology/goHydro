@@ -245,13 +245,14 @@ func LoadBin(prfx string, vars []string) (*GMET, error) { // go at the time of w
 		d := make(map[string][][]float32, len(vars))
 		for _, v := range vars {
 			dat := getDat(v)
-			fmt.Println(v, len(dat), len(dat[0]))
+			fmt.Println(" ", v, len(dat), len(dat[0]))
 			d[v] = dat
 		}
 		return d
 	}()
 	tt.Lap("\n python arrays loading complete")
 
+	fmt.Println(" ordering..")
 	g.Dat = func() [][]DSet { // [station][row]
 		dsets := make([][]DSet, nsta)
 		for i := 0; i < nsta; i++ {
