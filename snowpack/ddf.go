@@ -36,7 +36,7 @@ func NewDDF(ddfc, baseT float64) DDF {
 // }
 
 // Update state
-func (d *DDF) Update(r, s, t float64) (drainage float64) {
+func (d *DDF) Update(r, s, t float64) (throughfall, melt float64) {
 	inputDataCheck(r, s, t)
 
 	if s > 0. {
@@ -44,25 +44,25 @@ func (d *DDF) Update(r, s, t float64) (drainage float64) {
 	}
 
 	d.adjustDegreeDayFactor(d.den)
-	melt := d.ddf * df * (t - d.tb) // [m·°C-1·d-1]
-	if melt > 0. {
-		if melt >= d.swe-d.lwc {
-			melt = d.swe - d.lwc
-			d.internalFreeze(-melt)
+	packmelt := d.ddf * df * (t - d.tb) // [m·°C-1·d-1]
+	if packmelt > 0. {
+		if packmelt >= d.swe-d.lwc {
+			packmelt = d.swe - d.lwc
+			d.internalFreeze(-packmelt)
 			d.lwc = d.swe
 		} else {
-			d.internalFreeze(-melt)
-			d.lwc += melt
+			d.internalFreeze(-packmelt)
+			d.lwc += packmelt
 		}
 	} else {
-		melt = 0.
+		packmelt = 0.
 	}
 
 	if r > 0. {
 		d.addToPack(r, pw)
 		d.lwc += r
 	}
-	drainage = d.drainFromPack()
+	drn := d.drainFromPack()
 
 	// rfrz := ddrf * d.ddf * df * (d.tb - t) // [m·°C-1·d-1] // Seibert, J., 2005. HBV light version 2 User's Manual. Stockholm University Department of Physical Geography and Quaternary Geology, November, 2005. 32pp.
 	// if rfrz < 0. {
@@ -78,6 +78,16 @@ func (d *DDF) Update(r, s, t float64) (drainage float64) {
 	if d.swe <= 0. {
 		d.swe = 0.
 		d.ddf = ddfi // re-initialize ddf for adjustDegreeDayFactor()
+	}
+	if drn > r {
+		throughfall = r
+		melt = drn - r
+	} else if drn < r {
+		throughfall = drn
+		melt = 0.
+	} else {
+		throughfall = r
+		melt = 0.
 	}
 	return
 }
