@@ -37,7 +37,7 @@ func NewDDF(ddfc, baseT, denscoef float64) DDF {
 // }
 
 // Update state
-func (d *DDF) Update(r, s, t float64) (throughfall, melt float64) {
+func (d *DDF) Update(r, s, t float64) (melt, throughfall float64) {
 	inputDataCheck(r, s, t)
 
 	if s > 0. {
