@@ -16,12 +16,13 @@ func (d *DDF) adjustDegreeDayFactor(den float64) {
 	d.ddf = d.ddfc * den / pw // [m/(°C·d)]
 }
 
-func NewDDF(ddfc, baseT float64) DDF {
+func NewDDF(ddfc, baseT, denscoef float64) DDF {
 	d := DDF{
 		ddf:  ddfi, // degree-day/melt factor; range .001 to .008 m/°C/d  (pg.275)
 		ddfc: ddfc, // DDF adjustment factor based on pack density, see DeWalle and Rango, pg. 275; Ref: Martinec (1960)
 	}
-	d.tb = baseT // base/critical temperature (°C)
+	d.tb = baseT          // base/critical temperature (°C)
+	d.denscoef = denscoef // coefficient to the densification factor
 	return d
 }
 
@@ -75,6 +76,7 @@ func (d *DDF) Update(r, s, t float64) (drainage float64) {
 	// 	d.lwc -= rfrz
 	// }
 
+	d.densify()
 	if d.swe <= 0. {
 		d.swe = 0.
 		d.ddf = ddfi // re-initialize ddf for adjustDegreeDayFactor()
@@ -83,8 +85,18 @@ func (d *DDF) Update(r, s, t float64) (drainage float64) {
 }
 
 // Properties returns the snowpack state
-func (d *DDF) Properties() (porosity, depth, swe float64) {
+func (d *DDF) Properties() (porosity, depth, swe, den float64) {
 	porosity, depth = d.properties()
 	swe = d.swe
+	den = d.den
+	return
+}
+
+func (d *DDF) Clear() (swe float64) {
+	swe = d.swe
+	d.swe = 0.
+	d.lwc = 0.
+	d.den = 0.
+	d.ddf = ddfi
 	return
 }

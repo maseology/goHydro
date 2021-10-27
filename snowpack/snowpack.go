@@ -18,18 +18,18 @@ const (
 
 	// parameters/coefficients (kept constant)
 	// densf  = 100. // [kg/m³] (average) density of falling snow; can range from 50-350 kg/m³ (see pg. 55)
-	denmin   = 25.  // [kg/m³] minimum snowfall density
-	den0     = 200. // [kg/m³] density of falling ripe snow (at or above temperatures of 0°C)
-	swi      = 0.05 // irreducible liquid saturation, volume of liquid per volume of pore-space
-	denscoef = 1.   // coefficient to the densification factor
-	cdt      = 5.5  // [kg/m³/°C] slope of density-temperature relationship (see func.go SnowFallDensity())
+	denmin = 25.  // [kg/m³] minimum snowfall density
+	den0   = 200. // [kg/m³] density of falling ripe snow (at or above temperatures of 0°C)
+	swi    = 0.05 // irreducible liquid saturation, volume of liquid per volume of pore-space
+	// denscoef = 1.   // coefficient to the densification factor
+	cdt = 5.5 // [kg/m³/°C] slope of density-temperature relationship (see func.go SnowFallDensity())
 
 	// other
 	df = 1. // [ts/day] day factor (adjust when daily timesteps are not used)
 )
 
 type snowpack struct {
-	swe, den, lwc, tb float64 // tb: base/critical temperature; tsf: surface temperature factor
+	swe, den, lwc, tb, denscoef float64 // tb: base/critical temperature; tsf: surface temperature factor; denscoef: coefficient to the densification factor
 }
 
 func inputDataCheck(r, s, t float64) {
@@ -135,7 +135,7 @@ func (s *snowpack) internalFreeze(sweAffected float64) {
 func (s *snowpack) densify() {
 	if s.den > 0. {
 		if s.den < pi {
-			f := math.Pow(pi/s.frozenPackDensity(), df*denscoef)
+			f := math.Pow(pi/s.frozenPackDensity(), df*s.denscoef)
 			if f > 1. {
 				if s.den*f > pi {
 					s.den = pi
