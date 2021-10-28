@@ -25,21 +25,22 @@ func NewDefaultCCF() CCF {
 }
 
 // NewCCF returns a new CCF struct
-func NewCCF(ccf, ddfc, baseT, tsf float64) CCF {
+func NewCCF(ccf, ddfc, baseT, tsf, denscoef float64) CCF {
 	c := CCF{
 		ccf: ccf, // CCF temperature index; range .0002 to 0.0005 m/°C/d -- roughly 1/10 DDF (pg.278)
 	}
-	c.ddf = ddfi  // degree-day/melt factor; range .001 to .008 m/°C/d  (pg.275) -- NOTE: this is an initial value if adjustDegreeDayFactor() and ddfc is used
-	c.ddfc = ddfc // DDF adjustment factor based on pack density, see DeWalle and Rango, pg. 275; Ref: Martinec (1960)
-	c.tb = baseT  // base/critical temperature (°C)
-	c.tsf = tsf   // TSF (surface temperature factor), 0.1-0.5 have been used
+	c.ddf = ddfi          // degree-day/melt factor; range .001 to .008 m/°C/d  (pg.275) -- NOTE: this is an initial value if adjustDegreeDayFactor() and ddfc is used
+	c.ddfc = ddfc         // DDF adjustment factor based on pack density, see DeWalle and Rango, pg. 275; Ref: Martinec (1960)
+	c.tb = baseT          // base/critical temperature (°C)
+	c.tsf = tsf           // TSF (surface temperature factor), 0.1-0.5 have been used
+	c.denscoef = denscoef // coefficient to the densification factor
 	return c
 }
 
 // Update state
-func (c *CCF) Update(r, s, t float64) (drainage float64) {
+func (c *CCF) Update(r, s, t float64) (melt, throughfall float64) {
 	inputDataCheck(r, s, t)
-
+	// fmt.Println(c.Properties())
 	blNewPack := c.swe == 0.
 	if blNewPack {
 		c.ddf = ddfi // re-initialize ddf
@@ -53,21 +54,21 @@ func (c *CCF) Update(r, s, t float64) (drainage float64) {
 		c.updateSurfaceTemperature(t)
 	}
 
-	c.adjustDegreeDayFactor(c.den)
-	melt := c.ddf * df * (t - c.tb) // [m·°C-1·d-1]
-	if melt > 0. {
-		if melt >= c.swe-c.lwc {
-			melt = c.swe - c.lwc
-			c.internalFreeze(-melt)
+	c.adjustDegreeDayFactor()
+	potmelt := c.ddf * df * (t - c.tb) // [m·°C-1·d-1]
+	if potmelt > 0. {
+		if potmelt >= c.swe-c.lwc {
+			potmelt = c.swe - c.lwc
+			c.internalFreeze(-potmelt)
 			c.lwc = c.swe
 			c.cc = 0.
 			c.ts = 0.
 		} else {
-			c.internalFreeze(-melt)
-			c.lwc += melt
+			c.internalFreeze(-potmelt)
+			c.lwc += potmelt
 		}
 	} else {
-		melt = 0.
+		potmelt = 0.
 	}
 
 	if r > 0. {
@@ -75,13 +76,25 @@ func (c *CCF) Update(r, s, t float64) (drainage float64) {
 		c.lwc += r
 	}
 
+	drn := c.drainFromPack()
 	c.satisfyColdContent(t)
-	drainage = c.drainFromPack()
+	c.densify()
+
 	if c.swe <= 0. {
 		c.cc = 0.
 		c.swe = 0.
 	}
-	// c.densify() // currently disabled, need to lookup the coefficient to the densification factor
+
+	if drn > r {
+		throughfall = r
+		melt = drn - r
+	} else if drn < r {
+		throughfall = drn
+		melt = 0.
+	} else {
+		throughfall = r
+		melt = 0.
+	}
 	return
 }
 

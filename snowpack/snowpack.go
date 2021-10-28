@@ -20,7 +20,7 @@ const (
 	// densf  = 100. // [kg/m³] (average) density of falling snow; can range from 50-350 kg/m³ (see pg. 55)
 	denmin = 25.  // [kg/m³] minimum snowfall density
 	den0   = 200. // [kg/m³] density of falling ripe snow (at or above temperatures of 0°C)
-	swi    = 0.05 // irreducible liquid saturation, volume of liquid per volume of pore-space
+	scap   = 0.05 // snowpack liquid water retention capacity (≈0.05; DeWalle and Rango, 2008)
 	// denscoef = 1.   // coefficient to the densification factor
 	cdt = 5.5 // [kg/m³/°C] slope of density-temperature relationship (see func.go SnowFallDensity())
 
@@ -82,7 +82,7 @@ func (s *snowpack) drainFromPack() (drainage float64) {
 		// s.ts = 0.
 		s.den = 0.
 	} else {
-		lwrc := por * depth * (1. - swi) // snowpack liquid water retention capacity
+		lwrc := por * depth * scap // snowpack liquid water retention capacity
 		exs := 0.
 		if s.lwc > lwrc {
 			exs = s.lwc - lwrc

@@ -7,13 +7,17 @@ type DDF struct {
 }
 
 const (
-	ddfi = 0.0045
-	ddrf = .05 // re-freeze factor Seibert (2005)
+	ddfi   = .0045
+	ddfmax = .008
+	ddrf   = .05 // re-freeze factor Seibert (2005)
 )
 
-func (d *DDF) adjustDegreeDayFactor(den float64) {
+func (d *DDF) adjustDegreeDayFactor() {
 	// see DeWalle and Rango, pg. 275; Ref: Martinec (1960)
-	d.ddf = d.ddfc * den / pw // [m/(°C·d)]
+	d.ddf = d.ddfc * d.den / pw // [m/(°C·d)]
+	if d.ddf > ddfmax {
+		d.ddf = ddfmax
+	}
 }
 
 func NewDDF(ddfc, baseT, denscoef float64) DDF {
@@ -44,19 +48,19 @@ func (d *DDF) Update(r, s, t float64) (melt, throughfall float64) {
 		d.addToPack(s, SnowFallDensity(t))
 	}
 
-	d.adjustDegreeDayFactor(d.den)
-	packmelt := d.ddf * df * (t - d.tb) // [m·°C-1·d-1]
-	if packmelt > 0. {
-		if packmelt >= d.swe-d.lwc {
-			packmelt = d.swe - d.lwc
-			d.internalFreeze(-packmelt)
+	d.adjustDegreeDayFactor()
+	potmelt := d.ddf * df * (t - d.tb) // [m·°C-1·d-1]
+	if potmelt > 0. {
+		if potmelt >= d.swe-d.lwc {
+			potmelt = d.swe - d.lwc
+			d.internalFreeze(-potmelt)
 			d.lwc = d.swe
 		} else {
-			d.internalFreeze(-packmelt)
-			d.lwc += packmelt
+			d.internalFreeze(-potmelt)
+			d.lwc += potmelt
 		}
 	} else {
-		packmelt = 0.
+		potmelt = 0.
 	}
 
 	if r > 0. {
