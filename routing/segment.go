@@ -129,15 +129,19 @@ func PrintSegments(fp string, nds []*mmaths.Node) {
 				vs[j][d] = n.S[j*nd+d]
 			}
 		}
-		ups, dns := []int{}, []int{}
+		ups, dns, dni := []int{}, []int{}, -1
 		for _, u := range n.US {
 			ups = append(ups, u.I[2])
 		}
 		for _, d := range n.DS {
 			dns = append(dns, d.I[2])
+			if d.I[0] > dni {
+				dni = d.I[4]
+			}
 		}
 		f := geojson.NewLineStringFeature(vs)
 		f.SetProperty("segmentID", i)
+		f.SetProperty("downID", dni)
 		f.SetProperty("treeID", n.I[1])
 		f.SetProperty("treesegID", n.I[2])
 		f.SetProperty("topol", fmt.Sprintf("%d %d %d", ups, n.I[2], dns))

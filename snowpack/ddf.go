@@ -13,7 +13,8 @@ const (
 )
 
 func (d *DDF) adjustDegreeDayFactor() {
-	// see DeWalle and Rango, pg. 275; Ref: Martinec (1960)
+	// ref Martinec J., 1960. The degree-day factor for snowmelt-runoff forecasting. In Proceedings General Assembly of Helsinki, Commission on Surface Waters. IASH Publ. 51, pp. 468-477.
+	// (see DeWalle and Rango, pg. 275)
 	d.ddf = d.ddfc * d.den / pw // [m/(°C·d)]
 	if d.ddf > ddfmax {
 		d.ddf = ddfmax
@@ -23,22 +24,12 @@ func (d *DDF) adjustDegreeDayFactor() {
 func NewDDF(ddfc, baseT, denscoef float64) DDF {
 	d := DDF{
 		ddf:  ddfi, // degree-day/melt factor; range .001 to .008 m/°C/d  (pg.275)
-		ddfc: ddfc, // DDF adjustment factor based on pack density, see DeWalle and Rango, pg. 275; Ref: Martinec (1960)
+		ddfc: ddfc, // DDF adjustment factor based on pack density, see DeWalle and Rango, pg. 275: Martinec (1960) used 0.011 m/°C/d.
 	}
 	d.tb = baseT          // base/critical temperature (°C)
 	d.denscoef = denscoef // coefficient to the densification factor
 	return d
 }
-
-// // NewDefaultDDF returns a new CCF struct
-// func NewDefaultDDF() DDF {
-// 	d := DDF{
-// 		ddf:  ddfi, // degree-day/melt factor; range .001 to .008 m/°C/d  (pg.275)
-// 		ddfc: 1.1,  // DDF adjustment factor based on pack density, see DeWalle and Rango, pg. 275; Ref: Martinec (1960)
-// 	}
-// 	d.tb = 0. // base/critical temperature (°C)
-// 	return d
-// }
 
 // Update state
 func (d *DDF) Update(r, s, t float64) (melt, throughfall float64) {
