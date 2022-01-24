@@ -1,6 +1,8 @@
 package routing
 
 import (
+	"fmt"
+
 	"github.com/maseology/mmaths"
 )
 
@@ -77,5 +79,6 @@ func Segmentize(plns [][][3]float64, nodethresh float64) [][][3]float64 {
 		outplns = append(outplns, xycoll)
 		i0 = c + 1
 	}
+	fmt.Printf("  %d segments - ", len(outplns))
 	return outplns
 }

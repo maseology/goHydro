@@ -1,15 +1,8 @@
 package routing
 
-import (
-	"fmt"
-	"io/ioutil"
-	"log"
+import "github.com/maseology/mmaths"
 
-	"github.com/maseology/mmaths"
-	geojson "github.com/paulmach/go.geojson"
-)
-
-func BuildSegment(roots []*mmaths.Node) []*mmaths.Node {
+func BuildTrees(roots []*mmaths.Node) []*mmaths.Node {
 	o := []*mmaths.Node{}
 	for itree, r := range roots {
 		sws := r.Climb()
@@ -47,7 +40,7 @@ func BuildSegment(roots []*mmaths.Node) []*mmaths.Node {
 			return nlast, xys
 		}
 
-		iseg := 0
+		isegtree := 0
 		ups, dns := map[*mmaths.Node][]int{}, map[*mmaths.Node][]int{}
 		for len(queue) > 0 {
 			q := queue[0] // pop
@@ -56,23 +49,23 @@ func BuildSegment(roots []*mmaths.Node) []*mmaths.Node {
 			for _, u := range q.US {
 				xys = append(xys, [][]float64{{q.S[0], q.S[1], q.S[2]}})
 				nl, nxys := walkUpstreamToJuntion(u)
-				dns[nl] = append(dns[nl], iseg)
-				ups[q] = append(ups[q], iseg)
-				xys[iseg] = append(xys[iseg], nxys...)
-				iseg++
+				dns[nl] = append(dns[nl], isegtree)
+				ups[q] = append(ups[q], isegtree)
+				xys[isegtree] = append(xys[isegtree], nxys...)
+				isegtree++
 			}
 		}
 
 		// create tree (segments as nodes)
 		oo := make([]*mmaths.Node, len(xys))
-		for iseg, v := range xys {
+		for isegtree, v := range xys {
 			lverts := make([]float64, 2*len(v))
 			for i, c := range v {
 				lverts[2*i] = c[0]
 				lverts[2*i+1] = c[1]
 			}
-			oo[iseg] = &mmaths.Node{
-				I: []int{2, itree, iseg}, // dimensionned at 2
+			oo[isegtree] = &mmaths.Node{
+				I: []int{2, itree, isegtree}, // dimensionned at 2 (droppign elevation)
 				S: lverts,
 			}
 		}
@@ -89,7 +82,7 @@ func BuildSegment(roots []*mmaths.Node) []*mmaths.Node {
 
 		// //////////////////////////////////////
 		// // print for testing
-		// sca := mmio.NewCSVwriter("M:/segments.vertices.csv")
+		// sca := mmio.NewCSVwriter("junction.vertices.csv")
 		// sca.WriteHead("x,y,jid,dwn")
 		// for i, jn := range jns {
 		// 	sca.WriteLine(jn.S[0], jn.S[1], i, fmt.Sprintf("%d %d>%d", i, ups[jn], dns[jn]))
@@ -98,7 +91,7 @@ func BuildSegment(roots []*mmaths.Node) []*mmaths.Node {
 
 		// // print for testing
 		// Strahler(oo)
-		// PrintSegments("M:/segments.geojson", oo)
+		// PrintNetwork("M:/segments.geojson", oo)
 		// // fc := geojson.NewFeatureCollection()
 		// // for i, vs := range xys {
 		// // 	f := geojson.NewLineStringFeature(vs)
@@ -115,44 +108,4 @@ func BuildSegment(roots []*mmaths.Node) []*mmaths.Node {
 
 	}
 	return o
-}
-
-func PrintSegments(fp string, nds []*mmaths.Node) {
-	fc := geojson.NewFeatureCollection()
-	for i, n := range nds {
-		nd := n.I[0]
-		nv := len(n.S) / nd
-		vs := make([][]float64, nv)
-		for j := 0; j < nv; j++ {
-			vs[j] = make([]float64, nd)
-			for d := 0; d < nd; d++ {
-				vs[j][d] = n.S[j*nd+d]
-			}
-		}
-		ups, dns, dni := []int{}, []int{}, -1
-		for _, u := range n.US {
-			ups = append(ups, u.I[2])
-		}
-		for _, d := range n.DS {
-			dns = append(dns, d.I[2])
-			if d.I[0] > dni {
-				dni = d.I[4]
-			}
-		}
-		f := geojson.NewLineStringFeature(vs)
-		f.SetProperty("segmentID", i)
-		f.SetProperty("downID", dni)
-		f.SetProperty("treeID", n.I[1])
-		f.SetProperty("treesegID", n.I[2])
-		f.SetProperty("topol", fmt.Sprintf("%d %d %d", ups, n.I[2], dns))
-		f.SetProperty("order", n.I[3])
-		fc.AddFeature(f)
-	}
-	rawJSON, err := fc.MarshalJSON()
-	if err != nil {
-		log.Fatalf("routing.PrintSegments: %v\n", err)
-	}
-	if err := ioutil.WriteFile(fp, rawJSON, 0644); err != nil {
-		log.Fatalf("routing.PrintSegments: %v\n", err)
-	}
 }
