@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/maseology/mmaths"
+	tp "github.com/maseology/mmaths/topology"
 )
 
 type edge struct {
-	n0, n1 *mmaths.Node
+	n0, n1 *tp.Node
 	// cond   float64
 }
 
@@ -21,12 +21,13 @@ func dist2(p0, p1 [3]float64) float64 {
 	return s2
 }
 
-// CollectNodes takes the spatial arrangement of polyline features and determine head/tail connectivity (topology with no direction/ordering)
+// CollectNodes takes the spatial arrangement of polyline features and determine head/tail connectivity
 // returns map[node][nodes node is connected to]; by "node" I mean pointers to nodes
-func CollectNodes(polylines [][][3]float64, am [][]int, epfs, epls [][3]float64) map[*mmaths.Node][]*mmaths.Node {
+// (NOTE: topology has no direction/ordering)
+func CollectNodes(polylines [][][3]float64, am [][]int, epfs, epls [][3]float64) map[*tp.Node][]*tp.Node {
 
 	// merge nodes where intersection is detected
-	enf, enl := make([]*mmaths.Node, len(polylines)+1), make([]*mmaths.Node, len(polylines)+1)
+	enf, enl := make([]*tp.Node, len(polylines)+1), make([]*tp.Node, len(polylines)+1)
 	for i := 1; i <= len(polylines); i++ {
 		if len(am[i]) == 0 {
 			continue
@@ -36,10 +37,10 @@ func CollectNodes(polylines [][][3]float64, am [][]int, epfs, epls [][3]float64)
 			continue
 		}
 		if enf[i] == nil {
-			enf[i] = &mmaths.Node{I: []int{i}, S: epfs[i][:]}
+			enf[i] = &tp.Node{I: []int{i}, S: epfs[i][:]}
 		}
 		if enl[i] == nil {
-			enl[i] = &mmaths.Node{I: []int{i}, S: epls[i][:]}
+			enl[i] = &tp.Node{I: []int{i}, S: epls[i][:]}
 		}
 
 		if enf[i] == enl[i] {
@@ -138,7 +139,7 @@ func CollectNodes(polylines [][][3]float64, am [][]int, epfs, epls [][3]float64)
 			}
 			n0 := enf[aid]
 			for i := 1; i < len(polylines[aid-1])-2; i++ {
-				n1 := &mmaths.Node{
+				n1 := &tp.Node{
 					I: []int{aid},
 					S: polylines[aid-1][i][:],
 				}
@@ -154,7 +155,7 @@ func CollectNodes(polylines [][][3]float64, am [][]int, epfs, epls [][3]float64)
 			}
 			n0 := enl[aid]
 			for i := len(polylines[aid-1]) - 2; i > 0; i-- {
-				n1 := &mmaths.Node{
+				n1 := &tp.Node{
 					I: []int{aid},
 					S: polylines[aid-1][i][:],
 				}
@@ -208,16 +209,16 @@ func CollectNodes(polylines [][][3]float64, am [][]int, epfs, epls [][3]float64)
 	}
 
 	// return connectivity
-	return func() map[*mmaths.Node][]*mmaths.Node {
-		ne := make(map[*mmaths.Node][]*mmaths.Node, len(edges)*2)
+	return func() map[*tp.Node][]*tp.Node {
+		ne := make(map[*tp.Node][]*tp.Node, len(edges)*2)
 		for _, ed := range edges {
 			if _, ok := ne[ed.n0]; !ok {
-				ne[ed.n0] = []*mmaths.Node{ed.n1}
+				ne[ed.n0] = []*tp.Node{ed.n1}
 			} else {
 				ne[ed.n0] = append(ne[ed.n0], ed.n1)
 			}
 			if _, ok := ne[ed.n1]; !ok {
-				ne[ed.n1] = []*mmaths.Node{ed.n0}
+				ne[ed.n1] = []*tp.Node{ed.n0}
 			} else {
 				ne[ed.n1] = append(ne[ed.n1], ed.n0)
 			}

@@ -1,35 +1,35 @@
 package routing
 
-import "github.com/maseology/mmaths"
+import tp "github.com/maseology/mmaths/topology"
 
-func BuildTrees(roots []*mmaths.Node) []*mmaths.Node {
-	o := []*mmaths.Node{}
+func JunctionToJunctionFromRoots(roots []*tp.Node) []*tp.Node {
+	o := []*tp.Node{}
 	for itree, r := range roots {
 		sws := r.Climb()
 
 		var xys [][][]float64
 
-		queue := []*mmaths.Node{r}
+		queue := []*tp.Node{r}
 
 		// find junction and leaves
-		jns := mmaths.Junctions(sws)
-		isjn := make(map[*mmaths.Node]bool, len(jns))
+		jns := tp.Junctions(sws)
+		isjn := make(map[*tp.Node]bool, len(jns))
 		for _, jn := range jns {
 			isjn[jn] = true
 			queue = append(queue, jn) // push
 		}
 
-		lvs := mmaths.Leaves(sws)
-		islf := make(map[*mmaths.Node]bool, len(lvs))
+		lvs := tp.Leaves(sws)
+		islf := make(map[*tp.Node]bool, len(lvs))
 		for _, lf := range lvs {
 			islf[lf] = true
 		}
 
-		walkUpstreamToJuntion := func(startNode *mmaths.Node) (*mmaths.Node, [][]float64) {
+		walkUpstreamToJuntion := func(startNode *tp.Node) (*tp.Node, [][]float64) {
 			xys := [][]float64{}
-			var nlast *mmaths.Node
-			var recurs func(*mmaths.Node)
-			recurs = func(n *mmaths.Node) {
+			var nlast *tp.Node
+			var recurs func(*tp.Node)
+			recurs = func(n *tp.Node) {
 				xys = append(xys, []float64{n.S[0], n.S[1], n.S[2]})
 				nlast = n
 				if !isjn[n] && !islf[n] {
@@ -41,7 +41,7 @@ func BuildTrees(roots []*mmaths.Node) []*mmaths.Node {
 		}
 
 		isegtree := 0
-		ups, dns := map[*mmaths.Node][]int{}, map[*mmaths.Node][]int{}
+		ups, dns := map[*tp.Node][]int{}, map[*tp.Node][]int{}
 		for len(queue) > 0 {
 			q := queue[0] // pop
 			queue = queue[1:]
@@ -57,15 +57,15 @@ func BuildTrees(roots []*mmaths.Node) []*mmaths.Node {
 		}
 
 		// create tree (segments as nodes)
-		oo := make([]*mmaths.Node, len(xys))
+		oo := make([]*tp.Node, len(xys))
 		for isegtree, v := range xys {
 			lverts := make([]float64, 2*len(v))
 			for i, c := range v {
 				lverts[2*i] = c[0]
 				lverts[2*i+1] = c[1]
 			}
-			oo[isegtree] = &mmaths.Node{
-				I: []int{2, itree, isegtree}, // dimensionned at 2 (droppign elevation)
+			oo[isegtree] = &tp.Node{
+				I: []int{2, itree, isegtree}, // dimensionned at 2 (dropping elevation)
 				S: lverts,
 			}
 		}
