@@ -214,6 +214,43 @@ func parseHeader(a []string, print bool) (Definition, error) {
 	return gd, nil
 }
 
+func ReadHdr(fp string) (*Definition, float64, error) {
+	sa, err := mmio.ReadTextLines(strings.ReplaceAll(fp, ".bil", ".hdr"))
+	if err != nil {
+		return nil, 0, err
+	}
+	var nr, nc int
+	var xll, yll, cs, nd float64
+	for _, s := range sa {
+		sp := strings.Split(s, " ")
+		switch sp[0] {
+		case "ncols":
+			nc, _ = strconv.Atoi(sp[1])
+		case "nrows":
+			nr, _ = strconv.Atoi(sp[1])
+		case "xllcorner":
+			xll, _ = strconv.ParseFloat(sp[1], 64)
+		case "yllcorner":
+			yll, _ = strconv.ParseFloat(sp[1], 64)
+		case "cellsize":
+			cs, _ = strconv.ParseFloat(sp[1], 64)
+		case "nodata_value":
+			nd, _ = strconv.ParseFloat(sp[1], 64)
+		default:
+			print("")
+		}
+	}
+
+	return &Definition{
+		Nrow:   nr,
+		Ncol:   nc,
+		Nact:   nr * nc,
+		Eorig:  xll,
+		Norig:  yll + float64(nr)*cs,
+		Cwidth: cs,
+	}, nd, nil
+}
+
 // IsActive returns whether a cell ID is of an active cell
 func (gd *Definition) IsActive(cid int) bool {
 	return gd.act[cid]

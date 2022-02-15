@@ -53,7 +53,7 @@ func (r *Real) getBinary(fp string) {
 func (r *Real) getBinary32(fp string, rowmajor bool) {
 	b, n, err := mmio.ReadBinaryFloat32s(fp, 1)
 	if err != nil {
-		log.Fatalf(" Indx.getBinary(): %v", err)
+		log.Fatalf(" Real.getBinary(): %v", err)
 	}
 	switch n {
 	case r.GD.Nact:
@@ -77,6 +77,6 @@ func (r *Real) getBinary32(fp string, rowmajor bool) {
 			}
 		}
 	default:
-		log.Fatalf(" Indx.getBinary: grid does not match definition length")
+		log.Fatalf(" Real.getBinary: grid does not match definition length")
 	}
 }

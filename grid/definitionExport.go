@@ -8,18 +8,37 @@ import (
 
 // SaveAs writes a grid definition file of format *.gdef
 func (gd *Definition) SaveAs(fp string) error {
-	t, err := mmio.NewTXTwriter(fp)
-	if err != nil {
-		return fmt.Errorf(" Definition.SaveAs: %v", err)
+	switch mmio.GetExtension(fp) {
+	case ".gdef":
+		t, err := mmio.NewTXTwriter(fp)
+		if err != nil {
+			return fmt.Errorf(" Definition.SaveAs: %v", err)
+		}
+		defer t.Close()
+		t.WriteLine(fmt.Sprintf("%f", gd.Eorig))
+		t.WriteLine(fmt.Sprintf("%f", gd.Norig))
+		t.WriteLine(fmt.Sprintf("%f", gd.Rotation))
+		t.WriteLine(fmt.Sprintf("%d", gd.Nrow))
+		t.WriteLine(fmt.Sprintf("%d", gd.Ncol))
+		t.WriteLine(fmt.Sprintf("U%f", gd.Cwidth))
+		return nil
+	case ".hdr":
+		t, err := mmio.NewTXTwriter(fp)
+		if err != nil {
+			return fmt.Errorf(" Definition.SaveAs: %v", err)
+		}
+		defer t.Close()
+		t.WriteLine(fmt.Sprintf("ncols %d", gd.Ncol))
+		t.WriteLine(fmt.Sprintf("nrows %d", gd.Nrow))
+		t.WriteLine(fmt.Sprintf("xllcorner %f", gd.Eorig))
+		t.WriteLine(fmt.Sprintf("yllcorner %f", gd.Norig-float64(gd.Nrow)*gd.Cwidth))
+		t.WriteLine(fmt.Sprintf("cellsize %f", gd.Cwidth))
+		t.WriteLine("nodata_value -9999")
+		t.WriteLine("byteorder i")
+		return nil
+	default:
+		return fmt.Errorf(" Unknown format: %s", fp)
 	}
-	defer t.Close()
-	t.WriteLine(fmt.Sprintf("%f", gd.Eorig))
-	t.WriteLine(fmt.Sprintf("%f", gd.Norig))
-	t.WriteLine(fmt.Sprintf("%f", gd.Rotation))
-	t.WriteLine(fmt.Sprintf("%d", gd.Nrow))
-	t.WriteLine(fmt.Sprintf("%d", gd.Ncol))
-	t.WriteLine(fmt.Sprintf("U%f", gd.Cwidth))
-	return nil
 }
 
 // ToASCheader writes ASC grid header info to writer
