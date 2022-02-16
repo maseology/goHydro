@@ -89,7 +89,7 @@ func ReadGDEF(fp string, print bool) (*Definition, error) {
 	b1 := make([]byte, nc)
 	if err := binary.Read(reader, binary.LittleEndian, b1); err != nil {
 		if err != io.EOF {
-			return nil, fmt.Errorf("Fatal error: read actives failed: %v", err)
+			return nil, fmt.Errorf("fatal error: read actives failed: %v", err)
 		}
 		if print {
 			fmt.Printf(" (no active cells)\n")
@@ -113,7 +113,7 @@ func ReadGDEF(fp string, print bool) (*Definition, error) {
 	} else { // active cells
 		t := make([]byte, 1)
 		if v, _ := reader.Read(t); v != 0 {
-			return nil, fmt.Errorf("Fatal error: EOF not reached when expected")
+			return nil, fmt.Errorf("fatal error: EOF not reached when expected")
 		}
 		gd.Sactives = []int{}
 		gd.act = make(map[int]bool, cx)
@@ -131,7 +131,7 @@ func ReadGDEF(fp string, print bool) (*Definition, error) {
 			}
 		}
 		if cn != cx {
-			return nil, fmt.Errorf("Fatal error(s): ReadGDEF:\n   number of cells found (%d) not equal to total (%d): %v", cn, cx, err)
+			return nil, fmt.Errorf("fatal error(s): ReadGDEF:\n   number of cells found (%d) not equal to total (%d): %v", cn, cx, err)
 		}
 		if gd.Nact > 0 && print {
 			fmt.Printf(" %s active cells\n", mmio.Thousands(int64(gd.Nact))) //11,118,568
@@ -197,7 +197,7 @@ func parseHeader(a []string, print bool) (Definition, error) {
 
 	// error handling
 	if len(stErr) > 0 {
-		return Definition{}, fmt.Errorf("Fatal error(s): ReadGDEF.parseHeader:\n%s", strings.Join(stErr, "\n"))
+		return Definition{}, fmt.Errorf("fatal error(s): ReadGDEF.parseHeader:\n%s", strings.Join(stErr, "\n"))
 	}
 
 	gd := Definition{Eorig: oe, Norig: on, Rotation: rot, Cwidth: cs, Nrow: int(nr), Ncol: int(nc)}
@@ -242,6 +242,7 @@ func ReadHdr(fp string) (*Definition, float64, error) {
 	}
 
 	return &Definition{
+		Name:   mmio.FileName(fp, false),
 		Nrow:   nr,
 		Ncol:   nc,
 		Nact:   nr * nc,

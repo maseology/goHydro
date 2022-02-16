@@ -23,11 +23,6 @@ func (r *Real) ImportBil(fp string) {
 		return
 	}
 
-	r.A = make(map[int]float64, n)
-	for i := 0; i < n; i++ {
-		r.A[i] = float64(v[i])
-	}
-
 	// read grid into
 	var nd float64
 	r.GD, nd, err = ReadHdr(fp)
@@ -38,6 +33,7 @@ func (r *Real) ImportBil(fp string) {
 
 	// build grid mapping
 	cid, na := -1, 0
+	r.A = make(map[int]float64, n)
 	r.GD.Coord = make(map[int]mmaths.Point)
 	for i := 0; i < r.GD.Nrow; i++ {
 		for j := 0; j < r.GD.Ncol; j++ {
@@ -45,6 +41,7 @@ func (r *Real) ImportBil(fp string) {
 			if float64(v[cid]) == nd {
 				continue
 			}
+			r.A[cid] = float64(v[cid])
 			p := mmaths.Point{X: r.GD.Eorig + r.GD.Cwidth*(float64(j)+0.5), Y: r.GD.Norig - r.GD.Cwidth*(float64(i)+0.5)}
 			r.GD.Coord[cid] = p
 			r.GD.Sactives = append(r.GD.Sactives, cid)

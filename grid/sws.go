@@ -82,5 +82,5 @@ func (s *SWS) ClimbFrom(swsID int) []int {
 }
 
 func (s *SWS) Print() {
-	fmt.Println(len(s.CSws), len(s.SwsC), len(s.Dsws), len(s.Usws))
+	fmt.Printf("subwatersheds loaded\n nCells %d\n nSws %d\n nDwnSws %d\n nUpSws %d\n\n", len(s.CSws), len(s.SwsC), len(s.Dsws), len(s.Usws))
 }
