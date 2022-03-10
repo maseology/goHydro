@@ -220,25 +220,49 @@ func ReadHdr(fp string) (*Definition, float64, error) {
 		return nil, 0, err
 	}
 	var nr, nc int
-	var xll, yll, cs, nd float64
+	var xorig, yorig, cs, nd float64
+	var cntrd, ll bool
+
 	for _, s := range sa {
-		sp := strings.Split(s, " ")
-		switch sp[0] {
+		sp := strings.Split(mmio.RemoveWhiteSpaces(s), " ")
+		if len(sp) != 2 {
+			panic("assumption fail")
+		}
+		lwr := strings.ToLower(sp[0])
+		switch lwr {
 		case "ncols":
 			nc, _ = strconv.Atoi(sp[1])
 		case "nrows":
 			nr, _ = strconv.Atoi(sp[1])
 		case "xllcorner":
-			xll, _ = strconv.ParseFloat(sp[1], 64)
+			xorig, _ = strconv.ParseFloat(sp[1], 64)
+			ll = true
 		case "yllcorner":
-			yll, _ = strconv.ParseFloat(sp[1], 64)
-		case "cellsize":
+			yorig, _ = strconv.ParseFloat(sp[1], 64)
+		case "ulxmap":
+			xorig, _ = strconv.ParseFloat(sp[1], 64)
+			cntrd = true
+		case "ulymap":
+			yorig, _ = strconv.ParseFloat(sp[1], 64)
+		case "cellsize", "xdim":
 			cs, _ = strconv.ParseFloat(sp[1], 64)
-		case "nodata_value":
+		case "nodata_value", "nodata":
 			nd, _ = strconv.ParseFloat(sp[1], 64)
 		default:
 			print("")
 		}
+	}
+
+	if nr == 0 {
+		return nil, 0, fmt.Errorf("grid definition read error")
+	}
+
+	if ll { // lower-left to upper-left origin
+		yorig += float64(nr) * cs
+	}
+	if cntrd { // centroidal
+		xorig -= cs / 2
+		yorig += cs / 2
 	}
 
 	return &Definition{
@@ -246,8 +270,8 @@ func ReadHdr(fp string) (*Definition, float64, error) {
 		Nrow:   nr,
 		Ncol:   nc,
 		Nact:   nr * nc,
-		Eorig:  xll,
-		Norig:  yll + float64(nr)*cs,
+		Eorig:  xorig,
+		Norig:  yorig,
 		Cwidth: cs,
 	}, nd, nil
 }
