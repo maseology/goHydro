@@ -12,8 +12,6 @@ package profile
 import (
 	"fmt"
 	"math"
-
-	"github.com/maseology/mmaths"
 )
 
 const (
@@ -155,7 +153,7 @@ func (ps *State) newtonRaphson(dt float64) (bool, int, float64) {
 				massBalance += math.Abs(d[i])
 			}
 		}
-		mmaths.ThomasBoundaryCondition(a, b, c, d, dpsi, 1, nsl)
+		thomasBoundaryCondition(a, b, c, d, dpsi, 1, nsl)
 
 		for i := 1; i <= nsl; i++ {
 			ps.p[i] += dpsi[i]
@@ -242,7 +240,7 @@ func (ps *State) cellCenteredFiniteVolume(dt float64) (bool, int, float64) {
 			}
 		}
 
-		mmaths.ThomasBoundaryCondition(a, b, c, d, h, 1, nsl)
+		thomasBoundaryCondition(a, b, c, d, h, 1, nsl)
 
 		new1 := 0.
 		for i := 1; i <= nsl; i++ {
@@ -268,4 +266,18 @@ func (ps *State) cellCenteredFiniteVolume(dt float64) (bool, int, float64) {
 		return true, nIter, f[1] * (h[1] - h[2])
 	}
 	return false, nIter, 0.
+}
+
+func thomasBoundaryCondition(a, b, c, d, x map[int]float64, first, last int) {
+	for i := first; i < last; i++ {
+		c[i] /= b[i]
+		d[i] /= b[i]
+		b[i+1] -= a[i+1] * c[i]
+		d[i+1] -= a[i+1] * d[i]
+	}
+	// back substitution
+	x[last] = d[last] / b[last]
+	for i := last - 1; i > first-1; i-- {
+		x[i] = d[i] - c[i]*x[i+1]
+	}
 }

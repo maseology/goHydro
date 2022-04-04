@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/batchatco/go-native-netcdf/netcdf"
-	"github.com/maseology/mmio"
 )
 
 func (g GMET) SaveGob(fp string) error {
@@ -51,7 +50,7 @@ func LoadGob(fp string) (*GMET, error) {
 }
 
 func LoadNC(fp string, vars []string) (*GMET, error) {
-	tt := mmio.NewTimer()
+	tt := time.Now()
 
 	nc, err := netcdf.Open(fp)
 	if err != nil {
@@ -103,7 +102,8 @@ func LoadNC(fp string, vars []string) (*GMET, error) {
 		Sids:  sids,
 		Snams: vars,
 	}
-	tt.Lap("\n loading complete")
+	fmt.Printf("%s\n%s ", time.Since(tt), "\n loading complete")
+	tt = time.Now()
 
 	g.Dat = func() [][]DSet {
 		getDat := func(v string) [][]float32 {
@@ -139,13 +139,13 @@ func LoadNC(fp string, vars []string) (*GMET, error) {
 		}
 		return o
 	}()
-	tt.Lap("ordering complete")
+	fmt.Printf("%s\n%s ", time.Since(tt), "\n loading complete")
 
 	return &g, nil
 }
 
 func LoadBin(prfx string, vars []string) (*GMET, error) { // go at the time of writing did not have the ability to read large netCDF4 files. Use FEWS/netcdf/nc4dailyToDat.py to translate files.
-	tt := mmio.NewTimer()
+	tt := time.Now()
 
 	nsta, sids := func() (int, []int) {
 		f, err := os.Open(prfx + ".sta")
@@ -250,7 +250,8 @@ func LoadBin(prfx string, vars []string) (*GMET, error) { // go at the time of w
 		}
 		return d
 	}()
-	tt.Lap("\n python arrays loading complete")
+	fmt.Printf("%s\n%s ", time.Since(tt), "\n python arrays loading complete")
+	tt = time.Now()
 
 	fmt.Println(" ordering..")
 	g.Dat = func() [][]DSet { // [station][row]
@@ -270,7 +271,7 @@ func LoadBin(prfx string, vars []string) (*GMET, error) { // go at the time of w
 		}
 		return dsets
 	}()
-	tt.Lap("ordering complete")
+	fmt.Printf("%s\n%s ", time.Since(tt), "ordering complete")
 
 	return &g, nil
 }
