@@ -22,15 +22,13 @@ func LoadNetwork(fp string) []*tp.Node {
 
 	nf := 0
 	for _, f := range gstreams.Features {
-		if f.Geometry.Type != "MultiLineString" {
-			log.Fatalln("todo")
-		}
-		for i, ln := range f.Geometry.MultiLineString {
-			nf += len(ln)
+		switch f.Geometry.Type {
+		case "LineString":
+			ff := f.Geometry.LineString
 			nds = append(nds, &tp.Node{
 				S: func() []float64 {
-					a := make([]float64, len(ln)*2)
-					for i, c := range ln {
+					a := make([]float64, len(ff)*2)
+					for i, c := range ff {
 						for d := 0; d < 2; d++ {
 							a[i*2+d] = c[d]
 						}
@@ -46,10 +44,40 @@ func LoadNetwork(fp string) []*tp.Node {
 					int(f.Properties["order"].(float64)),
 				},
 			})
-			if nds[i].I[1] != i {
+			if nds[nf].I[1] != nf {
 				panic("TODO: indexing assumption not valid")
 			}
+			nf += 1
+		case "MultiLineString":
+			for i, ln := range f.Geometry.MultiLineString {
+				nf += len(ln)
+				nds = append(nds, &tp.Node{
+					S: func() []float64 {
+						a := make([]float64, len(ln)*2)
+						for i, c := range ln {
+							for d := 0; d < 2; d++ {
+								a[i*2+d] = c[d]
+							}
+						}
+						return a
+					}(),
+					I: []int{
+						2, // dimension
+						int(f.Properties["segmentID"].(float64)),
+						int(f.Properties["downID"].(float64)),
+						int(f.Properties["treeID"].(float64)),
+						int(f.Properties["treesegID"].(float64)),
+						int(f.Properties["order"].(float64)),
+					},
+				})
+				if nds[i].I[1] != i {
+					panic("TODO: indexing assumption not valid")
+				}
+			}
+		default:
+			log.Fatalf("Routing.LoadNetwork: unsupported type, given %v\n", f.Geometry.Type)
 		}
+
 	}
 
 	// topological sort
