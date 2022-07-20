@@ -409,3 +409,28 @@ func SurroundingCells(unitRadius int) [][]int {
 	}
 	return d[unitRadius]
 }
+
+func (gd *Definition) Buffer(cid0 int, cardinal, isActive bool) []int {
+	var i []int
+	iabs := func(x int) int {
+		if x < 0 {
+			return -x
+		}
+		return x
+	}
+	r, c := gd.RowCol(cid0)
+	for m := -1; m <= 1; m++ {
+		for n := -1; n <= 1; n++ {
+			if cardinal && iabs(m) == iabs(n) {
+				continue
+			}
+			cid1 := gd.CellID(r+m, c+n)
+			if cid1 < 0 || (isActive && !gd.IsActive(cid1)) {
+				i = append(i, -1)
+				continue
+			}
+			i = append(i, cid1)
+		}
+	}
+	return i
+}
