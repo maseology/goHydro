@@ -5,30 +5,28 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io/ioutil"
+	"strings"
 
 	"github.com/maseology/mmaths"
 )
 
-func (r *Real) ImportBil(fp string) {
+func (r *Real) ImportBil(fp string) error {
 	b, err := ioutil.ReadFile(fp)
 	if err != nil {
-		fmt.Printf("ImportBil failed: %v\n", err)
-		return
+		return fmt.Errorf("ImportBil failed: %v", err)
 	}
 	buf := bytes.NewReader(b)
 	n := len(b) / 4
 	v := make([]float32, n)
 	if err := binary.Read(buf, binary.LittleEndian, v); err != nil {
-		fmt.Printf("ImportBil failed: %v\n", err)
-		return
+		return fmt.Errorf("ImportBil failed: %v", err)
 	}
 
 	// read grid into
 	var nd float64
-	r.GD, nd, err = ReadHdr(fp)
+	r.GD, nd, err = ReadHdr(strings.ReplaceAll(fp, ".bil", ".hdr"))
 	if err != nil {
-		fmt.Printf("ImportBil failed: %v\n", err)
-		return
+		return fmt.Errorf("ImportBil failed: %v", err)
 	}
 
 	// build grid mapping
@@ -49,4 +47,5 @@ func (r *Real) ImportBil(fp string) {
 		}
 	}
 	r.GD.Nact = na
+	return nil
 }

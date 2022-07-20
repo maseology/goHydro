@@ -71,6 +71,65 @@ func ReadGDEF(fp string, print bool) (*Definition, error) {
 		}
 	}
 
+	parseHeader := func(a []string, print bool) (Definition, error) {
+		stErr, uni := make([]string, 0), false
+		errfunc := func(v string, err error) {
+			stErr = append(stErr, fmt.Sprintf("   failed to read '%v': %v", v, err))
+		}
+
+		oe, err := strconv.ParseFloat(a[0], 64)
+		if err != nil {
+			errfunc("OE", err)
+		}
+		on, err := strconv.ParseFloat(a[1], 64)
+		if err != nil {
+			errfunc("ON", err)
+		}
+		rot, err := strconv.ParseFloat(a[2], 64)
+		if err != nil {
+			errfunc("ROT", err)
+		}
+		nr, err := strconv.ParseInt(a[3], 10, 32)
+		if err != nil {
+			errfunc("NR", err)
+		}
+		nc, err := strconv.ParseInt(a[4], 10, 32)
+		if err != nil {
+			errfunc("NC", err)
+		}
+		cs, err := strconv.ParseFloat(a[5], 64)
+		if err != nil {
+			if a[5][0] == 85 { // 85 = acsii code for 'U'
+				uni = true
+			} else {
+				errfunc("CS", err)
+			}
+			cs, err = strconv.ParseFloat(a[5][1:len(a[5])], 64)
+			if err != nil {
+				errfunc("CS", err)
+			}
+		} else {
+			stErr = append(stErr, " *** Fatal error: ReadGDEF.parseHeader: non-uniform grids currently not supported ***")
+		}
+
+		// error handling
+		if len(stErr) > 0 {
+			return Definition{}, fmt.Errorf("fatal error(s): ReadGDEF.parseHeader:\n%s", strings.Join(stErr, "\n"))
+		}
+
+		gd := Definition{Eorig: oe, Norig: on, Rotation: rot, Cwidth: cs, Nrow: int(nr), Ncol: int(nc)}
+		if print {
+			fmt.Printf(" xul\t\t%.1f\n", oe)
+			fmt.Printf(" yul\t\t%.1f\n", on)
+			fmt.Printf(" rotation\t%f\n", rot)
+			fmt.Printf(" nrows\t\t%d\n", nr)
+			fmt.Printf(" ncols\t\t%d\n", nc)
+			fmt.Printf(" cell size\t%.3f\n", cs)
+			fmt.Printf(" is uniform:\t%t\n", uni)
+		}
+
+		return gd, nil
+	}
 	gd, err := parseHeader(a, print)
 	if err != nil {
 		return nil, err
@@ -154,68 +213,8 @@ func ReadGDEF(fp string, print bool) (*Definition, error) {
 	return &gd, nil
 }
 
-func parseHeader(a []string, print bool) (Definition, error) {
-	stErr, uni := make([]string, 0), false
-	errfunc := func(v string, err error) {
-		stErr = append(stErr, fmt.Sprintf("   failed to read '%v': %v", v, err))
-	}
-
-	oe, err := strconv.ParseFloat(a[0], 64)
-	if err != nil {
-		errfunc("OE", err)
-	}
-	on, err := strconv.ParseFloat(a[1], 64)
-	if err != nil {
-		errfunc("ON", err)
-	}
-	rot, err := strconv.ParseFloat(a[2], 64)
-	if err != nil {
-		errfunc("ROT", err)
-	}
-	nr, err := strconv.ParseInt(a[3], 10, 32)
-	if err != nil {
-		errfunc("NR", err)
-	}
-	nc, err := strconv.ParseInt(a[4], 10, 32)
-	if err != nil {
-		errfunc("NC", err)
-	}
-	cs, err := strconv.ParseFloat(a[5], 64)
-	if err != nil {
-		if a[5][0] == 85 { // 85 = acsii code for 'U'
-			uni = true
-		} else {
-			errfunc("CS", err)
-		}
-		cs, err = strconv.ParseFloat(a[5][1:len(a[5])], 64)
-		if err != nil {
-			errfunc("CS", err)
-		}
-	} else {
-		stErr = append(stErr, " *** Fatal error: ReadGDEF.parseHeader: non-uniform grids currently not supported ***")
-	}
-
-	// error handling
-	if len(stErr) > 0 {
-		return Definition{}, fmt.Errorf("fatal error(s): ReadGDEF.parseHeader:\n%s", strings.Join(stErr, "\n"))
-	}
-
-	gd := Definition{Eorig: oe, Norig: on, Rotation: rot, Cwidth: cs, Nrow: int(nr), Ncol: int(nc)}
-	if print {
-		fmt.Printf(" xul\t\t%.1f\n", oe)
-		fmt.Printf(" yul\t\t%.1f\n", on)
-		fmt.Printf(" rotation\t%f\n", rot)
-		fmt.Printf(" nrows\t\t%d\n", nr)
-		fmt.Printf(" ncols\t\t%d\n", nc)
-		fmt.Printf(" cell size\t%.3f\n", cs)
-		fmt.Printf(" is uniform:\t%t\n", uni)
-	}
-
-	return gd, nil
-}
-
 func ReadHdr(fp string) (*Definition, float64, error) {
-	sa, err := mmio.ReadTextLines(strings.ReplaceAll(fp, ".bil", ".hdr"))
+	sa, err := mmio.ReadTextLines(fp)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -226,7 +225,7 @@ func ReadHdr(fp string) (*Definition, float64, error) {
 	for _, s := range sa {
 		sp := strings.Split(mmio.RemoveWhiteSpaces(s), " ")
 		if len(sp) != 2 {
-			panic("assumption fail")
+			break
 		}
 		lwr := strings.ToLower(sp[0])
 		switch lwr {
@@ -248,8 +247,6 @@ func ReadHdr(fp string) (*Definition, float64, error) {
 			cs, _ = strconv.ParseFloat(sp[1], 64)
 		case "nodata_value", "nodata":
 			nd, _ = strconv.ParseFloat(sp[1], 64)
-		default:
-			print("")
 		}
 	}
 
