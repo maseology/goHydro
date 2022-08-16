@@ -50,7 +50,7 @@ func LoadGob(fp string) (*GMET, error) {
 }
 
 func LoadNC(fp string, vars []string) (*GMET, error) {
-	tt := time.Now()
+	// tt := time.Now()
 
 	nc, err := netcdf.Open(fp)
 	if err != nil {
@@ -102,8 +102,8 @@ func LoadNC(fp string, vars []string) (*GMET, error) {
 		Sids:  sids,
 		Snams: vars,
 	}
-	fmt.Printf("%s\n%s ", time.Since(tt), "\n loading complete")
-	tt = time.Now()
+	// fmt.Printf(" %s\t%s ", time.Since(tt), " loading complete\n")
+	// tt = time.Now()
 
 	g.Dat = func() [][]DSet {
 		getDat := func(v string) [][]float32 {
@@ -139,7 +139,7 @@ func LoadNC(fp string, vars []string) (*GMET, error) {
 		}
 		return o
 	}()
-	fmt.Printf("%s\n%s ", time.Since(tt), "\n loading complete")
+	// fmt.Printf(" %s\t%s ", time.Since(tt), " building complete\n")
 
 	return &g, nil
 }
