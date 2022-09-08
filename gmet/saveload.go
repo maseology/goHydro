@@ -132,7 +132,7 @@ func LoadNC(fp string, vars []string) (*GMET, error) {
 					d[k] = float64(dd[k][j][i])
 				}
 				o[i][j] = DSet{
-					Date: t.Format("2006-01-02"),
+					Date: t.Format("2006-01-02 15:04:05 -0700 MST"),
 					Dat:  d,
 				}
 			}

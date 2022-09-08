@@ -8,8 +8,10 @@ import (
 	"log"
 	"math"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/maseology/mmaths"
 	"github.com/maseology/mmio"
@@ -332,6 +334,11 @@ func (gd *Definition) CellArea() float64 {
 	return gd.Cwidth * gd.Cwidth
 }
 
+// Extents Left Up Right Down
+func (gd *Definition) Extents() []float64 {
+	return []float64{gd.Eorig, gd.Norig, gd.Eorig + gd.Cwidth*float64(gd.Ncol), gd.Norig - gd.Cwidth*float64(gd.Nrow)} // Left Up Right Down
+}
+
 func (gd *Definition) CellCentroid(cid int) []float64 {
 	r, c := gd.RowCol(cid)
 	return []float64{gd.Eorig + (float64(c)+.5)*gd.Cwidth, gd.Norig - (float64(r)+.5)*gd.Cwidth}
@@ -359,23 +366,49 @@ func (gd *Definition) PointToCellID(x, y float64) int {
 
 // PointToRowCol returns the row and column grid cell that contains the xy coordinates
 func (gd *Definition) PointToRowCol(x, y float64) (row, col int) {
-	row = -1
-	col = -1
+	var wg sync.WaitGroup
+	wg.Add(2)
+
 	if gd.Rotation != 0. {
 		log.Fatalf(" Definition.PointToRowCol todo")
 	}
-	for {
-		row++
-		if gd.Norig-float64(row+1)*gd.Cwidth <= y {
-			break
+
+	row = -1
+	col = -1
+	go func() {
+		defer wg.Done()
+		if y > gd.Norig {
+			return
 		}
-	}
-	for {
-		col++
-		if gd.Eorig+float64(col+1)*gd.Cwidth >= x {
-			break
+		for {
+			row++
+			if row > gd.Nrow {
+				row = -1 // gd.Nrow +1
+				return
+			}
+			if gd.Norig-float64(row+1)*gd.Cwidth <= y {
+				break
+			}
 		}
-	}
+	}()
+	go func() {
+		defer wg.Done()
+		if x < gd.Eorig {
+			return
+		}
+		for {
+			col++
+			if col > gd.Ncol {
+				col = -1 // gd.Ncol +1
+				return
+			}
+			if gd.Eorig+float64(col+1)*gd.Cwidth >= x {
+				return
+			}
+		}
+	}()
+
+	wg.Wait()
 	return
 }
 
@@ -396,261 +429,164 @@ func (gd *Definition) ConatainsPoint(x, y, buf float64) bool {
 	return true
 }
 
-func (gd *Definition) LineToCellIDs(polyline [][]float64, thin bool) []int {
-	kv := make(map[int]bool)
-
-	if thin {
-		panic("GD.LineToCellIDs thin: TODO")
-		//       ' see (for example) Lindsay 2016 The practice of DEM stream burning revisited
-		//       'Dim dbnc = _nc.Clone, dbec = _ec.Clone
-		//       'Array.Sort(dbnc)
-		//       'Dim ct As New Stats.BinaryTree(_ec), rt As New Stats.BinaryTree(dbnc)
-		//       For k = 0 To Features.Count - 2
-		//           Dim p0 = Features(k).Clone, p1 = Features(k + 1).Clone
-		//           If _rotation <> 0.0 Then
-		//               p0.Rotate(_rotation, True)
-		//               p1.Rotate(_rotation, True)
-		//           End If
-		//           Dim ln1 As New Shapes.Line(p0, p1), lstIntersect As New List(Of Cartesian.XY)
-		//           'Dim cid0 = ct.IndexOf(p0.X), rid0 = dbnc.length - rt.IndexOf(p0.Y) - 1, cid1 = ct.IndexOf(p1.X), rid1 = dbnc.length - rt.IndexOf(p1.Y) - 1
-		//           Dim rc0 = Me.PointToRowCol(p0), rc1 = Me.PointToRowCol(p1)
-		//           If IsNothing(rc0) Or IsNothing(rc1) Then Continue For
-		//           Dim cid0 = rc0.Col, rid0 = rc0.Row, cid1 = rc1.Col, rid1 = rc1.Row
-		//           If cid0 < 0 Then cid0 = 0
-		//           If cid0 > _ec.Count - 1 Then cid0 = _ec.Count - 1
-		//           If cid1 < 0 Then cid1 = 0
-		//           If cid1 > _ec.Count - 1 Then cid1 = _ec.Count - 1
-		//           If rid0 < 0 Then rid0 = 0
-		//           If rid0 > _nc.Count - 1 Then rid0 = _nc.Count - 1
-		//           If rid1 < 0 Then rid1 = 0
-		//           If rid1 > _nc.Count - 1 Then rid1 = _nc.Count - 1
-		//
-		//           If cid0 <> cid1 Then
-		//               Dim j0 As Integer, j1 As Integer
-		//               If cid1 > cid0 Then
-		//                   j0 = cid0 + 1
-		//                   j1 = cid1
-		//               Else
-		//                   j0 = cid1 + 1
-		//                   j1 = cid0
-		//               End If
-		//               For j = j0 To j1
-		//                   Dim lni = ln1.IntersectionX(_ec(j))
-		//                   If Not IsNothing(lni) Then lstIntersect.Add(lni)
-		//               Next
-		//           End If
-		//           If rid0 <> rid1 Then
-		//               Dim i0 As Integer, i1 As Integer
-		//               If rid1 > rid0 Then
-		//                   i0 = rid0 + 1
-		//                   i1 = rid1
-		//               Else
-		//                   i0 = rid1 + 1
-		//                   i1 = rid0
-		//               End If
-		//               For i = i0 To i1
-		//                   'lstInt.Add(ln1.IntersectionY(dbnc(i)))
-		//                   Dim lni = ln1.IntersectionY(_nc(i))
-		//                   If Not IsNothing(lni) Then lstIntersect.Add(lni)
-		//               Next
-		//           End If
-		//
-		//           ' sort intersections along polyline
-		//           Dim dicX As New Dictionary(Of Integer, Double), dicY As New Dictionary(Of Integer, Double)
-		//           For Each xy1 In lstIntersect
-		//               dicX.Add(dicX.Count, xy1.X)
-		//               dicY.Add(dicY.Count, xy1.Y)
-		//           Next
-		//           Dim dy = Math.Abs(p0.Y - p1.Y), dx = Math.Abs(p0.X - p1.X)
-		//           If p0.Y = p1.Y Or dx > dy Then
-		//               If dicX.Count > 1 Then dicX = Stats.SortArray(dicX, p0.X > p1.X)
-		//               lstIntersect = New List(Of Cartesian.XY)
-		//               For Each v In dicX
-		//                   lstIntersect.Add(New Cartesian.XY(v.Value, dicY(v.Key)))
-		//               Next
-		//           Else 'If p0.X = p1.X Then
-		//               If dicY.Count > 1 Then dicY = Stats.SortArray(dicY, p0.Y > p1.Y)
-		//               lstIntersect = New List(Of Cartesian.XY)
-		//               For Each v In dicY
-		//                   lstIntersect.Add(New Cartesian.XY(dicX(v.Key), v.Value))
-		//               Next
-		//           End If
-		//
-		//           'Using sw As New StreamWriter("M:\OWRC-RDRR\build\dem\observations\test\asdf.csv")
-		//           '    sw.WriteLine("i,e,n")
-		//           '    Dim cnt = 0
-		//           '    For Each xy1 In lstIntersect
-		//           '        sw.WriteLine("{0},{1},{2}", cnt, xy1.X, xy1.Y)
-		//           '        cnt += 1
-		//           '    Next
-		//           'End Using
-		//
-		//           With Me
-		//               For Each xy1 In lstIntersect
-		//                   If _rotation <> 0.0 Then xy1.Rotate(_rotation, False)
-		//                   lstOUT.Add(.PointToCellID(xy1))
-		//               Next
-		//           End With
-		// 199:  Next
-		//       'lstOUT.Insert(0, PointToCellID(Features.Last))
-		//       'lstOUT.Add(PointToCellID(Features.Last))
-	} else {
-		for i := 0; i < len(polyline)-1; i++ {
-			p0, p1 := polyline[i], polyline[i+1]
-			for {
-				c0, c1 := gd.PointToCellID(p0[0], p0[1]), gd.PointToCellID(p1[0], p1[1])
-				if c0 == c1 {
-					if i >= len(polyline)-2 {
-						kv[c0] = true // last vertex
-					}
-					break
-				} else {
-					mx, my := gd.lineIntersection(p0, p1, 0.000001)
-					mcid := gd.PointToCellID(mx, my)
-					if mcid < 0 {
-						break
-					}
-					kv[c0] = true
-					p0 = []float64{mx, my}
-				}
-			}
-		}
-	}
-
-	ks := make([]int, 0, len(kv))
-	for k := range kv {
-		ks = append(ks, k)
-	}
-	return ks
-}
-
-func (gd *Definition) lineIntersection(p0, p1 []float64, push float64) (x, y float64) {
+func (gd *Definition) LineToCellIDs(x0, y0, x1, y1 float64) []int {
 	if gd.Rotation != 0 {
-		panic("GD.lineIntersection TODO")
-		// Dim oxy As New Cartesian.XY(_origin.X, _origin.Y)
-		// pIN.Rotate(_rotation, oxy, True)
-		// pOut.Rotate(_rotation, oxy, True)
+		panic("GD.LineToCellIDs TODO")
 	}
 
-	var gl, ymid, xmid float64
-	// vertical check
-	if p0[1] > p1[1] { // downward
-		gl := gd.Norig
-		for i := 0; i < gd.Nrow; i++ {
-			if p0[1] > gl && p1[1] < gl {
-				goto exitVertical
-			}
-			gl -= gd.Cwidth
-		}
-		if p0[1] > gl && p1[1] < gl {
-			goto exitVertical
-		}
-	} else { // upward
-		gl = gd.Norig - float64(gd.Nrow)*gd.Cwidth
-		for i := gd.Nrow - 1; i >= 0; i-- {
-			if p0[1] < gl && p1[1] > gl {
-				goto exitVertical
-			}
-			gl += gd.Cwidth
-		}
-		if p0[1] < gl && p1[1] > gl {
-			goto exitVertical
-		}
+	// see (for example) Lindsay 2016 The practice of DEM stream burning revisited
+	ln0 := mmaths.LineSegment{
+		P0: mmaths.Point{X: x0, Y: y0},
+		P1: mmaths.Point{X: x1, Y: y1},
 	}
-	gl = -9999.
-exitVertical:
-	ymid = gl
+	ln0.Build()
 
-	// horizontal
-	if p0[0] > p1[0] {
-		gl = gd.Eorig + float64(gd.Ncol)*gd.Cwidth
-		for j := gd.Ncol - 1; j >= 0; j-- {
-			if p0[0] > gl && p1[0] < gl {
-				goto exitHorizontal
-			}
-			gl -= gd.Cwidth
+	r0, c0 := gd.PointToRowCol(x0, y0)
+	r1, c1 := gd.PointToRowCol(x1, y1)
+	if r0 < 0 || c0 < 0 || r1 < 0 || c1 < 0 { // line segment intersecting grid, but has point(s) outside -- adjust row cols,
+		ext := gd.Extents() // Left Up Right Down
+		lnL := mmaths.LineSegment{
+			P0: mmaths.Point{X: ext[0], Y: ext[3]},
+			P1: mmaths.Point{X: ext[0], Y: ext[1]},
 		}
-		if p0[0] > gl && p1[0] < gl {
-			goto exitHorizontal
+		lnR := mmaths.LineSegment{
+			P0: mmaths.Point{X: ext[2], Y: ext[3]},
+			P1: mmaths.Point{X: ext[2], Y: ext[1]},
 		}
-	} else {
-		gl = gd.Eorig
-		for j := 0; j < gd.Ncol; j++ {
-			if p0[0] < gl && p1[0] > gl {
-				goto exitHorizontal
-			}
-			gl += gd.Cwidth
+		lnU := mmaths.LineSegment{
+			P0: mmaths.Point{X: ext[0], Y: ext[1]},
+			P1: mmaths.Point{X: ext[2], Y: ext[1]},
 		}
-		if p0[0] < gl && p1[0] > gl {
-			goto exitHorizontal
+		lnD := mmaths.LineSegment{
+			P0: mmaths.Point{X: ext[0], Y: ext[3]},
+			P1: mmaths.Point{X: ext[2], Y: ext[3]},
 		}
-	}
-	gl = -9999.
-exitHorizontal:
-	xmid = gl
 
-	pNEW := []float64{-9999., -9999.}
-	if xmid != -9999. && ymid != -9999. {
-		// line crosses both vertical and horizontal gridlines
-		dy0 := ymid - p0[1]
-		dx0 := xmid - p0[0]
-		if math.Abs(dx0) == math.Abs(dy0) { // must be uniform
-			// line crosses corner
-			pNEW[0] = xmid
-			pNEW[1] = ymid
-			goto exitIntersct
-		} else {
-			tang1 := math.Atan2(p0[1]-p1[1], p0[0]-p1[0])
-			dy1 := dx0 * tang1
-			dx1 := dy0 / tang1
-			lv := math.Sqrt(dx0*dx0 + dy1*dy1)
-			lh := math.Sqrt(dx1*dx1 + dy0*dy0)
-			if lv > lh {
-				xmid = -9999.
+		var intersectionPoints []*mmaths.Point
+		var dists []float64
+		appendPoint := func(ln *mmaths.LineSegment) {
+			if p, dist := ln0.Intersection2D(ln); !math.IsNaN(dist) {
+				intersectionPoints = append(intersectionPoints, &p)
+				dists = append(dists, dist)
+			}
+		}
+		appendPoint(&lnL)
+		appendPoint(&lnU)
+		appendPoint(&lnR)
+		appendPoint(&lnD)
+
+		switch len(intersectionPoints) {
+		case 0:
+			return nil
+		case 1:
+			if r0 < 0 || c0 < 0 {
+				pnew := intersectionPoints[0]
+				r0, c0 = gd.PointToRowCol(pnew.X, pnew.Y)
+			} else if r1 < 0 || c1 < 0 {
+				pnew := intersectionPoints[0]
+				r1, c1 = gd.PointToRowCol(pnew.X, pnew.Y)
 			} else {
-				ymid = -9999.
+				panic("should not occur 0")
+			}
+		case 2:
+			pnew0, pnew1 := intersectionPoints[0], intersectionPoints[1]
+			d00 := ln0.P0.Distance(pnew0)
+			d01 := ln0.P0.Distance(pnew1)
+			// d10 := ln0.P1.Distance(pnew0)
+			// d11 := ln0.P1.Distance(pnew1)
+			if d00 < d01 {
+				r0, c0 = gd.PointToRowCol(pnew0.X, pnew0.Y)
+				r1, c1 = gd.PointToRowCol(pnew1.X, pnew1.Y)
+			} else {
+				r1, c1 = gd.PointToRowCol(pnew0.X, pnew0.Y)
+				r0, c0 = gd.PointToRowCol(pnew1.X, pnew1.Y)
+			}
+		default:
+			return nil
+		}
+	}
+
+	var aIntersect []*mmaths.Point
+	if c0 != c1 {
+		j0, j1 := 0, 0
+		if c1 > c0 {
+			j0 = c0 + 1
+			j1 = c1
+		} else {
+			j0 = c1 + 1
+			j1 = c0
+		}
+		for j := j0; j <= j1; j++ {
+			lni := ln0.IntersectionX(gd.Eorig + gd.Cwidth*(float64(j)+.5))
+			if lni != nil {
+				aIntersect = append(aIntersect, lni)
+			}
+		}
+	}
+	if r0 != r1 {
+		i0, i1 := 0, 0
+		if r1 > r0 {
+			i0 = r0 + 1
+			i1 = r1
+		} else {
+			i0 = r1 + 1
+			i1 = r0
+		}
+		for i := i0; i <= i1; i++ {
+			lni := ln0.IntersectionY(gd.Norig - gd.Cwidth*(float64(i)+.5))
+			if lni != nil {
+				aIntersect = append(aIntersect, lni)
 			}
 		}
 	}
 
-	if xmid == -9999. && ymid == -9999. {
-		// line outside of grid extents or entirely within a cell
-		return -9999., -9999.
-	} else if xmid == -9999. {
-		// line only crosses a horizontal gridline
-		pNEW[1] = ymid
-		dy0 := p0[1] - ymid
-		dy1 := p0[1] - p1[1] - dy0
-		dx0 := dy0 * (p1[0] - p0[0]) / (dy1 + dy0)
-		xmid = p0[0] + dx0
-		pNEW[0] = xmid
-	} else if ymid == -9999. {
-		// line only crosses a vertical gridline
-		pNEW[0] = xmid
-		dx0 := xmid - p0[0]
-		dx1 := p1[0] - p0[0] - dx0
-		dy0 := dx0 * (p0[1] - p1[1]) / (dx1 + dx0)
-		ymid = p0[1] - dy0
-		pNEW[1] = ymid
+	// sort intersections along polyline
+	dX, dY := make(map[int]float64, len(aIntersect)), make(map[int]float64, len(aIntersect))
+	for i, xy1 := range aIntersect {
+		dX[i] = xy1.X
+		dY[i] = xy1.Y
 	}
-
-exitIntersct:
-	if push != 0.0 { // NOTE: push insures the next point stays off a grid line: >0 sends to next cell, <0 keeps within current cell, =0 remains on gridline
-		sign := func(x float64) float64 {
-			if x < 0. {
-				return -1.
+	dy, dx := math.Abs(y0-y1), math.Abs(x0-x1)
+	if y0 == y1 || dx > dy {
+		aIntersect = make([]*mmaths.Point, len(dX))
+		if len(dX) == 1 {
+			for k, v := range dX {
+				aIntersect[0] = &mmaths.Point{X: v, Y: dY[k]}
 			}
-			return 1.
+		} else {
+			ii, _ := mmaths.SortMapFloat(dX, x0 > x1)
+			for k, iii := range ii {
+				aIntersect[k] = &mmaths.Point{X: dX[iii], Y: dY[iii]}
+			}
 		}
-		pNEW[0] += push * sign(xmid-p0[0])
-		pNEW[1] -= push * sign(p0[1]-ymid)
+	} else { //if x0 == x1 {
+		aIntersect = make([]*mmaths.Point, len(dY))
+		if len(dY) == 1 {
+			for k, v := range dY {
+				aIntersect[0] = &mmaths.Point{X: dX[k], Y: v}
+			}
+		} else {
+			ii, _ := mmaths.SortMapFloat(dY, y0 > y1)
+			for k, iii := range ii {
+				aIntersect[k] = &mmaths.Point{X: dX[iii], Y: dY[iii]}
+			}
+		}
 	}
 
-	if gd.Rotation != 0 {
-		panic("GD.lineIntersection TODO")
-		// If _rotation <> 0.0 Then pNEW.Rotate(_rotation, New Cartesian.XY(_origin.X, _origin.Y))
+	d := make(map[int]bool, len(aIntersect))
+	for _, p := range aIntersect {
+		if gd.Rotation != 0.0 {
+			panic("GD.LineToCellIDs TODO")
+			// p.Rotate(_rotation, False)
+		}
+		d[gd.PointToCellID(p.X, p.Y)] = true
 	}
-	return pNEW[0], pNEW[1]
+	o := make([]int, 0, len(d))
+	for k := range d {
+		o = append(o, k)
+	}
+	sort.Ints(o)
+	return o
 }
 
 // SurroundingCells returns the relative row,col given in units of cell width
