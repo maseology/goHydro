@@ -1,6 +1,7 @@
 package snowpack
 
 import (
+	"fmt"
 	"log"
 	"math"
 )
@@ -32,17 +33,18 @@ type snowpack struct {
 	swe, den, lwc, tb, denscoef float64 // tb: base/critical temperature; tsf: surface temperature factor; denscoef: coefficient to the densification factor
 }
 
-func inputDataCheck(r, s, t float64) {
+func inputDataCheck(r, s, t float64) error {
 	// checks
 	if r > 1. || r < 0. {
-		log.Fatalf(" fatal error in rainfall = %f", r)
+		return fmt.Errorf("fatal error in rainfall = %f", r)
 	}
 	if s > 1. || s < 0. {
-		log.Fatalf(" fatal error in snowfall = %f", s)
+		return fmt.Errorf("fatal error in snowfall = %f", s)
 	}
 	if t < -60. || t > 50. {
-		log.Fatalf(" fatal error in temperature = %f", t)
+		return fmt.Errorf("fatal error in temperature = %f", t)
 	}
+	return nil
 }
 
 func (s *snowpack) properties() (porosity, depth float64) {

@@ -92,7 +92,7 @@ func densityMoistAir(tC, rh float64) float64 {
 // vapourPressureDeficit [Pa]
 func vapourPressureDeficit(tC, rh float64) float64 {
 	if rh > 1. || rh < 0. {
-		log.Fatalln("ERROR [DensityMoistAir] relative humidity out of range [0,1]: ", rh)
+		log.Fatalln("ERROR [vapourPressureDeficit] relative humidity out of range [0,1]: ", rh)
 	}
 	return (1. - rh) * saturationVapourPressure(tC)
 }

@@ -38,8 +38,11 @@ func NewCCF(ccf, ddfc, baseT, tsf, denscoef float64) CCF {
 }
 
 // Update state
-func (c *CCF) Update(r, s, t float64) (melt, throughfall float64) {
-	inputDataCheck(r, s, t)
+func (c *CCF) Update(r, s, t float64) (melt, throughfall float64, err error) {
+	err = nil
+	if err = inputDataCheck(r, s, t); err != nil {
+		return
+	}
 	// fmt.Println(c.Properties())
 	blNewPack := c.swe == 0.
 	if blNewPack {
