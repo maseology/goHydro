@@ -30,11 +30,11 @@ func Penman(Rn, t, p, rh, u, a, b float64) (float64, float64) {
 // PenmanWind mass density flux m/s ~m³/m²/s
 // Penman (1948) based solely on the wind function
 // see Novak 182
-func PenmanWind(t, p, rh, u, a, b float64) float64 {
-	// pa, pw := densityDryAir(t)/1000., densityLiquidWater(t) // [kg/m³],[kg/m³]       // pa := densityMoistAir(t, rh)/1000.
-	// de := vapourPressureDeficit(t, rh)                      // [Pa]
-	// return a * mwr * pa / pw * de / p * math.Pow(u, b)      // [m/s]
-
+// func PenmanWind(t, p, rh, u, a, b float64) float64 {
+// pa, pw := densityDryAir(t)/1000., densityLiquidWater(t) // [kg/m³],[kg/m³]       // pa := densityMoistAir(t, rh)/1000.
+// de := vapourPressureDeficit(t, rh)                      // [Pa]
+// return a * mwr * pa / pw * de / p * math.Pow(u, b)      // [m/s]
+func PenmanWind(t, rh, u, a, b float64) float64 {
 	de := vapourPressureDeficit(t, rh)       // [Pa]
 	return a * de * math.Pow(u, b) * 7.46e-9 // [m/s]
 }
