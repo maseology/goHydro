@@ -80,11 +80,11 @@ func densitySaturatedAir(tC float64) float64 {
 
 // densityMoistAir [g/m³]
 func densityMoistAir(tC, rh float64) float64 {
-	if tC < -40. || tC > 30. {
-		fmt.Println("Warning [DensityMoistAir] temperature out of range: ", tC)
+	if tC < -40. || tC > 40. {
+		fmt.Println("Warning [densityMoistAir] temperature out of range: ", tC)
 	}
 	if rh > 1. || rh < 0. {
-		log.Fatalln("ERROR [DensityMoistAir] relative humidity out of range [0,1]: ", rh)
+		log.Fatalln("ERROR [densityMoistAir] relative humidity out of range [0,1]: ", rh)
 	}
 	return (1.-rh)*densityDryAir(tC) + rh*densitySaturatedAir(tC)
 }

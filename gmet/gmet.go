@@ -11,12 +11,15 @@ type DSet struct { // daily met set
 	Dat  []float64
 }
 
+type XYZ struct{ X, Y, Z float64 }
+
 type GMET struct {
 	Dat       [][]DSet    // [station][]
 	Nts, Nsta int         // number timesteps/stations
 	Ts        []time.Time // timesteps
 	Sids      []int       // station IDs
-	Snams     []string    // station Names
+	Sxy       []XYZ       // station coordinates
+	Snams     []string    // station Names (or 'Dat' parameter names)
 }
 
 func (g *GMET) CheckAndPrint() {

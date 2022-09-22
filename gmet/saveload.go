@@ -57,7 +57,7 @@ func LoadNC(fp string, vars []string) (*GMET, error) {
 		log.Fatalln(err)
 	}
 	defer nc.Close()
-	// fmt.Println(nc.ListVariables()) //[8:])
+	fmt.Println(nc.ListVariables()) //[8:])
 
 	sids := func() []int {
 		svr, err := nc.GetVariable("station_id")
@@ -104,6 +104,57 @@ func LoadNC(fp string, vars []string) (*GMET, error) {
 	}
 	// fmt.Printf(" %s\t%s ", time.Since(tt), " loading complete\n")
 	// tt = time.Now()
+
+	g.Sxy = func() []XYZ {
+		slon, err := nc.GetVariable("lon")
+		if err != nil {
+			fmt.Println(" coordinates", err)
+			return nil
+		}
+		slat, err := nc.GetVariable("lat")
+		if err != nil {
+			fmt.Println(" coordinates", err)
+			return nil
+		}
+		z, err := nc.GetVariable("z")
+		if err != nil {
+			fmt.Println(" elevations", err)
+			z = nil
+		}
+
+		o := make([]XYZ, g.Nsta)
+		switch slat.Values.(type) {
+		case []float64:
+			sslat := slat.Values.([]float64)
+			sslon := slon.Values.([]float64)
+			if z != nil {
+				sz := z.Values.([]float64)
+				for i := 0; i < g.Nsta; i++ {
+					o[i] = XYZ{sslon[i], sslat[i], sz[i]}
+				}
+			} else {
+				for i := 0; i < g.Nsta; i++ {
+					o[i] = XYZ{sslon[i], sslat[i], -9999.}
+				}
+			}
+		case []float32:
+			sslat := slat.Values.([]float32)
+			sslon := slon.Values.([]float32)
+			if z != nil {
+				sz := z.Values.([]float32)
+				for i := 0; i < g.Nsta; i++ {
+					o[i] = XYZ{float64(sslon[i]), float64(sslat[i]), float64(sz[i])}
+				}
+			} else {
+				for i := 0; i < g.Nsta; i++ {
+					o[i] = XYZ{float64(sslon[i]), float64(sslat[i]), -9999.}
+				}
+			}
+		default:
+			panic("unknown type")
+		}
+		return o
+	}()
 
 	g.Dat = func() [][]DSet {
 		getDat := func(v string) [][]float32 {
