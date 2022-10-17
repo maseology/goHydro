@@ -29,6 +29,6 @@ func Penman(Rn, t, p, rh, u, a, b float64) (float64, float64) {
 func PenmanWind(t, r, u, a, b float64) float64 {
 	// pa := densityMoistAir(t, r) / 1000.                // [kg/m³]
 	de := vapourPressureDeficit(t, r) // [Pa]
-	// return 0.622 * pa * de * windFunction(u, a, b) / p // [mm/s]
+	// return mwr * pa * de * windFunction(u, a, b) / p // [mm/s]
 	return de * windFunction(u, a, b) * 7.46e-6 // [mm/s]
 }

@@ -301,10 +301,11 @@ func LoadBin(prfx string, vars []string) (*GMET, error) { // go at the time of w
 		}
 		return d
 	}()
-	fmt.Printf("%s\n%s ", time.Since(tt), "\n python arrays loading complete")
+	// fmt.Printf("%s\n%s ", time.Since(tt), "\n python arrays loading complete")
+	fmt.Printf("  > %s:  %s\n", time.Since(tt), "python arrays loading complete")
 	tt = time.Now()
 
-	fmt.Println(" ordering..")
+	fmt.Print(" ordering..")
 	g.Dat = func() [][]DSet { // [station][row]
 		dsets := make([][]DSet, nsta)
 		for i := 0; i < nsta; i++ {
@@ -322,7 +323,8 @@ func LoadBin(prfx string, vars []string) (*GMET, error) { // go at the time of w
 		}
 		return dsets
 	}()
-	fmt.Printf("%s\n%s ", time.Since(tt), "ordering complete")
+	// fmt.Printf("%s\n%s ", time.Since(tt), "ordering complete")
+	fmt.Printf("  %s:  %s\n", time.Since(tt), "complete")
 
 	return &g, nil
 }

@@ -18,8 +18,7 @@ const (
 // saturationVapourPressure [Pa]
 func saturationVapourPressure(tC float64) float64 { // [Pa]
 	// August-Roche-Magnus approximation (from pg.38 of Lu, N. and J.W. Godt, 2013. Hillslope Hydrology and Stability. Cambridge University Press. 437pp.)
-	// for -30°C =< T =< 50°C
-	return 610.49 * math.Exp(17.625*tC/(tC+243.04)) // [Pa=N/m²] R²=1
+	return 610.49 * math.Exp(17.625*tC/(tC+243.04)) // [Pa=N/m²] R²=1 for -30°C =< T =< 50°C
 }
 
 // slopeSaturationCurve [Pa/°C]
