@@ -84,59 +84,59 @@ func (h *HRU) Update(p, ep float64) (aet, ro, rch float64) {
 	return
 }
 
-// UpdateWT hru given a set of forcings and the presence of a high watertable
-func (h *HRU) UpdateWT(p, ep float64, upwardGradient bool) (aet, ro, rch float64) {
-	if upwardGradient {
-		x := h.Sma.Sto - h.Sma.Cap // excess stored (drainable)
-		gwd := 0.
-		if x < 0. { // fill remaining deficit, assume discharge
-			gwd = x // groundwater discharge (negative recharge)
-			x = 0.
-		}
-		h.Sma.Sto = h.Sma.Cap // saturate retention reservoir (drainable porosity)
+// // UpdateWT hru given a set of forcings and the presence of a high watertable
+// func (h *HRU) UpdateWT(p, ep float64, upwardGradient bool) (aet, ro, rch float64) {
+// 	if upwardGradient {
+// 		x := h.Sma.Sto - h.Sma.Cap // excess stored (drainable)
+// 		gwd := 0.
+// 		if x < 0. { // fill remaining deficit, assume discharge
+// 			gwd = x // groundwater discharge (negative recharge)
+// 			x = 0.
+// 		}
+// 		h.Sma.Sto = h.Sma.Cap // saturate retention reservoir (drainable porosity)
 
-		aet, ro, rch = h.Update(p+x, ep)
-		rch += gwd
+// 		aet, ro, rch = h.Update(p+x, ep)
+// 		rch += gwd
 
-		// x := h.Sma.Sto - h.Sma.Cap // excess stored (drainable)
-		// if x < 0. { // fill remaining deficit, assume discharge
-		// 	rch = x
-		// 	x = 0.
-		// }
-		// h.Sma.Sto = h.Sma.Cap // saturate retention reservoir (drainable porosity)
+// 		// x := h.Sma.Sto - h.Sma.Cap // excess stored (drainable)
+// 		// if x < 0. { // fill remaining deficit, assume discharge
+// 		// 	rch = x
+// 		// 	x = 0.
+// 		// }
+// 		// h.Sma.Sto = h.Sma.Cap // saturate retention reservoir (drainable porosity)
 
-		// ro = h.Sdet.Overflow(p) + x   // fulfill detention reservoir, add excess to runoff
-		// avail := h.Sdet.Overflow(-ep) // remove ep from detention
-		// // option 1 no evap from gw
-		// aet = ep + avail // actual et
-		// // // // option 2 unlimited evap from gw
-		// // // rch += avail // ep assumed unlimited from a saturated surface (Note: avail cannot be >0.)
-		// // // aet = ep     // completely satisfied over a high watertable
-		// // // option 3 limited evap
-		// // dh := h.Perc * math.Exp(dwt) * (1. - h.Fimp)
-		// // if -avail > dh { // (Note: avail and dh cannot be >0.)
-		// // 	avail += dh      // remaining available ep (cannot be >0.)
-		// // 	rch -= dh        // (Note: dh cannot be >0.)
-		// // 	aet = ep + avail // actual et
-		// // } else {
-		// // 	rch += avail // ep assumed unlimited from a saturated surface (Note: avail cannot be >0.)
-		// // 	aet = ep     // completely satisfied over a high watertable
-		// // }
-		// // // option 4 limited evap 2
-		// // dwt *= (1. - h.Fimp)
-		// // if avail > dwt {
-		// // 	rch += avail // ep assumed unlimited from a saturated surface (Note: avail cannot be >0.)
-		// // 	aet = ep     // completely satisfied over a high watertable
-		// // } else {
-		// // 	avail -= dwt     // remaining available ep (cannot be >0.)
-		// // 	rch += dwt       // (Note: dwt cannot be >0.)
-		// // 	aet = ep + avail // actual et
-		// // }
-	} else {
-		aet, ro, rch = h.Update(p, ep)
-	}
-	return
-}
+// 		// ro = h.Sdet.Overflow(p) + x   // fulfill detention reservoir, add excess to runoff
+// 		// avail := h.Sdet.Overflow(-ep) // remove ep from detention
+// 		// // option 1 no evap from gw
+// 		// aet = ep + avail // actual et
+// 		// // // // option 2 unlimited evap from gw
+// 		// // // rch += avail // ep assumed unlimited from a saturated surface (Note: avail cannot be >0.)
+// 		// // // aet = ep     // completely satisfied over a high watertable
+// 		// // // option 3 limited evap
+// 		// // dh := h.Perc * math.Exp(dwt) * (1. - h.Fimp)
+// 		// // if -avail > dh { // (Note: avail and dh cannot be >0.)
+// 		// // 	avail += dh      // remaining available ep (cannot be >0.)
+// 		// // 	rch -= dh        // (Note: dh cannot be >0.)
+// 		// // 	aet = ep + avail // actual et
+// 		// // } else {
+// 		// // 	rch += avail // ep assumed unlimited from a saturated surface (Note: avail cannot be >0.)
+// 		// // 	aet = ep     // completely satisfied over a high watertable
+// 		// // }
+// 		// // // option 4 limited evap 2
+// 		// // dwt *= (1. - h.Fimp)
+// 		// // if avail > dwt {
+// 		// // 	rch += avail // ep assumed unlimited from a saturated surface (Note: avail cannot be >0.)
+// 		// // 	aet = ep     // completely satisfied over a high watertable
+// 		// // } else {
+// 		// // 	avail -= dwt     // remaining available ep (cannot be >0.)
+// 		// // 	rch += dwt       // (Note: dwt cannot be >0.)
+// 		// // 	aet = ep + avail // actual et
+// 		// // }
+// 	} else {
+// 		aet, ro, rch = h.Update(p, ep)
+// 	}
+// 	return
+// }
 
 // InfiltrateSurplus excess mobile water in infiltrated assuming a falling head through a unit length, returns added recharge
 func (h *HRU) InfiltrateSurplus() float64 {

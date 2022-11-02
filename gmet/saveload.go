@@ -57,7 +57,7 @@ func LoadNC(fp string, vars []string) (*GMET, error) {
 		log.Fatalln(err)
 	}
 	defer nc.Close()
-	fmt.Println(nc.ListVariables()) //[8:])
+	fmt.Println(" ", nc.ListVariables()) //[8:])
 
 	sids := func() []int {
 		svr, err := nc.GetVariable("station_id")
@@ -108,17 +108,17 @@ func LoadNC(fp string, vars []string) (*GMET, error) {
 	g.Sxy = func() []XYZ {
 		slon, err := nc.GetVariable("lon")
 		if err != nil {
-			fmt.Println(" coordinates", err)
+			fmt.Println("  > coordinates", err)
 			return nil
 		}
 		slat, err := nc.GetVariable("lat")
 		if err != nil {
-			fmt.Println(" coordinates", err)
+			fmt.Println("  > coordinates", err)
 			return nil
 		}
 		z, err := nc.GetVariable("z")
 		if err != nil {
-			fmt.Println(" elevations", err)
+			fmt.Println("  > elevations", err)
 			z = nil
 		}
 

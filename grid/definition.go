@@ -17,7 +17,7 @@ import (
 	"github.com/maseology/mmio"
 )
 
-// Definition struct
+// Definition struct of a uniform grid
 type Definition struct {
 	Coord                          map[int]mmaths.Point
 	act                            map[int]bool
@@ -149,7 +149,7 @@ func ReadGDEF(fp string, print bool) (*Definition, error) {
 	nc /= 8
 
 	b1 := make([]byte, nc)
-	if err := binary.Read(reader, binary.LittleEndian, b1); err != nil {
+	if err := binary.Read(reader, binary.LittleEndian, b1); err != nil { // no active cells
 		if err != io.EOF {
 			return nil, fmt.Errorf("fatal error: read actives failed: %v", err)
 		}

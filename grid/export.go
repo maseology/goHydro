@@ -1,6 +1,7 @@
 package grid
 
 import (
+	"encoding/binary"
 	"fmt"
 
 	"github.com/maseology/mmio"
@@ -21,6 +22,33 @@ func (gd *Definition) SaveAs(fp string) error {
 		t.WriteLine(fmt.Sprintf("%d", gd.Nrow))
 		t.WriteLine(fmt.Sprintf("%d", gd.Ncol))
 		t.WriteLine(fmt.Sprintf("U%f", gd.Cwidth))
+
+		if gd.Nact > 0 {
+			bActive := make([]bool, gd.Ncells())
+			for _, i := range gd.Sactives {
+				bActive[i] = true
+			}
+			// fmt.Println(bActive[gd.Sactives[0]])
+			// fmt.Println(bActive[gd.Sactives[0]-1])
+			// k := 0
+			// for i := 0; i < gd.Nrow; i++ {
+			// 	for j := 0; j < gd.Ncol; j++ {
+			// 		if bActive[k] {
+			// 			print("X")
+			// 		} // else {
+			// 		// 	print("O")
+			// 		// }
+			// 		k++
+			// 	}
+			// 	// println()
+			// }
+			byActives := mmio.BitArrayRev(bActive)
+			// t.WriteLine(string(byActives))
+			// if err := t.WriteBytes(byActives); err != nil {
+			// 	panic(err)
+			// }
+			binary.Write(t.Writer, binary.LittleEndian, byActives)
+		}
 		return nil
 	case ".hdr":
 		t, err := mmio.NewTXTwriter(fp)
