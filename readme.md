@@ -13,7 +13,8 @@ A suite of hydrological tools needed for numerical modelling
 * **`hru`** - a Hydrologic Response Unit (for hydrological modelling)
 * **`infiltration`** - a suite of infiltration schemes
  * Curve Number method
-* **`lia`** - an explicit, 2D local inertial approximation to the shallow water equation, following LISFLOOD-FP.
+* **`lia`** - an explicit, 2D local inertial approximation to the shallow water equation, following LISFLOOD-FP. 
+    * *depricated: moved to [goLAI](https://github.com/maseology/goLIA).*
 * **`met`** - tools to handle time series data (legacy)
 * **`pet`** - a suite of PET estimators
 * **`porousmedia`** - a Go struct used to define the properties of some variable porous media profile including a fully-implicit solution to the one-dimensional, unsteady Richards equation of variably saturated liquid and vapour flow in porous media, based on the solution of *Bittelli, M., Campbell, G.S., and Tomei, F., (2015). Soil Physics with Python. Oxford University Press.*

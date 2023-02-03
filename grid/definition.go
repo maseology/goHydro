@@ -359,6 +359,24 @@ func (gd *Definition) CellIndexXR() map[int]int {
 	return m
 }
 
+func (gd *Definition) NullArray(nodatavalue float64) []float64 {
+	nc := gd.Ncells()
+	o := make([]float64, nc)
+	for i := 0; i < nc; i++ {
+		o[i] = nodatavalue
+	}
+	return o
+}
+
+func (gd *Definition) NullInt32(nodatavalue int32) []int32 {
+	nc := gd.Ncells()
+	o := make([]int32, nc)
+	for i := 0; i < nc; i++ {
+		o[i] = nodatavalue
+	}
+	return o
+}
+
 // PointToCellID returns the cell id that contains the xy coordinates
 func (gd *Definition) PointToCellID(x, y float64) int {
 	return gd.CellID(gd.PointToRowCol(x, y))

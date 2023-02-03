@@ -74,19 +74,19 @@ func (t *TEM) loadUHDEM(fp string) (map[int]mmaths.Point, map[int]int, error) {
 	case "unstructured":
 		// do nothing
 	default:
-		return nil, nil, fmt.Errorf("Fatal error: unsupported UHDEM filetype")
+		return nil, nil, fmt.Errorf("fatal error: unsupported UHDEM filetype")
 	}
 
 	// read dem data
 	var nc int32
 	if err := binary.Read(buf, binary.LittleEndian, &nc); err != nil { // number of cells
-		return nil, nil, fmt.Errorf("Fatal error: loadUHDEM uhdem read failed: %v", err)
+		return nil, nil, fmt.Errorf("fatal error: loadUHDEM uhdem read failed: %v", err)
 	}
 	t.TEC = make(map[int]TEC, nc)
 	coord := make(map[int]mmaths.Point, nc)
 	uc := make([]uhdemReader, nc)
 	if err := binary.Read(buf, binary.LittleEndian, uc); err != nil {
-		return nil, nil, fmt.Errorf("Fatal error: loadUHDEM uhdem read failed: %v", err)
+		return nil, nil, fmt.Errorf("fatal error: loadUHDEM uhdem read failed: %v", err)
 	}
 	for _, u := range uc {
 		ii := int(u.I)
@@ -96,16 +96,16 @@ func (t *TEM) loadUHDEM(fp string) (map[int]mmaths.Point, map[int]int, error) {
 	// read flowpaths
 	var nfp int32
 	if err := binary.Read(buf, binary.LittleEndian, &nfp); err != nil { // number of flowpaths
-		return nil, nil, fmt.Errorf("Fatal error: loadUHDEM flowpath read failed: %v", err)
+		return nil, nil, fmt.Errorf("fatal error: loadUHDEM flowpath read failed: %v", err)
 	}
 	fc := make([]fpReader, nfp)
 	if err := binary.Read(buf, binary.LittleEndian, fc); err != nil {
-		return nil, nil, fmt.Errorf("Fatal error: loadUHDEM flowpath read failed: %v", err)
+		return nil, nil, fmt.Errorf("fatal error: loadUHDEM flowpath read failed: %v", err)
 	}
 	dwnSlps := make(map[int]int, len(fc))
 	for _, f := range fc {
 		if f.Nds != 1 {
-			return nil, nil, fmt.Errorf("Fatal error: loadUHDEM TODO: many-to-one only allowed")
+			return nil, nil, fmt.Errorf("fatal error: loadUHDEM TODO: many-to-one only allowed")
 		}
 		ii := int(f.I)
 		dwnSlps[ii] = int(f.Ids)
@@ -117,7 +117,7 @@ func (t *TEM) loadUHDEM(fp string) (map[int]mmaths.Point, map[int]int, error) {
 	if mmio.ReachedEOF(buf) {
 		return coord, dwnSlps, nil
 	}
-	return nil, nil, fmt.Errorf("Fatal error: UHDEM file contains extra data")
+	return nil, nil, fmt.Errorf("fatal error: UHDEM file contains extra data")
 }
 
 func (t *TEM) loadHDEM(fp string) (map[int]mmaths.Point, map[int]int, error) {
@@ -135,7 +135,7 @@ func (t *TEM) loadHDEM(fp string) (map[int]mmaths.Point, map[int]int, error) {
 		coord := make(map[int]mmaths.Point, nc)
 		uc := make([]uhdemReader, nc)
 		if err := binary.Read(buf, binary.LittleEndian, uc); err != nil {
-			return nil, nil, fmt.Errorf("Fatal error: loadHDEM uhdem read failed: %v", err)
+			return nil, nil, fmt.Errorf("fatal error: loadHDEM uhdem read failed: %v", err)
 		}
 		for _, u := range uc {
 			ii := int(u.I)
@@ -147,7 +147,7 @@ func (t *TEM) loadHDEM(fp string) (map[int]mmaths.Point, map[int]int, error) {
 		binary.Read(buf, binary.LittleEndian, &nfp) // number of flowpaths
 		fc := make([]fpReader, nfp)
 		if err := binary.Read(buf, binary.LittleEndian, fc); err != nil {
-			return nil, nil, fmt.Errorf("Fatal error: loadHDEM flowpath read failed: %v", err)
+			return nil, nil, fmt.Errorf("fatal error: loadHDEM flowpath read failed: %v", err)
 		}
 		ds := make(map[int]int, len(fc))
 		for _, f := range fc {
@@ -163,13 +163,13 @@ func (t *TEM) loadHDEM(fp string) (map[int]mmaths.Point, map[int]int, error) {
 		}
 
 	default:
-		return nil, nil, fmt.Errorf("Fatal error: unsupported HDEM filetype: '%s'", typ)
+		return nil, nil, fmt.Errorf("fatal error: unsupported HDEM filetype: '%s'", typ)
 
 		// default:
 		// 	// case "":
 		// 	// old/raw version --- grid-based hdem's not working, use uhdem
 		// 	if _, ok := mmio.FileExists(mmio.RemoveExtension(fp) + ".gdef"); !ok {
-		// 		return nil, fmt.Errorf("Fatal error: gdef required to read %s", fp)
+		// 		return nil, fmt.Errorf("fatal error: gdef required to read %s", fp)
 		// 	}
 		// 	gd, err := grid.ReadGDEF(mmio.RemoveExtension(fp)+".gdef", false)
 		// 	if err != nil {
@@ -182,7 +182,7 @@ func (t *TEM) loadHDEM(fp string) (map[int]mmaths.Point, map[int]int, error) {
 		// 	hc := make([]hdemReader, nc)
 		// 	buf = mmio.OpenBinary(fp) // re-open buf
 		// 	if err := binary.Read(buf, binary.LittleEndian, hc); err != nil {
-		// 		return nil, fmt.Errorf("Fatal error: loadHDEM hdem read failed: %v", err)
+		// 		return nil, fmt.Errorf("fatal error: loadHDEM hdem read failed: %v", err)
 		// 	}
 		// 	for i, h := range hc {
 		// 		if i < 0 {
@@ -225,7 +225,7 @@ func (t *TEM) loadHDEM(fp string) (map[int]mmaths.Point, map[int]int, error) {
 		// 		}
 		// 	}
 	}
-	return nil, nil, fmt.Errorf("Fatal error: HDEM file contains extra data")
+	return nil, nil, fmt.Errorf("fatal error: HDEM file contains extra data")
 }
 
 func (t *TEM) SaveUHDEM(fp string) error {

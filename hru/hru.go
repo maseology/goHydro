@@ -2,7 +2,6 @@ package hru
 
 import (
 	"log"
-	"math"
 )
 
 // // bit-wise status flag
@@ -140,16 +139,16 @@ func (h *HRU) Update(p, ep float64) (aet, ro, rch float64) {
 // 	return
 // }
 
-// InfiltrateSurplus excess mobile water in infiltrated assuming a falling head through a unit length, returns added recharge
-func (h *HRU) InfiltrateSurplus() float64 {
-	d := -h.Sdet.Deficit()
-	if d > 0 { // excess
-		dh := d * (1. - math.Exp(-h.Perc))
-		h.Sdet.Sto -= dh
-		return dh
-	}
-	return 0.
-}
+// // InfiltrateSurplus excess mobile water in infiltrated assuming a falling head through a unit length, returns added recharge
+// func (h *HRU) InfiltrateSurplus() float64 {
+// 	d := -h.Sdet.Deficit()
+// 	if d > 0 { // excess
+// 		dh := d * (1. - math.Exp(-h.Perc))
+// 		h.Sdet.Sto -= dh
+// 		return dh
+// 	}
+// 	return 0.
+// }
 
 // // // Update hru given a set of forcings
 // // func (h *HRU) Update(p, ep float64) (aet, ro, rch float64) {
