@@ -1,5 +1,7 @@
 # goHydro profile
 
+*depricated: moved to [goVSF](https://github.com/maseology/goVSF).*
+
 a Go struct used to define the properties of some variable porous media profile including a fully-implicit solution to the one-dimensional, unsteady Richards equation of variably saturated liquid and vapour flow in porous media, based on the solution of *Bittelli, M., Campbell, G.S., and Tomei, F., (2015). Soil Physics with Python. Oxford University Press.*
 
 ## 1D multiphase flow through porous media

@@ -18,6 +18,7 @@ A suite of hydrological tools needed for numerical modelling
 * **`met`** - tools to handle time series data (legacy)
 * **`pet`** - a suite of PET estimators
 * **`porousmedia`** - a Go struct used to define the properties of some variable porous media profile including a fully-implicit solution to the one-dimensional, unsteady Richards equation of variably saturated liquid and vapour flow in porous media, based on the solution of *Bittelli, M., Campbell, G.S., and Tomei, F., (2015). Soil Physics with Python. Oxford University Press.*
+    * *depricated: moved to [goVSF](https://github.com/maseology/goVSF).*
 * **`profile`** - essentially an ordered set of `porousmedia` making up a linear/vertical profile combined with a 
 * **`routing`** - a suite of topological tools optimized as a recursive set of structs
 * **`snowpack`** - a snowpack modelling scheme
