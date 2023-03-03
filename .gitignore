@@ -13,6 +13,7 @@
 
 # mm
 *.rar
+*.old
 bak/
 old/
 test/

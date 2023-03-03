@@ -14,16 +14,17 @@ A suite of hydrological tools needed for numerical modelling
 * **`infiltration`** - a suite of infiltration schemes
  * Curve Number method
 * **`lia`** - an explicit, 2D local inertial approximation to the shallow water equation, following LISFLOOD-FP. 
-    * *depricated: moved to [goLAI](https://github.com/maseology/goLIA).*
+    * *deprecated: moved to [__goLAI__](https://github.com/maseology/goLIA).*
 * **`met`** - tools to handle time series data (legacy)
 * **`pet`** - a suite of PET estimators
 * **`porousmedia`** - a Go struct used to define the properties of some variable porous media profile including a fully-implicit solution to the one-dimensional, unsteady Richards equation of variably saturated liquid and vapour flow in porous media, based on the solution of *Bittelli, M., Campbell, G.S., and Tomei, F., (2015). Soil Physics with Python. Oxford University Press.*
-    * *depricated: moved to [goVSF](https://github.com/maseology/goVSF).*
-* **`profile`** - essentially an ordered set of `porousmedia` making up a linear/vertical profile combined with a 
+    * *deprecated: moved to [__goVSF__](https://github.com/maseology/goVSF).*
+* **`profile`** - an ordered set of `porousmedia` making up a linear/vertical subsurface profile.
+* **`rainrun`** - a variety of lumped-parameter, catchment-based continuous rainfall-runoff models using a common interface. This package include the ability for Monte Carlo integration and optimization. 
 * **`routing`** - a suite of topological tools optimized as a recursive set of structs
 * **`snowpack`** - a snowpack modelling scheme
 * **`solirrad`** - solar irradiation computer
-* **`swat`** - an example of the above tools in effectively re-creating SWAT (legacy)
+* **`swat`** - SWAT model effectively re-created using goHydro
 * **`tem`** - a Topological Elevation Model: a DEM with drain path connectivity.
 * **`transfunc`** - a suite of generalized "transfer functions" used in hydrological modelling
 * **`waterbudget`** - a set of classic large scale waterbudget models (for fun)
