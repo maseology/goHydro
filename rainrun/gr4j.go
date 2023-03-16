@@ -18,7 +18,7 @@ type GR4J struct {
 
 // New GR4J constructor
 func (m *GR4J) New(p ...float64) {
-	if p[3] < 0.5 { //|| p[4] <= 0. || p[4] >= 1.0 {
+	if p[3] < .5 { //|| p[4] <= 0. || p[4] >= 1. {
 		log.Fatalln("GR4J input error")
 	}
 
@@ -29,14 +29,14 @@ func (m *GR4J) New(p ...float64) {
 	// m.qsplt = p[4]      // qsplt: unitHydrographPartition, fixed in paper to = 0.9
 
 	m.rte.sto = func() float64 {
-		q0 := FRC[0][2]
+		q0 := p[len(p)-1] // frc.Dat[0][2]
 		smpl := func(u float64) float64 {
 			return mmaths.LinearTransform(0., 10., u)
 		}
 		opt := func(u float64) float64 {
 			x3i := smpl(u)
-			qr := p[1] * math.Pow(x3i/p[2], 7./2.)                        // eq.18 catchment GW exchange; x2: water exchange coefficient (>0 for water imports, <0 for exports, =0 for no exchange)
-			qr += x3i * (1. - math.Pow(1.+math.Pow(x3i/p[2], 4.), -0.25)) // eq.20
+			qr := p[1] * math.Pow(x3i/p[2], 7./2.)                       // eq.18 catchment GW exchange; x2: water exchange coefficient (>0 for water imports, <0 for exports, =0 for no exchange)
+			qr += x3i * (1. - math.Pow(1.+math.Pow(x3i/p[2], 4.), -.25)) // eq.20
 			return math.Abs(qr-q0) / q0
 		}
 		u, _ := glbopt.Fibonacci(opt)

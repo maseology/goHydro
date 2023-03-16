@@ -15,8 +15,8 @@ func Makkink(Kg, tm, p, alpha, beta float64) float64 { // [m/d]
 	if tm <= 0. {
 		return 0.
 	}
-	d, g, l := slopeSaturationCurve(tm), psychrometricConstant(tm, p), latenHeatVapouration(tm)
-	l *= densityLiquidWater(tm) // convert MJ/kg to MJ/m³
+	d, g := slopeSaturationCurve(tm), psychrometricConstant(tm, p)
+	l := latenHeatVapouration(tm) * densityLiquidWater(tm) // convert MJ/kg to MJ/m³
 	ep := alpha*Kg*d/(d+g)/l + beta
 	if ep < 0. {
 		ep = 0.

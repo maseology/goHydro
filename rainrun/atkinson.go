@@ -69,15 +69,16 @@ func (m *Atkinson) UpdateHourly(p, ep float64) (float64, float64, float64) {
 	eint := ep          // A.9 interception evaporation
 	if p+m.sint < ep {
 		eint = p + m.sint
+		p = 0.
 	}
 
 	a := eveg + ebs + eint // A.10 total actual ET
-	var thr float64        // A.13 throughflow
+	thr := 0.              // A.13 throughflow
 	if p > (m.sintc - m.sint) {
 		thr = p - m.sintc + m.sint // modified from original
 	}
 
-	m.sint += p - eint - thr // A.11 interception water balance
+	m.sint += p - thr - eint // A.11 interception water balance
 	if m.sint < mingtzero {
 		m.sint = 0.
 	}

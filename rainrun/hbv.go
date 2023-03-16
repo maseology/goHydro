@@ -17,18 +17,29 @@ type HBV struct {
 // New HBV constructor
 // [fc, lp, beta, uzl, k0, k1, k2, ksat, maxbas, lakeCoverFrac]
 func (m *HBV) New(p ...float64) {
-	if fracCheck(p[1]) || fracCheck(p[4]) || fracCheck(p[5]) || fracCheck(p[6]) { // || fracCheck(p[9]) {
-		panic("HBV input eror")
+	if len(p) == 0 {
+		println(" ** Warning: default HBV parameters being assigned **")
+		m.fc = 100.
+		m.lp = .5
+		m.beta = 1.
+		m.uzl = 10.
+		m.k0, m.k1, m.k2 = .5, .3, .1 // fast, slow, and baseflow recession coefficients
+		m.perc = 1.
+		m.tf = transfunc.NewTF(3., 0.5, 0.) // MAXBAS: triangular weighted transfer function
+		m.lakefrac = 0.
+	} else {
+		if fracCheck(p[1]) || fracCheck(p[4]) || fracCheck(p[5]) || fracCheck(p[6]) { // || fracCheck(p[9]) {
+			panic("HBV input error")
+		}
+		m.fc = p[0]                           // max basin moisture storage
+		m.lp = p[1]                           // soil moisture parameter
+		m.beta = p[2]                         // soil moisture parameter
+		m.uzl = p[3]                          // upper zone fast flow limit
+		m.k0, m.k1, m.k2 = p[4], p[5], p[6]   // fast, slow, and baseflow recession coefficients
+		m.perc = p[7]                         // upper-to-lower zone percolation, assuming percolation rate = Ksat
+		m.tf = transfunc.NewTF(p[8], 0.5, 0.) // MAXBAS: triangular weighted transfer function
+		m.lakefrac = 0.                       // p[9]                   // lake fraction
 	}
-	m.fc = p[0]                         // max basin moisture storage
-	m.lp = p[1]                         // soil moisture parameter
-	m.beta = p[2]                       // soil moisture parameter
-	m.uzl = p[3]                        // upper zone fast flow limit
-	m.k0, m.k1, m.k2 = p[4], p[5], p[6] // fast, slow, and baseflow recession coefficients
-	m.perc = p[7]                       // upper-to-lower zone percolation, assuming percolation rate = Ksat
-	m.lakefrac = 0.                     //p[9]                   // lake fraction
-
-	m.tf = transfunc.NewTF(p[8], 0.5, 0.) // MAXBAS: triangular weighted transfer function
 }
 
 // Update state for daily inputs
@@ -37,8 +48,10 @@ func (m *HBV) Update(pn, ep float64) (float64, float64, float64) {
 	if m.lakefrac > 0. {
 		a = m.hBVlake(pn, ep)
 		// ep -= a // assume PET does not change (by commenting-out this line)
+		m.hBVinfiltration(pn * (1. - m.lakefrac))
+	} else {
+		m.hBVinfiltration(pn)
 	}
-	m.hBVinfiltration(pn * (1. - m.lakefrac))
 	a += m.hBVet(ep)
 	q, g := m.hBVrunoff()
 	return a, q, g
@@ -54,6 +67,7 @@ func (m *HBV) hBVlake(pn, ep float64) float64 {
 	m.slz -= a
 	return a
 }
+
 func (m *HBV) hBVinfiltration(p float64) {
 	i := p * math.Pow(m.sm/m.fc, m.beta)
 	if i > p {
@@ -66,6 +80,7 @@ func (m *HBV) hBVinfiltration(p float64) {
 	}
 	m.suz += i // upper zone moisture storage
 }
+
 func (m *HBV) hBVet(ep float64) float64 {
 	etr := math.Min(1., m.sm/m.lp/m.fc) * ep
 	if etr >= m.sm {
@@ -76,6 +91,7 @@ func (m *HBV) hBVet(ep float64) float64 {
 	}
 	return etr
 }
+
 func (m *HBV) hBVrunoff() (float64, float64) {
 	// groundwater accounting
 	q0 := math.Max(m.k0*(m.suz-m.uzl), 0.0) // fast runoff

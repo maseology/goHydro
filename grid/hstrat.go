@@ -19,12 +19,15 @@ type Cell struct {
 }
 
 func ReadHSTRAT(fp string, print bool) (*HSTRAT, error) {
+	big := func(i int) string {
+		return mmio.Thousands(int64(i))
+	}
 
 	gd, err := ReadGDEF(mmio.RemoveExtension(fp)+".gdef", true)
 	if err != nil {
 		log.Fatalf(" ReadHSTRAT gdef read error: %v", err)
 	}
-	fmt.Printf(" HSTRAT-GDEF read: %d cells (%d rows, %d columns), %d actives\n", gd.Ncells(), gd.Nrow, gd.Ncol, gd.Nact)
+	fmt.Printf(" HSTRAT-GDEF read: %s cells (%d rows, %d columns), %s actives\n", big(gd.Ncells()), gd.Nrow, gd.Ncol, big(gd.Nact))
 
 	b := mmio.OpenBinary(fp)
 	if mmio.ReadString(b) != "grid" {

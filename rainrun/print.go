@@ -7,19 +7,19 @@ import (
 	"github.com/maseology/mmio"
 )
 
-func SumHydrograph(o, s, g []float64) {
+func SumHydrograph(frc *Frc, o, s, g []float64, prfx string) {
 	// C:/Users/mason/OneDrive/R/dygraph/obssim_csv_viewer.R
-	idt, io, is, ig := make([]interface{}, Ndt), make([]interface{}, Ndt), make([]interface{}, Ndt), make([]interface{}, Ndt)
-	for i, t := range DT {
+	idt, io, is, ig := make([]interface{}, frc.Ndt), make([]interface{}, frc.Ndt), make([]interface{}, frc.Ndt), make([]interface{}, frc.Ndt)
+	for i, t := range frc.DT {
 		idt[i] = t
 		io[i] = o[i]
 		is[i] = s[i]
 		ig[i] = g[i]
 	}
-	mmio.WriteCSV("hydrograph.csv", "date,obs,sim,bf", idt, io, is, ig)
+	mmio.WriteCSV(prfx+".hydrograph.csv", "date,obs,sim,bf", idt, io, is, ig)
 }
 
-func SumMonthly(dt []time.Time, o, s []float64, ts, ca float64) {
+func SumMonthly(dt []time.Time, o, s []float64, ts, ca float64, prfx string) {
 	tso, tss := make(mmio.TimeSeries, len(dt)), make(mmio.TimeSeries, len(dt))
 	for i, d := range dt {
 		if math.IsNaN(o[i]) || math.IsNaN(s[i]) {
@@ -47,5 +47,5 @@ func SumMonthly(dt []time.Time, o, s []float64, ts, ca float64) {
 			}
 		}
 	}
-	mmio.WriteCSV("monthlysum.csv", "date,obs,sim", dti, osi, ssi)
+	mmio.WriteCSV(prfx+".monthlysum.csv", "date,obs,sim", dti, osi, ssi)
 }

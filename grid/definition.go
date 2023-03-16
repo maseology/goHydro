@@ -21,8 +21,9 @@ import (
 type Definition struct {
 	Coord                          map[int]mmaths.Point
 	act                            map[int]bool
-	Sactives                       []int   // a sorted slice of active cell IDs
-	Eorig, Norig, Cwidth, Rotation float64 // Xul; Yul; cell width, grid rotation about ULorigin
+	cwidths, cheights              []float64 // variable cell widths and heights
+	Sactives                       []int     // a sorted slice of active cell IDs
+	Eorig, Norig, Rotation, Cwidth float64   // Xul; Yul; grid rotation about ULorigin; cell width
 	Nrow, Ncol, Nact               int
 	Name                           string
 }
@@ -43,7 +44,7 @@ func NewDefinition(nam string, nr, nc int, UniformCellSize float64) *Definition 
 	cid := 0
 	for i := 0; i < gd.Nrow; i++ {
 		for j := 0; j < gd.Ncol; j++ {
-			p := mmaths.Point{X: gd.Eorig + gd.Cwidth*(float64(j)+0.5), Y: gd.Norig - gd.Cwidth*(float64(i)+0.5)}
+			p := mmaths.Point{X: gd.Eorig + UniformCellSize*(float64(j)+0.5), Y: gd.Norig - UniformCellSize*(float64(i)+0.5)}
 			gd.Coord[cid] = p
 			cid++
 		}
@@ -74,7 +75,7 @@ func ReadGDEF(fp string, print bool) (*Definition, error) {
 		}
 	}
 
-	parseHeader := func(a []string, print bool) (Definition, error) {
+	parseHeader := func(a []string, print bool) (Definition, bool, error) {
 		stErr, uni := make([]string, 0), false
 		errfunc := func(v string, err error) {
 			stErr = append(stErr, fmt.Sprintf("   failed to read '%v': %v", v, err))
@@ -112,12 +113,13 @@ func ReadGDEF(fp string, print bool) (*Definition, error) {
 				errfunc("CS", err)
 			}
 		} else {
-			stErr = append(stErr, " *** Fatal error: ReadGDEF.parseHeader: non-uniform grids currently not supported ***")
+			// stErr = append(stErr, " *** Fatal error: ReadGDEF.parseHeader: non-uniform grids currently not supported ***")
+			cs = -1.
 		}
 
 		// error handling
 		if len(stErr) > 0 {
-			return Definition{}, fmt.Errorf("fatal error(s): ReadGDEF.parseHeader:\n%s", strings.Join(stErr, "\n"))
+			return Definition{}, uni, fmt.Errorf("fatal error(s): ReadGDEF.parseHeader:\n%s", strings.Join(stErr, "\n"))
 		}
 
 		gd := Definition{Eorig: oe, Norig: on, Rotation: rot, Cwidth: cs, Nrow: int(nr), Ncol: int(nc)}
@@ -131,14 +133,49 @@ func ReadGDEF(fp string, print bool) (*Definition, error) {
 			fmt.Printf(" is uniform:\t%t\n", uni)
 		}
 
-		return gd, nil
+		return gd, uni, nil
 	}
-	gd, err := parseHeader(a, print)
+	gd, isuniform, err := parseHeader(a, print)
 	if err != nil {
 		return nil, err
 	}
 	if gd.Rotation != 0. {
 		return nil, fmt.Errorf("ReadGDEF error: rotation no yet supported")
+	}
+	if !isuniform {
+		// slst := make([]float64, gd.Nrow+gd.Ncol)
+		// slst[0], _ = strconv.ParseFloat(a[5], 64)
+		// for i := 1; i < gd.Nrow+gd.Ncol; i++ {
+		// 	line, _, err := reader.ReadLine()
+		// 	if err == io.EOF {
+		// 		return nil, fmt.Errorf("ReadTextLines (cell widths): %v", err)
+		// 	} else if err != nil {
+		// 		return nil, fmt.Errorf("ReadTextLines (cell widths): %v", err)
+		// 	}
+		// 	slst[i], _ = strconv.ParseFloat(string(line), 64)
+		// }
+		// gd.VCwidth = slst
+
+		gd.cwidths, gd.cheights = make([]float64, gd.Ncol), make([]float64, gd.Nrow)
+		gd.cheights[0], _ = strconv.ParseFloat(a[5], 64)
+		for i := 1; i < gd.Nrow; i++ {
+			line, _, err := reader.ReadLine()
+			if err == io.EOF {
+				return nil, fmt.Errorf("ReadTextLines (cell widths): %v", err)
+			} else if err != nil {
+				return nil, fmt.Errorf("ReadTextLines (cell widths): %v", err)
+			}
+			gd.cheights[i], _ = strconv.ParseFloat(string(line), 64)
+		}
+		for j := 0; j < gd.Ncol; j++ {
+			line, _, err := reader.ReadLine()
+			if err == io.EOF {
+				return nil, fmt.Errorf("ReadTextLines (cell heights): %v", err)
+			} else if err != nil {
+				return nil, fmt.Errorf("ReadTextLines (cell heights): %v", err)
+			}
+			gd.cwidths[j], _ = strconv.ParseFloat(string(line), 64)
+		}
 	}
 
 	nc := gd.Nrow * gd.Ncol
@@ -339,15 +376,55 @@ func (gd *Definition) Extents() []float64 {
 	return []float64{gd.Eorig, gd.Norig, gd.Eorig + gd.Cwidth*float64(gd.Ncol), gd.Norig - gd.Cwidth*float64(gd.Nrow)} // Left Up Right Down
 }
 
+func (gd *Definition) CellOriginUL(cid int) (r, c int, x0, y0 float64) {
+	r, c = gd.RowCol(cid)
+	if len(gd.cheights) == 0 { // uniform cells
+		return r, c, gd.Eorig + float64(c)*gd.Cwidth, gd.Norig - float64(r)*gd.Cwidth
+	}
+
+	sr, sc := gd.Norig, gd.Eorig
+	for i := 0; i < r; i++ {
+		sr -= gd.cheights[i]
+	}
+	for j := 0; j < c; j++ {
+		sc += gd.cwidths[j]
+	}
+	return r, c, sc, sr
+}
+
 func (gd *Definition) CellCentroid(cid int) []float64 {
-	r, c := gd.RowCol(cid)
-	return []float64{gd.Eorig + (float64(c)+.5)*gd.Cwidth, gd.Norig - (float64(r)+.5)*gd.Cwidth}
+	if len(gd.cheights) == 0 { // uniform cells
+		r, c := gd.RowCol(cid)
+		return []float64{gd.Eorig + (float64(c)+.5)*gd.Cwidth, gd.Norig - (float64(r)+.5)*gd.Cwidth}
+	}
+
+	r, c, sc, sr := gd.CellOriginUL(cid)
+	return []float64{sc + gd.cwidths[c]/2., sr - gd.cheights[r]/2.}
 }
 
 func (gd *Definition) CellPerimeter(cid int) [][]float64 {
-	cw2 := gd.Cwidth / 2
-	ctrd := gd.CellCentroid(cid)
-	return [][]float64{{ctrd[0] + cw2, ctrd[1] + cw2}, {ctrd[0] + cw2, ctrd[1] - cw2}, {ctrd[0] - cw2, ctrd[1] - cw2}, {ctrd[0] - cw2, ctrd[1] + cw2}, {ctrd[0] + cw2, ctrd[1] + cw2}}
+	// p1---p2   y       0---nc
+	//  | c |    |       |       clockwise, left-top-right-bottom
+	// p0---p3   0---x   nr
+	if len(gd.cheights) == 0 { // uniform cells
+		cw2 := gd.Cwidth / 2
+		ctrd := gd.CellCentroid(cid)
+		return [][]float64{
+			{ctrd[0] - cw2, ctrd[1] - cw2},
+			{ctrd[0] - cw2, ctrd[1] + cw2},
+			{ctrd[0] + cw2, ctrd[1] + cw2},
+			{ctrd[0] + cw2, ctrd[1] - cw2},
+			{ctrd[0] - cw2, ctrd[1] - cw2}, // same as first point
+		}
+	}
+
+	r, c, sc, sr := gd.CellOriginUL(cid)
+	p0 := []float64{sc, sr - gd.cheights[r]}
+	p1 := []float64{sc, sr}
+	p2 := []float64{sc + gd.cwidths[c], sr}
+	p3 := []float64{sc + gd.cwidths[c], sr - gd.cheights[r]}
+
+	return [][]float64{p0, p1, p2, p3, p0}
 }
 
 // CellIndexXR returns a mapping of cell id to an array index

@@ -1,7 +1,6 @@
 package rainrun
 
 import (
-	"github.com/maseology/goHydro/pet"
 	"github.com/maseology/goHydro/snowpack"
 	"github.com/maseology/goHydro/solirrad"
 )
@@ -28,29 +27,13 @@ func (m *CCFGR4J) New(p ...float64) {
 }
 
 // Update state for daily inputs
-func (m *CCFGR4J) Update(v []float64, doy int) (y, a, r, g float64) {
-	tx, tn, r, s := v[0], v[1], v[2], v[3]
+func (m *CCFGR4J) Update(v *Dset) (y, a, r, g float64) {
 
 	// calculate yield
-	tm := (tx + tn) / 2.
-	yt, tf, _ := m.SP.Update(r, s, tm)
+	tm := (v.Tx + v.Tn) / 2.
+	yt, tf, _ := m.SP.Update(v.rf, v.sf, tm)
 	y = yt + tf
 
-	// calculate ep
-	ep := func() float64 {
-		const (
-			alpha = 1.13
-			beta  = -.00027
-			pres  = 101300.
-			a     = 0.75
-			b     = 0.0025
-			c     = 2.5
-		)
-		tm := (tx + tn) / 2.
-		Kg := m.SI.GlobalFromPotential(tx, tn, a, b, c, doy)
-		return pet.Makkink(Kg, tm, pres, alpha, beta)
-	}()
-
-	a, r, g = m.GR4J.Update(y, ep)
+	a, r, g = m.GR4J.Update(y, v.Ep)
 	return
 }
