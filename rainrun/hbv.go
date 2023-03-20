@@ -28,9 +28,9 @@ func (m *HBV) New(p ...float64) {
 		m.tf = transfunc.NewTF(3., 0.5, 0.) // MAXBAS: triangular weighted transfer function
 		m.lakefrac = 0.
 	} else {
-		if fracCheck(p[1]) || fracCheck(p[4]) || fracCheck(p[5]) || fracCheck(p[6]) { // || fracCheck(p[9]) {
-			panic("HBV input error")
-		}
+		// if fracCheck(p[1]) || fracCheck(p[4]) || fracCheck(p[5]) || fracCheck(p[6]) { // || fracCheck(p[9]) {
+		// 	panic("HBV input error")
+		// }
 		m.fc = p[0]                           // max basin moisture storage
 		m.lp = p[1]                           // soil moisture parameter
 		m.beta = p[2]                         // soil moisture parameter

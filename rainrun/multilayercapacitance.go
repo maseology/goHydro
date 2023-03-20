@@ -15,7 +15,7 @@ type MultiLayerCapacitance struct {
 // New MultiLayerCapacitance constructor
 // [coverDens, szDepth, porosity, fc, a, b, l1, l2, l3]
 func (m *MultiLayerCapacitance) New(p ...float64) {
-	if p[6]+p[7]+p[8] != 1. || fracCheck(p[0]) || p[3] < 0. || p[3] > p[2] || p[2] > 0. {
+	if math.Abs(p[6]+p[7]+p[8]-1) > 1e-6 || fracCheck(p[0]) || p[3] < 0. || p[3] > p[2] || p[2] < 0. {
 		panic("MultiLayerCapacitance input error")
 	}
 	m.cv = p[0]         // fraction vegetation cover

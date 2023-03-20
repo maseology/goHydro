@@ -113,9 +113,15 @@ type ManabeGW struct {
 // New ManabeGW constructor
 // [capacity, fexposed, minSto, perc, kbf]
 func (m *ManabeGW) New(p ...float64) {
-	m.r.new(p[0], p[1], p[2])
-	m.perc = p[3]
-	m.k = p[4]
+	if p == nil {
+		m.r.new(2., 1., .1)
+		m.perc = .1
+		m.k = .95
+	} else {
+		m.r.new(p[0], p[1], p[2])
+		m.perc = p[3]
+		m.k = p[4]
+	}
 }
 
 // Update state for daily inputs

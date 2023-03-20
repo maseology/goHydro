@@ -31,9 +31,9 @@ func EvalPNG(m Lumper, frc *Frc, prfx string) string {
 	stSum := fmt.Sprintf(" y: %.3f\tpet: %.3f\taet: %.3f\trch: %.3f\tro: %.3f\tqobs: %.3f\n", ys*f, es*f, as*f, gs*f, rs*f, qs*f)
 	fmt.Print(stOf)
 	fmt.Print(stSum)
-	mmplt.ObsSim(prfx+".hyd.png", o[365:], s[365:])
-	mmplt.ObsSimFDC(prfx+".fdc.png", o[365:], s[365:])
-	SumHydrograph(frc, o, s, b, prfx)
-	SumMonthly(frc.DT, o, s, frc.Timestep, 1., prfx)
+	mmplt.ObsSim("output/"+prfx+".hyd.png", o[365:], s[365:])
+	mmplt.ObsSimFDC("output/"+prfx+".fdc.png", o[365:], s[365:])
+	SumHydrograph(frc, o, s, b, "output/"+prfx)
+	SumMonthly(frc.DT, o, s, frc.Timestep, 1., "output/"+prfx)
 	return stOf + stSum
 }

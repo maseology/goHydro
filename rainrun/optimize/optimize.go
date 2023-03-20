@@ -39,10 +39,12 @@ func Optimize(ifrc *rr.Frc, mdl, logfp string) {
 
 			var m rr.Lumper = &rr.Atkinson{}
 			pFinal := sample.Atkinson(uFinal)
-			fmt.Printf("\nfinal parameters: %v\n", pFinal)
-			fmt.Printf("sample space:\t%f\n", uFinal)
+			sp := fmt.Sprintf("\nfinal parameters: %v\n", pFinal)
+			su := fmt.Sprintf("sample space:\t%f\n", uFinal)
 			m.New(pFinal...)
-			rr.EvalPNG(m, gfrc, mdl)
+			logger.Println(mmio.FileName(gfrc.FilePath, false))
+			logger.Print(sp + su)
+			logger.Println("\n" + rr.EvalPNG(m, gfrc, mdl))
 		}()
 	case "DawdyODonnell":
 		func() {
@@ -54,10 +56,11 @@ func Optimize(ifrc *rr.Frc, mdl, logfp string) {
 
 			var m rr.Lumper = &rr.DawdyODonnell{}
 			pFinal := sample.DawdyODonnell(uFinal, gfrc.Timestep)
-			fmt.Printf("\nfinal parameters: %v\n", pFinal)
-			fmt.Printf("sample space:\t%f\n", uFinal)
-			m.New(pFinal...)
-			rr.EvalPNG(m, gfrc, mdl)
+			sp := fmt.Sprintf("\nfinal parameters: %v\n", pFinal)
+			su := fmt.Sprintf("sample space:\t%f\n", uFinal)
+			logger.Println(mmio.FileName(gfrc.FilePath, false))
+			logger.Print(sp + su)
+			logger.Println("\n" + rr.EvalPNG(m, gfrc, mdl))
 		}()
 	case "GR4J":
 		func() {
@@ -105,10 +108,12 @@ func Optimize(ifrc *rr.Frc, mdl, logfp string) {
 
 			var m rr.Lumper = &rr.ManabeGW{}
 			pFinal := sample.ManabeGW(uFinal)
-			fmt.Printf("\nfinal parameters: %v\n", pFinal)
-			fmt.Printf("sample space:\t\t%f\n", uFinal)
+			sp := fmt.Sprintf("\nfinal parameters: %v\n", pFinal)
+			su := fmt.Sprintf("sample space:\t\t%f\n", uFinal)
 			m.New(pFinal...)
-			rr.EvalPNG(m, gfrc, mdl)
+			logger.Println(mmio.FileName(gfrc.FilePath, false))
+			logger.Print(sp + su)
+			logger.Println("\n" + rr.EvalPNG(m, gfrc, mdl))
 		}()
 	case "MultiLayerCapacitance":
 		func() { // check
@@ -117,10 +122,12 @@ func Optimize(ifrc *rr.Frc, mdl, logfp string) {
 
 			var m rr.Lumper = &rr.MultiLayerCapacitance{}
 			pFinal := sample.MultiLayerCapacitance(uFinal)
-			fmt.Printf("\nfinal parameters: %v\n", pFinal)
-			fmt.Printf("sample space:\t\t%f\n", uFinal)
+			sp := fmt.Sprintf("\nfinal parameters: %v\n", pFinal)
+			su := fmt.Sprintf("sample space:\t\t%f\n", uFinal)
 			m.New(pFinal...)
-			rr.EvalPNG(m, gfrc, mdl)
+			logger.Println(mmio.FileName(gfrc.FilePath, false))
+			logger.Print(sp + su)
+			logger.Println("\n" + rr.EvalPNG(m, gfrc, mdl))
 		}()
 	case "Quinn":
 		func() { // check
@@ -129,10 +136,12 @@ func Optimize(ifrc *rr.Frc, mdl, logfp string) {
 
 			var m rr.Lumper = &rr.Quinn{}
 			pFinal := sample.Quinn(uFinal)
-			fmt.Printf("\nfinal parameters: %v\n", pFinal)
-			fmt.Printf("sample space:\t\t%f\n", uFinal)
+			sp := fmt.Sprintf("\nfinal parameters: %v\n", pFinal)
+			su := fmt.Sprintf("sample space:\t\t%f\n", uFinal)
 			m.New(pFinal...)
-			rr.EvalPNG(m, gfrc, mdl)
+			logger.Println(mmio.FileName(gfrc.FilePath, false))
+			logger.Print(sp + su)
+			logger.Println("\n" + rr.EvalPNG(m, gfrc, mdl))
 		}()
 	case "SIXPAR":
 		func() { // check
@@ -141,22 +150,26 @@ func Optimize(ifrc *rr.Frc, mdl, logfp string) {
 
 			var m rr.Lumper = &rr.SIXPAR{}
 			pFinal := sample.SIXPAR(uFinal)
-			fmt.Printf("\nfinal parameters: %v\n", pFinal)
-			fmt.Printf("sample space:\t\t%f\n", uFinal)
+			sp := fmt.Sprintf("\nfinal parameters: %v\n", pFinal)
+			su := fmt.Sprintf("sample space:\t\t%f\n", uFinal)
 			m.New(pFinal...)
-			rr.EvalPNG(m, gfrc, mdl)
+			logger.Println(mmio.FileName(gfrc.FilePath, false))
+			logger.Print(sp + su)
+			logger.Println("\n" + rr.EvalPNG(m, gfrc, mdl))
 		}()
 	case "SPLR":
-		func() { // check (negative AET)
+		func() { // check (negative AET??)
 			uFinal, _ := glbopt.SCE(ncmplx, 6, rng, genSPLR, true)
 			// uFinal, _ := glbopt.SurrogateRBF(nrbf, 6, rng, genSPLR)
 
 			var m rr.Lumper = &rr.SPLR{}
 			pFinal := sample.SPLR(uFinal)
-			fmt.Printf("\nfinal parameters: %v\n", pFinal)
-			fmt.Printf("sample space:\t\t%f\n", uFinal)
+			sp := fmt.Sprintf("\nfinal parameters: %v\n", pFinal)
+			su := fmt.Sprintf("sample space:\t\t%f\n", uFinal)
 			m.New(pFinal...)
-			rr.EvalPNG(m, gfrc, mdl)
+			logger.Println(mmio.FileName(gfrc.FilePath, false))
+			logger.Print(sp + su)
+			logger.Println("\n" + rr.EvalPNG(m, gfrc, mdl))
 		}()
 	default:
 		fmt.Println("unrecognized model:" + mdl)
