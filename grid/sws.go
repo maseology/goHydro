@@ -21,11 +21,12 @@ func CollectSWS(swsFP string, gd *Definition) *SWS {
 	cs := gsws.Values()
 	sc := make(map[int][]int, len(gsws.UniqueValues()))
 	for c, s := range cs {
-		if _, ok := sc[s]; ok {
-			sc[s] = append(sc[s], c)
-		} else {
-			sc[s] = []int{c}
-		}
+		sc[s] = append(sc[s], c)
+		// if _, ok := sc[s]; ok {
+		// 	sc[s] = append(sc[s], c)
+		// } else {
+		// 	sc[s] = []int{c}
+		// }
 	}
 
 	// collect topology
@@ -34,7 +35,7 @@ func CollectSWS(swsFP string, gd *Definition) *SWS {
 	topoFP := mmio.RemoveExtension(swsFP) + ".topo"
 	nsws := len(sc)
 	if _, ok := mmio.FileExists(topoFP); ok {
-		d, err := mmio.ReadCSV(topoFP)
+		d, err := mmio.ReadCSV(topoFP, 1)
 		if err != nil {
 			log.Fatalf(" Loader.readSWS: error reading %s: %v\n", topoFP, err)
 		}
