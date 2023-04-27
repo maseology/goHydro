@@ -9,9 +9,9 @@ import (
 	"github.com/maseology/glbopt"
 	rr "github.com/maseology/goHydro/rainrun"
 	"github.com/maseology/goHydro/rainrun/sample"
+	mrg63k3a "github.com/maseology/goPRNG/MRG63k3a"
 	"github.com/maseology/mmio"
 	"github.com/maseology/objfunc"
-	mrg63k3a "github.com/maseology/pnrg/MRG63k3a"
 )
 
 const (

@@ -9,6 +9,7 @@ import (
 type HSTRAT struct {
 	Nam              string
 	Nn, Ne, Nly, Epl int
+	MinThick         float64     // minimum thickness
 	Nxyz, Vxyz       [][]float64 // node coordinates, velocities
 	Exr, Nxr         [][]int     // element-node & node-element cross-reference
 	Nh               []float64   // nodal heads
@@ -39,7 +40,6 @@ func ReadHSTRAT(fp string, prnt bool) (*HSTRAT, error) {
 		panic("mesh ReadHSTRAT todo")
 	}
 	minthick := mmio.ReadFloat64(b)
-	_ = minthick
 
 	nds := make([][]float64, nnds)
 	for i := 0; i < nnds; i++ {
@@ -134,8 +134,9 @@ func ReadHSTRAT(fp string, prnt bool) (*HSTRAT, error) {
 		Ne:   nels,
 		Epl:  epl,
 		// Nsl:    nly + 1,
-		Nly:  nly,
-		Hgeo: hgeo,
+		Nly:      nly,
+		MinThick: minthick,
+		Hgeo:     hgeo,
 	}, nil
 }
 
@@ -206,4 +207,17 @@ func (h *HSTRAT) BuildElementalConnectivity(cardinalOnly bool) map[int][]int {
 		}
 	}
 	return o
+}
+
+func (h *HSTRAT) TopSlice() *Slice {
+	npl := h.Nn / (h.Nly + 1)
+	nds := make([][]float64, npl)
+	for i := 0; i < npl; i++ {
+		nds[i] = h.Nxyz[i]
+	}
+	els := make([][]int, h.Epl)
+	for i := 0; i < h.Epl; i++ {
+		els[i] = []int{h.Exr[i][0], h.Exr[i][1], h.Exr[i][2]}
+	}
+	return NewSlice(h.Nam, nds, els, false)
 }

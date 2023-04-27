@@ -3,14 +3,16 @@ package grid
 import (
 	"fmt"
 	"log"
+	"math"
 
 	"github.com/maseology/mmio"
 )
 
 type HSTRAT struct {
-	Nam   string
-	Nlay  int
-	Cells map[int]Cell
+	Nam      string
+	MinThick float64
+	Nlay     int
+	Cells    map[int]Cell
 }
 
 type Cell struct {
@@ -35,8 +37,8 @@ func ReadHSTRAT(fp string, print bool) (*HSTRAT, error) {
 	}
 
 	nam := mmio.ReadString(b)
-	cs, nlay := func() (map[int]Cell, int) {
-		cs := make(map[int]Cell)
+	cs, minthick, nlay := func() (map[int]Cell, float64, int) {
+		cs, tn := make(map[int]Cell), float32(math.MaxFloat32)
 		dnlay := make(map[int]bool)
 		nc := gd.Ncells()
 		for {
@@ -49,6 +51,9 @@ func ReadHSTRAT(fp string, print bool) (*HSTRAT, error) {
 			for ly := 0; ly < nl; ly++ {
 				lcid := int(cid) + ly*nc
 				bottom := mmio.ReadFloat32(b)
+				if top-bottom < tn {
+					tn = top - bottom
+				}
 				c := Cell{
 					Top:    top,
 					Bottom: bottom,
@@ -75,15 +80,15 @@ func ReadHSTRAT(fp string, print bool) (*HSTRAT, error) {
 			nlys = append(nlys, k)
 		}
 		if len(nlys) == 1 {
-			return cs, nlys[0]
+			return cs, float64(tn), nlys[0]
 		}
-		return cs, -1
-
+		return cs, float64(tn), -1
 	}()
 
 	return &HSTRAT{
-		Nam:   nam,
-		Nlay:  nlay,
-		Cells: cs,
+		Nam:      nam,
+		MinThick: minthick,
+		Nlay:     nlay,
+		Cells:    cs,
 	}, nil
 }

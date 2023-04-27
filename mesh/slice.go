@@ -15,7 +15,7 @@ import (
 	"github.com/maseology/mmio"
 )
 
-// Slice struct of a uniform grid
+// Slice struct of a finite element mesh
 type Slice struct {
 	Nodes          [][]float64
 	Elements, NExr [][]int
@@ -24,29 +24,29 @@ type Slice struct {
 	r              float64 // "radius" set to longest edge
 }
 
-// // NewSlice constructs a basic fem mesh
-// func NewSlice(nam string, nr, nc int, UniformCellSize float64) *Slice {
-// 	var gd Slice
-// 	gd.Name = nam
-// 	gd.Nrow, gd.Ncol, gd.Nact = nr, nc, nr*nc
-// 	gd.Cwidth = UniformCellSize
-// 	gd.Sactives = make([]int, gd.Nact)
-// 	gd.act = make(map[int]bool, gd.Nact)
-// 	for i := 0; i < gd.Nact; i++ {
-// 		gd.Sactives[i] = i
-// 		gd.act[i] = true
-// 	}
-// 	gd.Coord = make(map[int]mmaths.Point, gd.Nact)
-// 	cid := 0
-// 	for i := 0; i < gd.Nrow; i++ {
-// 		for j := 0; j < gd.Ncol; j++ {
-// 			p := mmaths.Point{X: gd.Eorig + UniformCellSize*(float64(j)+0.5), Y: gd.Norig - UniformCellSize*(float64(i)+0.5)}
-// 			gd.Coord[cid] = p
-// 			cid++
-// 		}
-// 	}
-// 	return &gd
-// }
+// NewSlice constructs a basic fem mesh
+func NewSlice(nam string, nds [][]float64, els [][]int, prnt bool) *Slice {
+	ex := 0.
+	for _, ni := range els {
+		chk := func(p0, p1 []float64) {
+			d2 := math.Pow(p0[0]-p1[0], 2) + math.Pow(p0[1]-p1[1], 2)
+			if d2 > ex {
+				ex = d2
+			}
+		}
+		chk(nds[ni[0]], nds[ni[1]])
+		chk(nds[ni[0]], nds[ni[2]])
+		chk(nds[ni[2]], nds[ni[1]])
+	}
+
+	sl := Slice{Name: nam, Nodes: nds, Elements: els, r: math.Sqrt(ex)}
+	sl.buildXR()
+
+	if prnt {
+		fmt.Printf("\n slice %s\n  nElements %d\n  nNodes %d\n  radius %.3f\n\n", nam, len(sl.Elements), len(sl.Nodes), sl.r)
+	}
+	return &sl
+}
 
 // ReadAlgomesh imports a Algomesh grids in .ah2 or .ah3
 func ReadAlgomesh(fp string, prnt bool) (*Slice, error) {
@@ -257,12 +257,17 @@ func (sl *Slice) PointToElementID(x, y float64) int {
 }
 
 func (sl *Slice) LineToNodeIDs(x0, y0, x1, y1 float64) []int {
-	ln := mmaths.LineSegment{P0: mmaths.Point{x0, y0, 0., 0.}, P1: mmaths.Point{x1, y1, 0., 0.}}
+	ln := mmaths.LineSegment{P0: mmaths.Point{X: x0, Y: y0}, P1: mmaths.Point{X: x1, Y: y1}}
 	ln.Build()
-	ext := mmaths.Extent{math.Min(x0, x1) - sl.r, math.Max(x0, x1) + sl.r, math.Min(y0, y1) - sl.r, math.Max(y0, y1) + sl.r}
+	ext := mmaths.Extent{
+		Xn: math.Min(x0, x1) - sl.r,
+		Xx: math.Max(x0, x1) + sl.r,
+		Yn: math.Min(y0, y1) - sl.r,
+		Yx: math.Max(y0, y1) + sl.r,
+	}
 	nids := []int{}
 	for i, xy := range sl.Nodes {
-		p := &mmaths.Point{xy[0], xy[1], 0., 0.}
+		p := mmaths.Point{X: xy[0], Y: xy[1]}
 		if ext.Contains(p) {
 			if ln.Intersects(p, sl.r) {
 				nids = append(nids, i)

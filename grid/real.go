@@ -34,7 +34,7 @@ func (r *Real) getGDef(fp string) {
 
 func (r *Real) getBinary(fp string) {
 	r.A = make(map[int]float64, r.GD.Nact)
-	b, n, err := mmio.ReadBinaryFloats(fp, 1)
+	b, n, err := mmio.ReadBinaryFloat64s(fp, 1)
 	if err != nil {
 		log.Fatalf("%v", err)
 	}
