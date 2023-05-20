@@ -457,6 +457,15 @@ func (gd *Definition) NullArray(nodatavalue float64) []float64 {
 	return o
 }
 
+func (gd *Definition) NullFloat32(nodatavalue float32) []float32 {
+	nc := gd.Ncells()
+	o := make([]float32, nc)
+	for i := 0; i < nc; i++ {
+		o[i] = nodatavalue
+	}
+	return o
+}
+
 func (gd *Definition) NullInt32(nodatavalue int32) []int32 {
 	nc := gd.Ncells()
 	o := make([]int32, nc)
@@ -693,6 +702,20 @@ func (gd *Definition) LineToCellIDs(x0, y0, x1, y1 float64) []int {
 		o = append(o, k)
 	}
 	sort.Ints(o)
+	return o
+}
+
+func (gd *Definition) Buffers(cardinal, isActive bool) map[int][]int {
+	o := make(map[int][]int, gd.Nact)
+	if gd.act == nil {
+		isActive = false
+	}
+	for _, c := range gd.Sactives {
+		if c == 96368751 {
+			print("")
+		}
+		o[c] = gd.Buffer(c, cardinal, isActive)
+	}
 	return o
 }
 

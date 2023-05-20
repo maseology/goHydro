@@ -30,22 +30,23 @@ func (r *Real) ImportBil(fp string) error {
 	}
 
 	// build grid mapping
-	cid, na := -1, 0
+	cid := -1
+	cids := make([]int, 0, n)
 	r.A = make(map[int]float64, n)
 	r.GD.Coord = make(map[int]mmaths.Point)
 	for i := 0; i < r.GD.Nrow; i++ {
 		for j := 0; j < r.GD.Ncol; j++ {
 			cid++
-			if float64(v[cid]) == nd {
+			v64 := float64(v[cid])
+			if v64 == nd {
 				continue
 			}
-			r.A[cid] = float64(v[cid])
+			r.A[cid] = v64
 			p := mmaths.Point{X: r.GD.Eorig + r.GD.Cwidth*(float64(j)+0.5), Y: r.GD.Norig - r.GD.Cwidth*(float64(i)+0.5)}
 			r.GD.Coord[cid] = p
-			r.GD.Sactives = append(r.GD.Sactives, cid)
-			na++
+			cids = append(cids, cid)
 		}
 	}
-	r.GD.Nact = na
+	r.GD.ResetActives(cids)
 	return nil
 }
