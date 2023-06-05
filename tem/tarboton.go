@@ -1,8 +1,6 @@
 package tem
 
-import (
-	"math"
-)
+import "math"
 
 var (
 	re1   = [8]int{0, -1, -1, 0, 0, 1, 1, 0}

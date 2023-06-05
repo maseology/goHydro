@@ -129,7 +129,7 @@ func (t *TEM) SubSet(fromid int) TEM {
 	return TEM{TEC: tss, USlp: uss}
 }
 
-func (t *TEM) downslopes() map[int]int {
+func (t *TEM) Downslopes() map[int]int {
 	ds := make(map[int]int, len(t.USlp))
 	for to, v := range t.USlp {
 		for _, from := range v {

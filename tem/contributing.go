@@ -29,7 +29,7 @@ func (t *TEM) DownslopeContributingAreaIDs(cid0 int) ([]int, map[int]int) {
 		return true
 	}
 
-	dsa := t.downslopes() // from{to}
+	dsa := t.Downslopes() // from{to}
 	c, ds, i := make([]int, len(t.TEC)), make(map[int]int), 0
 	for _, k := range t.Peaks(cid0) {
 		queue.PushBack(k) // initial enqueue

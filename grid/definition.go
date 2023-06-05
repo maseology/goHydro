@@ -711,16 +711,16 @@ func (gd *Definition) Buffers(cardinal, isActive bool) map[int][]int {
 		isActive = false
 	}
 	for _, c := range gd.Sactives {
-		if c == 96368751 {
-			print("")
-		}
 		o[c] = gd.Buffer(c, cardinal, isActive)
 	}
 	return o
 }
 
 func (gd *Definition) Buffer(cid0 int, cardinal, isActive bool) []int {
-	var i []int
+	i := make([]int, 0, 8)
+	// 0 1 2
+	// 3   4
+	// 5 6 7
 	iabs := func(x int) int {
 		if x < 0 {
 			return -x
@@ -731,6 +731,9 @@ func (gd *Definition) Buffer(cid0 int, cardinal, isActive bool) []int {
 	for m := -1; m <= 1; m++ {
 		for n := -1; n <= 1; n++ {
 			if cardinal && iabs(m) == iabs(n) {
+				continue
+			}
+			if m == 0 && n == 0 {
 				continue
 			}
 			cid1 := gd.CellID(r+m, c+n)

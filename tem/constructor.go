@@ -33,7 +33,7 @@ func (t *TEM) New(fp string) error {
 	}
 
 	t.checkVals()
-	t.BuildUpslopes(ds)
+	t.buildUpslopes(ds)
 	return nil
 }
 

@@ -25,8 +25,8 @@ func NewFromReal(r grid.Real) (*TEM, error) {
 		t.TEC[c] = TEC{Z: z, G: g, A: a}
 	}
 
-	ds := t.buildDs(bufs)
+	ds := t.buildDsFromNeighbours(bufs)
 	// t.checkVals()
-	t.BuildUpslopes(ds)
+	t.buildUpslopes(ds)
 	return &t, nil
 }
