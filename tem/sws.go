@@ -181,8 +181,7 @@ func (t *TEM) SubwatershedsHeadwater(gd *grid.Definition, area float64) (map[int
 func dissolve(gd *grid.Definition, ws, cc, ds map[int]int, area float64) map[int]int {
 	fmt.Println("  dissolving smaller sws with larger")
 
-	thrsh := int(area / gd.Cwidth / gd.Cwidth) //int(1000 * 1000 / gd.Cwidth / gd.Cwidth)
-	crwl := gd.ToCrawler()
+	thrsh := int(area / gd.Cwidth / gd.Cwidth)         //int(1000 * 1000 / gd.Cwidth / gd.Cwidth)
 	minv := func(m map[int]int, n int) map[int][]int { // invert maps
 		o := make(map[int][]int, n)
 		for c, g := range m {
@@ -194,8 +193,21 @@ func dissolve(gd *grid.Definition, ws, cc, ds map[int]int, area float64) map[int
 		}
 		return o
 	}
-	iws, _, ng := crwl.CrawlByInt(ws, false)
-	msws := minv(iws, ng)
+	// crwl := gd.ToCrawler()
+	// iws, _, ng := crwl.CrawlByInt(ws, false)
+	// // iws = func() map[int]int {
+	// // 	o := make(map[int]int, len(iws))
+	// // 	for c, g := range iws {
+	// // 		o[c] = g
+	// // 	}
+	// // 	return o
+	// // }()
+	// msws := minv(iws, ng)
+	gcoll := make(map[int]int)
+	for _, v := range ws {
+		gcoll[v]++
+	}
+	msws := minv(ws, len(gcoll))
 	remap := make(map[int]int)
 	for g, a := range msws {
 		if len(a) <= thrsh {
@@ -210,7 +222,7 @@ func dissolve(gd *grid.Definition, ws, cc, ds map[int]int, area float64) map[int
 				return cx
 			}()
 			if d, ok := ds[pp]; ok {
-				remap[g] = iws[d]
+				remap[g] = ws[d] // iws[d]
 			} else {
 				remap[g] = -1
 			}

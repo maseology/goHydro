@@ -67,8 +67,6 @@ func (crwl *Crawler) CrawlByInt(m map[int]int, byKey bool) (groupId map[int]int,
 		}
 	}
 	ng = igrp + 1
-	// println(len(m))
-	// println(igrp)
 	return
 }
 
