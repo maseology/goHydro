@@ -81,7 +81,7 @@ func (t *TEM) FillDepressions(gd *grid.Definition) {
 			panic("FillDepressions.buildflowpaths err5")
 		}
 	}
-	t.buildUpslopes(t.buildDsFromNeighbours(bufs))
+	t.BuildUpslopes(t.buildDsFromNeighbours(bufs))
 }
 
 func fixflatregions(gd *grid.Definition, zs, flat map[int]float64, bufs map[int][]int) map[int]float64 {

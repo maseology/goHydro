@@ -3,14 +3,14 @@ package rainrun
 import (
 	"math"
 
-	"github.com/maseology/goHydro/transfunc"
+	"github.com/maseology/goHydro/convolution"
 )
 
 // HBV model
 // Bergström, S., 1976. Development and application of a conceptual runoff model for Scandinavian catchments. SMHI RHO 7. Norrköping. 134 pp.
 // Bergström, S., 1992. The HBV model - its structure and applications. SMHI RH No 4. Norrköping. 35 pp
 type HBV struct {
-	tf                                                          transfunc.TF
+	maxbas                                                      convolution.TF
 	fc, lp, beta, sm, suz, slz, uzl, k0, k1, k2, perc, lakefrac float64
 }
 
@@ -25,20 +25,20 @@ func (m *HBV) New(p ...float64) {
 		m.uzl = 10.
 		m.k0, m.k1, m.k2 = .5, .3, .1 // fast, slow, and baseflow recession coefficients
 		m.perc = 1.
-		m.tf = transfunc.NewTF(3., 0.5, 0.) // MAXBAS: triangular weighted transfer function
+		m.maxbas = convolution.NewTTF(3., 0.5, 0.) // MAXBAS: triangular weighted transfer function
 		m.lakefrac = 0.
 	} else {
 		// if fracCheck(p[1]) || fracCheck(p[4]) || fracCheck(p[5]) || fracCheck(p[6]) { // || fracCheck(p[9]) {
 		// 	panic("HBV input error")
 		// }
-		m.fc = p[0]                           // max basin moisture storage
-		m.lp = p[1]                           // soil moisture parameter
-		m.beta = p[2]                         // soil moisture parameter
-		m.uzl = p[3]                          // upper zone fast flow limit
-		m.k0, m.k1, m.k2 = p[4], p[5], p[6]   // fast, slow, and baseflow recession coefficients
-		m.perc = p[7]                         // upper-to-lower zone percolation, assuming percolation rate = Ksat
-		m.tf = transfunc.NewTF(p[8], 0.5, 0.) // MAXBAS: triangular weighted transfer function
-		m.lakefrac = 0.                       // p[9]                   // lake fraction
+		m.fc = p[0]                                  // max basin moisture storage
+		m.lp = p[1]                                  // soil moisture parameter
+		m.beta = p[2]                                // soil moisture parameter
+		m.uzl = p[3]                                 // upper zone fast flow limit
+		m.k0, m.k1, m.k2 = p[4], p[5], p[6]          // fast, slow, and baseflow recession coefficients
+		m.perc = p[7]                                // upper-to-lower zone percolation, assuming percolation rate = Ksat
+		m.maxbas = convolution.NewTTF(p[8], 0.5, 0.) // MAXBAS: triangular weighted transfer function
+		m.lakefrac = 0.                              // p[9]                   // lake fraction
 	}
 }
 
@@ -103,10 +103,10 @@ func (m *HBV) hBVrunoff() (float64, float64) {
 
 	// stream flow response function
 	rgen := q0 + q1 + q2 // generated runoff
-	for i := 1; i <= len(m.tf.QT); i++ {
-		m.tf.SQ[i-1] = m.tf.SQ[i] + m.tf.QT[i-1]*rgen
+	for i := 1; i <= len(m.maxbas.QT); i++ {
+		m.maxbas.SQ[i-1] = m.maxbas.SQ[i] + m.maxbas.QT[i-1]*rgen
 	}
-	q := m.tf.SQ[0]
+	q := m.maxbas.SQ[0]
 
 	// percolate to lower reservoir
 	g := math.Min(m.perc, m.suz)

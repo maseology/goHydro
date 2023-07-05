@@ -1,4 +1,4 @@
-package transfunc
+package convolution
 
 import "math"
 

@@ -41,7 +41,7 @@ func ReadOWRC(csvfp string, cakm2, latitude float64) ([]time.Time, []Dset) {
 	}
 	defer f.Close()
 
-	recs := mmio.LoadCSV(io.Reader(f)) // "Date","Flow","Flag","Tx","Tn","Rf","Sf","Sm","Pa"
+	recs := mmio.LoadCSV(io.Reader(f),1) // "Date","Flow","Flag","Tx","Tn","Rf","Sf","Sm","Pa"
 	o, ts := make([]Dset, 0), make([]time.Time, 0)
 	si := solirrad.New(latitude, 0., 0.)
 	for rec := range recs {

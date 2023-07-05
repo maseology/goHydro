@@ -1,9 +1,9 @@
 package rainrun
 
 import (
+	"github.com/maseology/goHydro/convolution"
 	"github.com/maseology/goHydro/snowpack"
 	"github.com/maseology/goHydro/solirrad"
-	"github.com/maseology/goHydro/transfunc"
 )
 
 // CCFHBV model
@@ -30,7 +30,7 @@ func (m *CCFHBV) New(p ...float64) {
 	m.perc = p[7]                       // upper-to-lower zone percolation, assuming percolation rate = Ksat
 	m.lakefrac = 0.                     //p[9]                   // lake fraction
 
-	m.tf = transfunc.NewTF(p[8], 0.5, 0.) // MAXBAS: triangular weighted transfer function
+	m.maxbas = convolution.NewTTF(p[8], 0.5, 0.) // MAXBAS: triangular weighted transfer function
 
 	// Cold-content snow melt funciton
 	tindex, ddfc, baseT, tsf := p[9], p[10], p[11], p[12]

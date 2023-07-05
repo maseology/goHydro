@@ -14,7 +14,7 @@ type Real struct {
 
 // New constructor
 func (r *Real) New(fp string) {
-	r.getGDef(fp + ".gdef")
+	r.getGDEF(fp + ".gdef")
 	r.getBinary(fp)
 }
 
@@ -24,7 +24,7 @@ func (r *Real) NewGD32(fp string, gd *Definition) {
 	r.getBinary32(fp, true)
 }
 
-func (r *Real) getGDef(fp string) {
+func (r *Real) getGDEF(fp string) {
 	var err error
 	r.GD, err = ReadGDEF(fp, true)
 	if err != nil {
@@ -79,4 +79,17 @@ func (r *Real) getBinary32(fp string, rowmajor bool) {
 	default:
 		log.Fatalf(" Real.getBinary: grid does not match definition length")
 	}
+}
+
+func (r *Real) ResetToGDEF(gdeffp string) {
+	var err error
+	r.GD, err = ReadGDEF(gdeffp, true)
+	if err != nil {
+		log.Fatalf("%v", err)
+	}
+	newa := make(map[int]float64, r.GD.Nact)
+	for _, c := range r.GD.Sactives {
+		newa[c] = r.A[c]
+	}
+	r.A = newa
 }

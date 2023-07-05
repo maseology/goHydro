@@ -67,5 +67,6 @@ func gridSlopeAspectTarboton(bufz map[int]float64, cid0, ncol int, cw float64) (
 	if rg > math.Pi {
 		rg -= 2 * math.Pi // [-pi,pi]
 	}
+
 	return sx, rg
 }

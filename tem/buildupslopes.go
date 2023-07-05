@@ -1,7 +1,7 @@
 package tem
 
 // BuildUpslopes re-builds upslope mapping
-func (t *TEM) buildUpslopes(ds map[int]int) {
+func (t *TEM) BuildUpslopes(ds map[int]int) {
 	tu := make(map[int][]int)
 	for i := range t.TEC {
 		if di, ok := ds[i]; ok && di >= 0 {

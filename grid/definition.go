@@ -14,6 +14,7 @@ import (
 	"sync"
 
 	"github.com/maseology/mmaths"
+	"github.com/maseology/mmaths/slice"
 	"github.com/maseology/mmio"
 )
 
@@ -22,7 +23,7 @@ type Definition struct {
 	Coord                          map[int]mmaths.Point
 	act                            map[int]bool
 	cwidths, cheights              []float64 // variable cell widths and heights
-	Sactives                       []int     // a sorted slice of active cell IDs
+	Sactives                       []int     // an ordered slice of active cell IDs
 	Eorig, Norig, Rotation, Cwidth float64   // Xul; Yul; grid rotation about ULorigin; cell width
 	Nrow, Ncol, Nact               int
 	Name                           string
@@ -689,19 +690,29 @@ func (gd *Definition) LineToCellIDs(x0, y0, x1, y1 float64) []int {
 		}
 	}
 
-	d := make(map[int]bool, len(aIntersect))
-	for _, p := range aIntersect {
+	// d := make(map[int]bool, len(aIntersect))
+	// for _, p := range aIntersect {
+	// 	if gd.Rotation != 0.0 {
+	// 		panic("GD.LineToCellIDs TODO")
+	// 		// p.Rotate(_rotation, False)
+	// 	}
+	// 	d[gd.PointToCellID(p.X, p.Y)] = true
+	// }
+	// o := make([]int,  len(d))
+	// for k := range d {
+	// 	o = append(o, k)
+	// }
+	// sort.Ints(o)
+	o := make([]int, len(aIntersect)+2)
+	o[0] = gd.PointToCellID(x0, y0)
+	o[len(aIntersect)+1] = gd.PointToCellID(x1, y1)
+	for i, p := range aIntersect {
 		if gd.Rotation != 0.0 {
 			panic("GD.LineToCellIDs TODO")
-			// p.Rotate(_rotation, False)
 		}
-		d[gd.PointToCellID(p.X, p.Y)] = true
+		o[i+1] = gd.PointToCellID(p.X, p.Y)
 	}
-	o := make([]int, 0, len(d))
-	for k := range d {
-		o = append(o, k)
-	}
-	sort.Ints(o)
+	o = slice.Distinct(o)
 	return o
 }
 

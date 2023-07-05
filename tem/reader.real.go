@@ -1,6 +1,8 @@
 package tem
 
 import (
+	"math"
+
 	"github.com/maseology/goHydro/grid"
 )
 
@@ -16,7 +18,9 @@ func NewFromReal(r grid.Real) (*TEM, error) {
 		bufz[c] = z
 		for _, cc := range bufs[c] {
 			if cc >= 0 {
-				bufz[cc] = r.A[cc]
+				if !math.IsInf(r.A[cc], 0) {
+					bufz[cc] = r.A[cc]
+				}
 			}
 		}
 
@@ -27,6 +31,6 @@ func NewFromReal(r grid.Real) (*TEM, error) {
 
 	ds := t.buildDsFromNeighbours(bufs)
 	// t.checkVals()
-	t.buildUpslopes(ds)
+	t.BuildUpslopes(ds)
 	return &t, nil
 }
