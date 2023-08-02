@@ -12,31 +12,38 @@ const tsmin = 15
 
 func (m *Domain) Run(frc *forcing.Forcing, dtb, dte time.Time, par Params) ([]time.Time, []float64, []float64) {
 
+	if len(m.Order) < 1 {
+		m.Order = []int{0}
+		m.Mxr = map[int]int{0: 0}
+	}
 	ste := make([]state, len(m.Order))
 	totarea := 0.
 	for _, i := range m.Order {
 		w := m.SB[i]
-		if _, ok := m.Mxr[w.MetID]; !ok {
-			panic("hechms.Domain.Run MetID error")
+		// if _, ok := m.Mxr[w.MetID]; !ok {
+		// 	panic("hechms.Domain.Run MetID error")
+		// }
+		if _, ok := m.Mxr[w.Swsid]; !ok {
+			panic("hechms.Domain.Run Swsid (for MetID) error")
 		}
-		trnfrm := convolution.Snyder2(w.Area, par.Tb, par.Cp, tsmin)
+		trnfrm := convolution.Snyder2(w.Area, par.Tb, par.Cp, tsmin) // []float64{1.} //
 		ste[i] = state{
-			ia:     0., // w.Percov,
+			ia:     w.Ia,
 			trnfrm: trnfrm,
 			qlag:   make([]float64, len(trnfrm)),
-			cn:     w.CN,
+			scn:    25400./w.CN - 254., // mm
 			area:   w.Area,
-			fimp:   w.Perimp,
-			mid:    m.Mxr[w.MetID],
+			fimp:   w.Fimp,
+			// mid:    m.Mxr[w.MetID],
+			mid: m.Mxr[w.Swsid],
 		}
 		totarea += w.Area
 	}
-	totarea /= 1000. // to convert outputs to mm
 
-	jtb, jte := func() (int, int) {
+	jtb, jte := func() (int, int) { // get interval by index
 		j0, j1 := -1, -1
 		for i, t := range frc.T {
-			if j0 < 0 && t.After(dtb) {
+			if j0 < 0 && t.After(dtb) || t.Equal(dtb) {
 				j0 = i
 			}
 			if j0 >= 0 && t.After(dte) {
@@ -52,7 +59,7 @@ func (m *Domain) Run(frc *forcing.Forcing, dtb, dte time.Time, par Params) ([]ti
 
 	timestep := tsmin * 60
 	substeps := int(frc.IntervalSec) / timestep
-	ns := int(substeps) * (jte - jtb + 1)
+	ns, fss := substeps*(jte-jtb+1), float64(substeps)
 	sim, pre := make([]float64, ns), make([]float64, ns)
 	dts := make([]time.Time, ns)
 	pcum, qcum := 0., 0.
@@ -62,9 +69,9 @@ func (m *Domain) Run(frc *forcing.Forcing, dtb, dte time.Time, par Params) ([]ti
 			dts[jj] = frc.T[j].Add(time.Second * time.Duration(timestep*k))
 			qall, psum := 0., 0.
 			for _, i := range m.Order {
-				p, q := frc.Ya[ste[i].mid][j]/float64(substeps), 0.
+				p, q := frc.Ya[ste[i].mid][j]/fss, 0.
 				if p > 0. {
-					q = ste[i].scscn(p*(1-ste[i].fimp)) + p*ste[i].fimp // Loss
+					q = ste[i].scscn(p)*(1-ste[i].fimp) + p*ste[i].fimp // Loss
 					for j, u := range ste[i].trnfrm {
 						ste[i].qlag[j] += q * u // transform
 					}
@@ -79,6 +86,17 @@ func (m *Domain) Run(frc *forcing.Forcing, dtb, dte time.Time, par Params) ([]ti
 			pcum += pre[jj]
 		}
 	}
-	fmt.Println(pcum, qcum, qcum/pcum)
+	fmt.Printf(" p: %.1f q: %.1f mm  q/p = %.3f  qmax: %.1f cms\n", pcum, qcum, qcum/pcum, func() float64 {
+		mx := 0.
+		for _, m := range sim {
+			if m > mx {
+				mx = m
+			}
+		}
+		return mx * totarea * 1000. / 60. / float64(tsmin) // convert to cms
+	}())
+	// for j := range sim {
+	// 	sim[j] *= totarea * 1000. / 60. / float64(tsmin) // convert to cms
+	// }
 	return dts, sim, pre
 }

@@ -11,19 +11,20 @@ import (
 func GetForcings(mids []int, ncfp string) Forcing {
 	tt := time.Now()
 
-	vars := []string{
-		// "air_temperature",
-		// "air_pressure",
-		// "relative_humidity",
-		// "wind_speed",
-		"water_potential_evaporation_amount",
-		"rainfall_amount",
-		// "snowfall_amount",
-		"surface_snow_melt_amount",
-	}
+	vars := []string{"precipitation_amount"}
+	// vars := []string{
+	// 	// "air_temperature",
+	// 	// "air_pressure",
+	// 	// "relative_humidity",
+	// 	// "wind_speed",
+	// 	"water_potential_evaporation_amount",
+	// 	"rainfall_amount",
+	// 	// "snowfall_amount",
+	// 	"surface_snow_melt_amount",
+	// }
 	fmt.Println("loading: " + ncfp)
-	g, _ := gmet.LoadNC(ncfp, vars)
-	fmt.Printf("  Dates available: %v to %v\n", g.Ts[0], g.Ts[g.Nts-1])
+	g, _ := gmet.LoadNC(ncfp, "MadRiver2023-", vars)
+	// fmt.Printf("  Dates available (may not be in order): %v to %v\n", g.Ts[0], g.Ts[g.Nts-1])
 	// collect sequential dates
 	ts, xt, nts := func() ([]time.Time, []int, int) {
 		d := make(map[int64]int, g.Nts)
@@ -61,14 +62,9 @@ func GetForcings(mids []int, ncfp string) Forcing {
 				break
 			}
 		}
-		fmt.Printf("  Dates available2: %v to %v\n", o[0], o[len(o)-1])
+		fmt.Printf("  Dates available: %v to %v\n", o[0], o[len(o)-1])
 		return o, x, len(o)
 	}()
-
-	// collect data
-	rf := g.GetAllData("rainfall_amount")
-	sm := g.GetAllData("surface_snow_melt_amount")
-	eao := g.GetAllData("water_potential_evaporation_amount")
 
 	// collect subset of met IDs
 	mmid := make(map[int]int, len(g.Sids))
@@ -76,7 +72,14 @@ func GetForcings(mids []int, ncfp string) Forcing {
 		mmid[s] = i
 	}
 
-	ys, es, el := make([][]float64, len(mids)), make([][]float64, len(mids)), .001
+	// collect data
+	pre := g.GetAllData("precipitation_amount")
+	// rf := g.GetAllData("rainfall_amount")
+	// sm := g.GetAllData("surface_snow_melt_amount")
+	// eao := g.GetAllData("water_potential_evaporation_amount")
+
+	ys := make([][]float64, len(mids))
+	// es, el :=  make([][]float64, len(mids)), .001
 	min0 := func(x float64, s string, m int, t time.Time) float64 {
 		if math.IsNaN(x) {
 			fmt.Printf("   > %s Nan (%d): %v -- set to zero\n", s, m, t)
@@ -89,21 +92,23 @@ func GetForcings(mids []int, ncfp string) Forcing {
 	}
 	for ii, s := range mids {
 		if i, ok := mmid[s]; ok {
-			ya, ea := make([]float64, nts), make([]float64, nts)
+			ya := make([]float64, nts)
+			// ea := make([]float64, nts)
 			for j, t := range ts {
 				jj := xt[j]
 				if jj >= 0 {
-					ya[j] = min0(rf[i][jj], "rf", s, t) + min0(sm[i][jj], "sf", s, t)
+					ya[j] = min0(pre[i][jj], "pre", s, t)
+					// ya[j] = min0(rf[i][jj], "rf", s, t) + min0(sm[i][jj], "sm", s, t)
 				}
-				if jj >= 0 && eao[i][jj] >= 0. {
-					ea[j] = eao[i][jj] / 1000. // to [m]
-					el = ea[j]
-				} else {
-					ea[j] = el // infilling with last
-				}
+				// if jj >= 0 && eao[i][jj] >= 0. {
+				// 	ea[j] = eao[i][jj] / 1000. // to [m]
+				// 	el = ea[j]
+				// } else {
+				// 	ea[j] = el // infilling with last
+				// }
 			}
 			ys[ii] = ya
-			es[ii] = ea
+			// es[ii] = ea
 		} else {
 			panic("loadForcings error: met index does not contain sws index")
 		}
@@ -112,7 +117,7 @@ func GetForcings(mids []int, ncfp string) Forcing {
 	frc := Forcing{
 		T:  ts,
 		Ya: ys,
-		Ea: es,
+		// Ea: es,
 		// XR:          cixr,
 		IntervalSec: intvl,
 	}

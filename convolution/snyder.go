@@ -19,6 +19,7 @@ func Snyder(Akm2, Ct, Cp, L, Lc, tsminutes float64) []float64 {
 
 // Snyder2 same as above, only lag time and peak coefficient are specified (like HEC-HMS)
 func Snyder2(Akm2, tp, Cp, tsminutes float64) []float64 {
+	// following example pg. 119 Cebient Huber
 	ami2 := Akm2 / 1.60934 / 1.60934      // convert to mi²
 	qp := 640 * Cp * ami2 / tp            // cfs
 	tb := 4 * tp                          // hr; for small watersheds
@@ -33,6 +34,11 @@ func Snyder2(Akm2, tp, Cp, tsminutes float64) []float64 {
 		{X: tp + 2*w75/3, Y: 3 * qp / 4},
 		{X: tp + 2*w50/3, Y: qp / 2},
 		{X: tb, Y: 0},
+	}
+	for _, c := range pts {
+		if c.X < 0 {
+			panic("Snyder2: negative ordinate")
+		}
 	}
 	tshr := tsminutes / 60.
 	nstep := int(math.Floor(tb / tshr))

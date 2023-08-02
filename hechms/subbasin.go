@@ -8,7 +8,7 @@ type Domain struct {
 
 type SubBasin struct {
 	Name string
-	Percov, Perimp, CN,
+	Ia, Fimp, CN,
 	FlowPathLen, FlowPathSlope,
 	BasinSlope, BasinRelief, BasinRelRatio,
 	DrainDensity, Elongation, Area float64
