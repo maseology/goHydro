@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"encoding/gob"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"strconv"
@@ -12,6 +13,7 @@ import (
 	"time"
 
 	"github.com/batchatco/go-native-netcdf/netcdf"
+	"github.com/maseology/mmio"
 )
 
 func (g GMET) SaveGob(fp string) error {
@@ -327,4 +329,54 @@ func LoadBin(prfx string, vars []string) (*GMET, error) { // go at the time of w
 	fmt.Printf("  %s:  %s\n", time.Since(tt), "complete")
 
 	return &g, nil
+}
+
+func LoadCsv(fp, prfx, vartype string) (*GMET, error) {
+	f, err := os.Open(fp)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	recs := mmio.LoadCSV(io.Reader(f), 1)
+	lst := [][]string{}
+	for rec := range recs {
+		lst = append(lst, rec)
+	}
+	ts, ys := make([]time.Time, len(lst)), [][]float64{make([]float64, len(lst))}
+	for i, rec := range lst {
+		f2, err := strconv.ParseFloat(rec[1], 64)
+		if err != nil {
+			return nil, err
+		}
+		ts[i], err = time.Parse("2006-01-02 15:04:05", rec[0])
+		if err != nil {
+			return nil, err
+		}
+		ys[0][i] = f2
+		i++
+	}
+
+	g := &GMET{
+		Nts:   len(ts),
+		Nsta:  1,
+		Ts:    ts,
+		Sids:  []int{0},
+		Snams: []string{vartype},
+	}
+
+	g.Dat = func() [][]DSet {
+		o := [][]DSet{make([]DSet, g.Nts)}
+		for j, t := range ts {
+			d := []float64{ys[0][j]}
+			o[0][j] = DSet{
+				Date: t.Format("2006-01-02 15:04:05 -0700 MST"),
+				Dat:  d,
+			}
+		}
+
+		return o
+	}()
+
+	return g, nil
 }

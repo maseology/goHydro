@@ -1,6 +1,6 @@
 package hechms
 
-func (s *state) scscn(p float64) float64 {
+func (s *basin) scscn(p float64) float64 {
 	s.Pe += p
 	if s.Pe > s.ia {
 		peia := s.Pe - s.ia

@@ -6,24 +6,41 @@ import (
 	"time"
 
 	"github.com/maseology/goHydro/gmet"
+	"github.com/maseology/mmio"
 )
 
-func GetForcings(mids []int, ncfp string) Forcing {
+func GetForcings(mids []int, intvl float64, offset int, ncfp, prfx string) Forcing {
 	tt := time.Now()
 
-	vars := []string{"precipitation_amount"}
-	// vars := []string{
-	// 	// "air_temperature",
-	// 	// "air_pressure",
-	// 	// "relative_humidity",
-	// 	// "wind_speed",
-	// 	"water_potential_evaporation_amount",
-	// 	"rainfall_amount",
-	// 	// "snowfall_amount",
-	// 	"surface_snow_melt_amount",
-	// }
-	fmt.Println("loading: " + ncfp)
-	g, _ := gmet.LoadNC(ncfp, "MadRiver2023-", vars)
+	fmt.Println(" loading: " + ncfp)
+	g := func(fp string) *gmet.GMET {
+		var g *gmet.GMET
+		var err error
+		switch mmio.GetExtension(fp) {
+		case ".nc":
+			vars := []string{"precipitation_amount"}
+			// vars := []string{
+			// 	// "air_temperature",
+			// 	// "air_pressure",
+			// 	// "relative_humidity",
+			// 	// "wind_speed",
+			// 	"water_potential_evaporation_amount",
+			// 	"rainfall_amount",
+			// 	// "snowfall_amount",
+			// 	"surface_snow_melt_amount",
+			// }
+			g, err = gmet.LoadNC(fp, prfx, vars)
+		case ".csv":
+			g, err = gmet.LoadCsv(fp, prfx, "precipitation_amount")
+		default:
+			panic("unknown frc type")
+		}
+		if err != nil {
+			panic(err)
+		}
+		return g
+	}(ncfp)
+
 	// fmt.Printf("  Dates available (may not be in order): %v to %v\n", g.Ts[0], g.Ts[g.Nts-1])
 	// collect sequential dates
 	ts, xt, nts := func() ([]time.Time, []int, int) {
@@ -32,24 +49,26 @@ func GetForcings(mids []int, ncfp string) Forcing {
 			d[t.Unix()] = j
 		}
 
-		dt, cdt := g.Ts[0], 0
-		for {
-			if _, ok := d[dt.Unix()]; !ok {
-				fmt.Printf("   > missing date %v\n", dt)
-				d[dt.Unix()] = -1
-				cdt++
+		func() {
+			dt, cdt := g.Ts[0], 0
+			for {
+				if _, ok := d[dt.Unix()]; !ok {
+					// fmt.Printf("   > missing date %v\n", dt)
+					d[dt.Unix()] = -1
+					cdt++
+				}
+				dt = dt.Add(time.Second * time.Duration(intvl))
+				if dt.After(g.Ts[g.Nts-1]) {
+					break
+				}
 			}
-			dt = dt.Add(time.Second * time.Duration(intvl))
-			if dt.After(g.Ts[g.Nts-1]) {
-				break
+			if cdt > 0 {
+				fmt.Printf("     Total missing dates = %d\n", cdt)
 			}
-		}
-		if cdt > 0 {
-			fmt.Printf("     Total missing dates = %d\n", cdt)
-		}
+		}()
 
 		o, x := make([]time.Time, 0, len(d)), make([]int, 0, len(d))
-		dt = g.Ts[0]
+		dt := g.Ts[0]
 		for {
 			if xx, ok := d[dt.Unix()]; ok {
 				x = append(x, xx)
@@ -62,15 +81,26 @@ func GetForcings(mids []int, ncfp string) Forcing {
 				break
 			}
 		}
-		fmt.Printf("  Dates available: %v to %v\n", o[0], o[len(o)-1])
+		fmt.Printf("  Dates available: %v to %v in %d steps\n", o[0], o[len(o)-1], len(o))
 		return o, x, len(o)
 	}()
 
 	// collect subset of met IDs
-	mmid := make(map[int]int, len(g.Sids))
-	for i, s := range g.Sids {
-		mmid[s] = i
-	}
+	mmid := func() map[int]int {
+		if len(g.Sids) == 1 {
+			mmid := make(map[int]int, len(mids))
+			for _, s := range mids {
+				mmid[s] = 0
+			}
+			return mmid
+		} else {
+			mmid := make(map[int]int, len(g.Sids))
+			for i, s := range g.Sids {
+				mmid[s] = i
+			}
+			return mmid
+		}
+	}()
 
 	// collect data
 	pre := g.GetAllData("precipitation_amount")
@@ -90,13 +120,14 @@ func GetForcings(mids []int, ncfp string) Forcing {
 		}
 		return x / 1000. // to [m]
 	}
+
 	for ii, s := range mids {
 		if i, ok := mmid[s]; ok {
 			ya := make([]float64, nts)
 			// ea := make([]float64, nts)
 			for j, t := range ts {
-				jj := xt[j]
-				if jj >= 0 {
+				jj := xt[j] + offset // offset to end of timestep
+				if jj >= 0 && jj < len(pre[i]) {
 					ya[j] = min0(pre[i][jj], "pre", s, t)
 					// ya[j] = min0(rf[i][jj], "rf", s, t) + min0(sm[i][jj], "sm", s, t)
 				}
@@ -122,6 +153,6 @@ func GetForcings(mids []int, ncfp string) Forcing {
 		IntervalSec: intvl,
 	}
 
-	fmt.Printf(" Forcing loaded - %v\n", time.Now().Sub(tt))
+	fmt.Printf(" Forcing loaded - %v\n", time.Since(tt))
 	return frc
 }

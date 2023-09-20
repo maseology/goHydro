@@ -18,6 +18,7 @@ func Snyder(Akm2, Ct, Cp, L, Lc, tsminutes float64) []float64 {
 }
 
 // Snyder2 same as above, only lag time and peak coefficient are specified (like HEC-HMS)
+// Cp=[.4,.8]
 func Snyder2(Akm2, tp, Cp, tsminutes float64) []float64 {
 	// following example pg. 119 Cebient Huber
 	ami2 := Akm2 / 1.60934 / 1.60934      // convert to mi²

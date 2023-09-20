@@ -1,0 +1,17 @@
+// HydroCAD Rainfall table
+// Copyright (c) 2009 HydroCAD Software Solutions LLC
+// For details see Rainfall.txt
+
+name=Type II  6-hr Tabular
+timeunits=hours
+depthunits=inches
+duration=6
+comment=Type II 6-hour MD Hydrology Panel 2005
+smoothing=false
+depth=0.0000 0.0045 0.0091 0.0136 0.0181 0.0226 0.0272 0.0318 0.0366 0.0417
+depth=0.0471 0.0526 0.0584 0.0647 0.0712 0.0780 0.0852 0.0928 0.1010 0.1098
+depth=0.1191 0.1291 0.1399 0.1521 0.1657 0.1807 0.1970 0.2306 0.2980 0.4061
+depth=0.6001 0.7347 0.7616 0.7851 0.8054 0.8227 0.8366 0.8485 0.8598 0.8702
+depth=0.8799 0.8889 0.8974 0.9053 0.9130 0.9203 0.9271 0.9336 0.9399 0.9458
+depth=0.9515 0.9568 0.9621 0.9672 0.9721 0.9769 0.9817 0.9864 0.9911 0.9956
+depth=1.0000

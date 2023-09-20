@@ -1,27 +1,48 @@
 package hechms
 
 type Domain struct {
-	SB      []SubBasin
-	Xr, Mxr map[int]int
-	Order   []int
+	SBP       []SubBasinProperties
+	Xr, MetXr map[int]int
+	Order     []int
+	Area      float64
+	TSmin     int
 }
 
-type SubBasin struct {
+type SubBasinProperties struct {
 	Name string
 	Ia, Fimp, CN,
-	FlowPathLen, FlowPathSlope,
+	FlowPathLen, CentFlowPathLen, FlowPathSlope,
 	BasinSlope, BasinRelief, BasinRelRatio,
 	DrainDensity, Elongation, Area float64
 	MetID, Swsid, Dsws int
 }
 
-func Build(ws []SubBasin, mxr map[int]int) *Domain {
+func Build(ws []SubBasinProperties, metxr map[int]int, tsmin int) *Domain {
 	Usws, xr := make(map[int][]int), make(map[int]int, len(ws))
-	for i, s := range ws {
-		xr[s.Swsid] = i
-		Usws[s.Swsid] = []int{}
+
+	if func() bool {
+		for _, s := range ws {
+			if s.Swsid != 0 {
+				return true
+			}
+		}
+		return false
+	}() {
+		for i, s := range ws {
+			xr[s.Swsid] = i
+			Usws[s.Swsid] = []int{}
+		}
+	} else {
+		for i := range ws {
+			ws[i].Swsid = i
+			xr[i] = i
+			Usws[i] = []int{}
+		}
 	}
+
+	tarea := 0.
 	for _, s := range ws {
+		tarea += s.Area
 		if _, ok := xr[s.Dsws]; ok {
 			Usws[s.Dsws] = append(Usws[s.Dsws], s.Swsid)
 		}
@@ -57,10 +78,19 @@ func Build(ws []SubBasin, mxr map[int]int) *Domain {
 		}
 	}
 
+	if metxr == nil {
+		metxr = make(map[int]int, len(ws))
+		for i := range ws {
+			metxr[i] = 0
+		}
+	}
+
 	return &Domain{
-		SB:    ws,
+		SBP:   ws,
 		Xr:    xr,
-		Mxr:   mxr,
+		MetXr: metxr,
 		Order: ord,
+		Area:  tarea,
+		TSmin: tsmin,
 	}
 }
