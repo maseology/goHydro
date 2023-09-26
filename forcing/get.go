@@ -9,7 +9,7 @@ import (
 	"github.com/maseology/mmio"
 )
 
-func GetForcings(mids []int, intvl float64, offset int, ncfp, prfx string) Forcing {
+func GetForcings(mids []int, intvl float64, offset int, ncfp, prfsx string) Forcing {
 	tt := time.Now()
 
 	fmt.Println(" loading: " + ncfp)
@@ -29,9 +29,9 @@ func GetForcings(mids []int, intvl float64, offset int, ncfp, prfx string) Forci
 			// 	// "snowfall_amount",
 			// 	"surface_snow_melt_amount",
 			// }
-			g, err = gmet.LoadNC(fp, prfx, vars)
+			g, err = gmet.LoadNC(fp, vars)
 		case ".csv":
-			g, err = gmet.LoadCsv(fp, prfx, "precipitation_amount")
+			g, err = gmet.LoadCsv(fp, "precipitation_amount")
 		default:
 			panic("unknown frc type")
 		}
