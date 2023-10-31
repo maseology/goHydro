@@ -1,13 +1,17 @@
 package tem
 
 import (
+	"bytes"
+	"encoding/binary"
+	"io/ioutil"
+
 	"github.com/maseology/goHydro/grid"
 	"github.com/maseology/mmaths"
 )
 
 const small = 1e-11 // "have ~15 significant digits"; using: 1e-11 decimals allow 4-digit elvation <9999 in 64-bit floats
 
-func (t *TEM) FillDepressions(gd *grid.Definition) {
+func (t *TEM) FillDepressions(gd *grid.Definition, fixflats bool, fprfx string) {
 	// ref: Wang, L., H. Liu, 2006. An efficient method for identifying and filling surface depressions in digital elevation models for hydrologic analysis and modelling. International Journal of Geographical Information Science 20(2): 193-213.
 	// NOTE: Zhou etal. (2016) is supposed to be faster than Wang and Liu (2006) but doesn't appear to be the case as coded here.
 	println("  building priority queue")
@@ -37,12 +41,15 @@ func (t *TEM) FillDepressions(gd *grid.Definition) {
 
 	println("  running priority queue, filling depressions")
 	flat := make(map[int]float64)
+	pqcnt, cnt := make(map[int]int, gd.Ncells()), 0
 	for pq.Len() > 0 {
 		ic, err := pq.Pop()
 		if err != nil {
 			panic(err)
 		}
 		c := ic.(int)
+		cnt++
+		pqcnt[c] = cnt
 
 		if _, ok := bufs[c]; !ok {
 			panic("FillDepressions err3")
@@ -56,11 +63,14 @@ func (t *TEM) FillDepressions(gd *grid.Definition) {
 					if tc.Z > zs[c] {
 						zs[bc] = tc.Z
 					} else {
-						zs[bc] = zs[c]   // + small // (initial/simple) flat areas solution
+						zs[bc] = zs[c]
+						if !fixflats {
+							zs[bc] += small // (initial/simple) flat areas solution
+						}
 						flat[bc] = zs[c] // collecting original elevations
 						flat[c] = zs[c]  // needed for flat region code
 					}
-					pq.Push(bc, zs[bc])
+					pq.Push(bc, tc.Z) // zs[bc])
 				} else {
 					panic("FillDepressions err4")
 				}
@@ -68,8 +78,13 @@ func (t *TEM) FillDepressions(gd *grid.Definition) {
 		}
 	}
 
-	if true {
-		zs = fixflatregions(gd, zs, flat, bufs) // I don't see much improvement
+	if len(fprfx) > 0 {
+		writeInts(fprfx+"iflat0.indx", pqcnt, gd.Ncells())
+	}
+
+	if fixflats {
+		println("  fixing flat regions..")
+		zs = fixflatregions(gd, zs, flat, bufs, fprfx) // I don't see much improvement
 	}
 
 	println("  re-building flowpaths")
@@ -84,16 +99,11 @@ func (t *TEM) FillDepressions(gd *grid.Definition) {
 	t.BuildUpslopes(t.buildDsFromNeighbours(bufs))
 }
 
-func fixflatregions(gd *grid.Definition, zs, flat map[int]float64, bufs map[int][]int) map[int]float64 {
+func fixflatregions(gd *grid.Definition, zs, flat map[int]float64, bufs map[int][]int, fprfx string) map[int]float64 {
 	// after: Garbrecht Martz 1997 The assignment of drainage direction over flat surfaces in raster digital elevation models
-
-	// odir := "E:/Sync/@dev/pages_owrc/interpolants/interpolation/calc/hydroDEM/test/"
-
-	println("  fixing flat regions..")
-	crwl := gd.ToCrawler()
+	crwl := gd.ToCrawler(false)
 	println("    locating flat regions")
 	iflat, mbrd, ng := crwl.CrawlByFloat(flat, false)
-	// writeInts(odir+"iflat.indx", iflat, gd.Ncells())
 
 	minv := func(m map[int]int, n int) map[int][]int { // invert maps
 		o := make(map[int][]int, n)
@@ -139,7 +149,6 @@ func fixflatregions(gd *grid.Definition, zs, flat map[int]float64, bufs map[int]
 			ibrd[aa] = g
 		}
 	}
-	// writeInts(odir+"ibrd.indx", ibrd, gd.Ncells())
 
 	println("    applying fixes..")
 	olev1, olev2, olev3 := make(map[int]int, len(flat)), make(map[int]int, len(flat)), make(map[int]int, len(flat))
@@ -281,9 +290,6 @@ func fixflatregions(gd *grid.Definition, zs, flat map[int]float64, bufs map[int]
 	for c := range flat {
 		olev3[c] = 3*olev1[c] + 2*olev2[c]
 	}
-	// writeInts(odir+"olev1.indx", olev1, gd.Ncells())
-	// writeInts(odir+"olev2.indx", olev2, gd.Ncells())
-	// writeInts(odir+"olev3.indx", olev3, gd.Ncells())
 	for c, v := range olev3 {
 		zs[c] += float64(v) * small
 	}
@@ -298,26 +304,35 @@ func fixflatregions(gd *grid.Definition, zs, flat map[int]float64, bufs map[int]
 		}()
 	}
 
+	// Print outputs for testing
+	if len(fprfx) > 0 {
+		writeInts(fprfx+"iflat.indx", iflat, gd.Ncells())
+		writeInts(fprfx+"ibrd.indx", ibrd, gd.Ncells())
+		writeInts(fprfx+"olev1.indx", olev1, gd.Ncells())
+		writeInts(fprfx+"olev2.indx", olev2, gd.Ncells())
+		writeInts(fprfx+"olev3.indx", olev3, gd.Ncells())
+	}
+
 	return zs
 }
 
-// func writeInts(fp string, m map[int]int, nc int) {
-// 	i32 := make([]int32, nc)
-// 	for c := 0; c < nc; c++ {
-// 		if v, ok := m[c]; ok {
-// 			i32[c] = int32(v)
-// 		} else {
-// 			i32[c] = -9999
-// 		}
-// 	}
-// 	buf := new(bytes.Buffer)
-// 	if err := binary.Write(buf, binary.LittleEndian, i32); err != nil {
-// 		panic(err)
-// 	}
-// 	if err := ioutil.WriteFile(fp, buf.Bytes(), 0644); err != nil { // see: https://en.wikipedia.org/wiki/File_system_permissions
-// 		panic(err)
-// 	}
-// }
+func writeInts(fp string, m map[int]int, nc int) {
+	i32 := make([]int32, nc)
+	for c := 0; c < nc; c++ {
+		if v, ok := m[c]; ok {
+			i32[c] = int32(v)
+		} else {
+			i32[c] = -9999
+		}
+	}
+	buf := new(bytes.Buffer)
+	if err := binary.Write(buf, binary.LittleEndian, i32); err != nil {
+		panic(err)
+	}
+	if err := ioutil.WriteFile(fp, buf.Bytes(), 0644); err != nil { // see: https://en.wikipedia.org/wiki/File_system_permissions
+		panic(err)
+	}
+}
 
 // func writeFloats(fp string, m map[int]float64, nc int) {
 // 	f32 := make([]float32, nc)

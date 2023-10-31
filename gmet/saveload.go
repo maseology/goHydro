@@ -51,7 +51,7 @@ func LoadGob(fp string) (*GMET, error) {
 	return &g, nil
 }
 
-func LoadNC(fp string, vars []string) (*GMET, error) {
+func LoadNC(fp, prfx string, vars []string) (*GMET, error) {
 	// tt := time.Now()
 
 	nc, err := netcdf.Open(fp)
@@ -72,8 +72,8 @@ func LoadNC(fp string, vars []string) (*GMET, error) {
 		}
 		o := make([]int, len(so))
 		for i, s := range so {
-			// if o[i], err = strconv.Atoi(strings.Replace(strings.Trim(s, "\x00"), prfx, "", 1)); err != nil {
-			if o[i], err = strconv.Atoi(strings.Trim(s, "\x00")); err != nil {
+			if o[i], err = strconv.Atoi(strings.Replace(strings.Trim(s, "\x00"), prfx, "", 1)); err != nil {
+				// if o[i], err = strconv.Atoi(strings.Trim(s, "\x00")); err != nil {
 				log.Fatalln("station_id", err)
 			}
 		}

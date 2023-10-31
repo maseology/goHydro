@@ -10,71 +10,71 @@ import (
 
 // Indx data type array of integers
 type Indx struct {
-	gd *Definition
-	a  map[int]int
+	GD *Definition
+	A  map[int]int
 }
 
 // New constructor
-func (r *Indx) New(fp string, rowmajor bool) {
-	if r.gd == nil {
+func (x *Indx) New(fp string, rowmajor bool) {
+	if x.GD == nil {
 		if _, b := mmio.FileExists(fp + ".gdef"); b {
 			fmt.Println(" loading: " + fp + ".gdef")
-			r.getGDef(fp + ".gdef")
+			x.getGDef(fp + ".gdef")
 		} else {
 			log.Fatalf(" Indx.New: no grid definition loaded %s", fp)
 		}
 	}
-	r.getBinary(fp, rowmajor)
+	x.getBinary(fp, rowmajor)
 }
 
 // NewGD constructor
-func (r *Indx) NewGD(bfp, gdfp string) {
-	r.getGDef(gdfp)
-	r.getBinary(bfp, true)
+func (x *Indx) NewGD(bfp, gdfp string) {
+	x.getGDef(gdfp)
+	x.getBinary(bfp, true)
 }
 
 // NewShort constructor
-func (r *Indx) NewShort(fp string, rowmajor bool) {
-	if r.gd == nil {
+func (x *Indx) NewShort(fp string, rowmajor bool) {
+	if x.GD == nil {
 		if _, b := mmio.FileExists(fp + ".gdef"); b {
-			r.getGDef(fp + ".gdef")
+			x.getGDef(fp + ".gdef")
 		} else {
 			log.Fatalf(" Indx.NewShort: no grid definition loaded")
 		}
 	}
-	r.getBinaryShort(fp, rowmajor)
+	x.getBinaryShort(fp, rowmajor)
 }
 
 // NewShortGD constructor
-func (r *Indx) NewShortGD(bfp, gdfp string, rowmajor bool) {
-	r.getGDef(gdfp)
-	r.getBinaryShort(bfp, rowmajor)
+func (x *Indx) NewShortGD(bfp, gdfp string, rowmajor bool) {
+	x.getGDef(gdfp)
+	x.getBinaryShort(bfp, rowmajor)
 }
 
 // NewIMAP constructor
-func (r *Indx) NewIMAP(imap map[int]int) {
-	if r.gd == nil {
+func (x *Indx) NewIMAP(imap map[int]int) {
+	if x.GD == nil {
 		log.Fatalf(" Indx.NewIMAP: grid definition needs defining\n")
 	}
-	r.a = make(map[int]int, len(imap))
+	x.A = make(map[int]int, len(imap))
 	for k, v := range imap {
-		r.a[k] = v
+		x.A[k] = v
 	}
 }
 
 // LoadGDef loads grid definition
-func (r *Indx) LoadGDef(gd *Definition) {
-	r.gd = gd
+func (x *Indx) LoadGDef(gd *Definition) {
+	x.GD = gd
 }
 
 // Nvalues returns the size of the Indx
-func (r *Indx) Nvalues() int {
-	return len(r.a)
+func (x *Indx) Nvalues() int {
+	return len(x.A)
 }
 
 // Value returns the value of a given cell ID
-func (r *Indx) Value(cid int) int {
-	if v, ok := r.a[cid]; ok {
+func (x *Indx) Value(cid int) int {
+	if v, ok := x.A[cid]; ok {
 		return v
 	}
 	log.Fatalf("Indx.Value: no value assigned to cell ID %d", cid)
@@ -82,111 +82,106 @@ func (r *Indx) Value(cid int) int {
 }
 
 // UniqueValues returns the value of a given cell ID
-func (r *Indx) UniqueValues() []int {
-	c, i := make([]int, len(r.a)), 0
-	for _, v := range r.a {
+func (x *Indx) UniqueValues() []int {
+	c, i := make([]int, len(x.A)), 0
+	for _, v := range x.A {
 		c[i] = v
 		i++
 	}
 	return mmaths.UniqueInts(c)
 }
 
-// Values returns the mapped grid values
-func (r *Indx) Values() map[int]int {
-	return r.a
-}
-
-func (r *Indx) getGDef(fp string) {
+func (x *Indx) getGDef(fp string) {
 	var err error
-	r.gd, err = ReadGDEF(fp, true)
+	x.GD, err = ReadGDEF(fp, true)
 	if err != nil {
 		log.Fatalf("getGDef: %v", err)
 	}
 }
 
-func (r *Indx) getBinaryShort(fp string, rowmajor bool) {
+func (x *Indx) getBinaryShort(fp string, rowmajor bool) {
 	b, n, err := mmio.ReadBinaryShorts(fp, 1)
 	if err != nil {
 		log.Fatalf(" Indx.getBinary(): %v", err)
 	}
 	switch n {
-	case r.gd.Nact:
-		r.a = make(map[int]int, r.gd.Nact)
+	case x.GD.Nact:
+		x.A = make(map[int]int, x.GD.Nact)
 		log.Fatalln(" Indx.getBinary: active grids not yet supported (TODO)")
-	case r.gd.Nrow * r.gd.Ncol:
-		r.a = make(map[int]int, r.gd.Nrow*r.gd.Ncol)
+	case x.GD.Nrow * x.GD.Ncol:
+		x.A = make(map[int]int, x.GD.Nrow*x.GD.Ncol)
 		if rowmajor {
 			for i := 0; i < n; i++ {
-				r.a[i] = int(b[0][i])
+				x.A[i] = int(b[0][i])
 			}
 		} else {
-			c, nr, nc := 0, r.gd.Nrow, r.gd.Ncol
+			c, nr, nc := 0, x.GD.Nrow, x.GD.Ncol
 			for j := 0; j < nc; j++ {
 				for i := 0; i < nr; i++ {
-					r.a[i*nc+j] = int(b[0][c])
+					x.A[i*nc+j] = int(b[0][c])
 					c++
 				}
 			}
 		}
-	case 2 * r.gd.Nrow * r.gd.Ncol, 2 * r.gd.Nact:
+	case 2 * x.GD.Nrow * x.GD.Ncol, 2 * x.GD.Nact:
 		// log.Fatalf(" Indx.getBinaryShort: %s is not of type short", fp)
-		r.getBinary(fp, rowmajor)
+		x.getBinary(fp, rowmajor)
 	default:
-		fmt.Printf("   %d %d %d", n, r.gd.Nrow*r.gd.Ncol, r.gd.Nact)
+		fmt.Printf("   %d %d %d", n, x.GD.Nrow*x.GD.Ncol, x.GD.Nact)
 		log.Fatalf(" Indx.getBinaryShort: %s does not match definition length", fp)
 	}
 }
 
-func (r *Indx) getBinary(fp string, rowmajor bool) {
+func (x *Indx) getBinary(fp string, rowmajor bool) {
 	b, n, err := mmio.ReadBinaryInts(fp, 1)
 	if err != nil {
 		log.Fatalf(" Indx.getBinary(): %v", err)
 	}
 	switch n {
-	case r.gd.Nact:
-		r.a = make(map[int]int, r.gd.Nact)
-		for i, cid := range r.gd.Sactives {
-			r.a[cid] = int(b[0][i])
+	case x.GD.Nact:
+		x.A = make(map[int]int, x.GD.Nact)
+		for i, cid := range x.GD.Sactives {
+			x.A[cid] = int(b[0][i])
 		}
-	case r.gd.Nrow * r.gd.Ncol:
-		r.a = make(map[int]int, r.gd.Nrow*r.gd.Ncol)
+	case x.GD.Nrow * x.GD.Ncol:
+		x.A = make(map[int]int, x.GD.Nrow*x.GD.Ncol)
 		if rowmajor {
 			for i := 0; i < n; i++ {
-				r.a[i] = int(b[0][i])
+				x.A[i] = int(b[0][i])
 			}
 		} else {
-			c, nr, nc := 0, r.gd.Nrow, r.gd.Ncol
+			c, nr, nc := 0, x.GD.Nrow, x.GD.Ncol
 			for j := 0; j < nc; j++ {
 				for i := 0; i < nr; i++ {
-					r.a[i*nc+j] = int(b[0][c])
+					x.A[i*nc+j] = int(b[0][c])
 					c++
 				}
 			}
 		}
 	default:
-		fmt.Println(r.gd.Nact, r.gd.Nrow*r.gd.Ncol, r.gd.Nact*4, r.gd.Nrow*r.gd.Ncol*4)
+		fmt.Println(x.GD.Nact, x.GD.Nrow*x.GD.Ncol, x.GD.Nact*4, x.GD.Nrow*x.GD.Ncol*4)
 		log.Fatalf(" Indx.getBinary: grid does not match definition length %d", n)
 	}
 }
 
 // ToASC creates an ascii-grid of Indx.
-func (r *Indx) ToASC(fp string, ignoreActives bool) error {
+func (x *Indx) ToASC(fp string, ignoreActives bool) error {
 	t, err := mmio.NewTXTwriter(fp)
 	if err != nil {
 		return fmt.Errorf("Indx ToASC: %v", err)
 	}
 	defer t.Close()
-	r.gd.ToASCheader(t)
-	if r.gd.Nact > 0 && ignoreActives {
-		m := make(map[int]bool, r.gd.Nact)
-		for _, c := range r.gd.Sactives {
+	x.GD.ToASCheader(t)
+	if x.GD.Nact > 0 && ignoreActives {
+		m := make(map[int]bool, x.GD.Nact)
+		for _, c := range x.GD.Sactives {
 			m[c] = true
 		}
 		c := 0
-		for i := 0; i < r.gd.Nrow; i++ {
-			for j := 0; j < r.gd.Ncol; j++ {
+		for i := 0; i < x.GD.Nrow; i++ {
+			for j := 0; j < x.GD.Ncol; j++ {
 				if _, ok := m[c]; ok {
-					t.Write(fmt.Sprintf("%d ", r.a[c]))
+					t.Write(fmt.Sprintf("%d ", x.A[c]))
 				} else {
 					t.Write("-9999 ")
 				}
@@ -196,9 +191,9 @@ func (r *Indx) ToASC(fp string, ignoreActives bool) error {
 		}
 	} else {
 		c := 0
-		for i := 0; i < r.gd.Nrow; i++ {
-			for j := 0; j < r.gd.Ncol; j++ {
-				if v, ok := r.a[c]; ok {
+		for i := 0; i < x.GD.Nrow; i++ {
+			for j := 0; j < x.GD.Ncol; j++ {
+				if v, ok := x.A[c]; ok {
 					t.Write(fmt.Sprintf("%d ", v))
 				} else {
 					t.Write("-9999 ")

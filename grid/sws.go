@@ -18,7 +18,7 @@ func CollectSWS(swsFP string, gd *Definition) *SWS {
 	var gsws Indx
 	gsws.LoadGDef(gd)
 	gsws.New(swsFP, false)
-	cs := gsws.Values()
+	cs := gsws.A
 	sc := make(map[int][]int, len(gsws.UniqueValues()))
 	for c, s := range cs {
 		sc[s] = append(sc[s], c)

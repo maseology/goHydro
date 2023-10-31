@@ -1,6 +1,6 @@
 package tem
 
-func (t *TEM) concentrationTime() map[int]int {
+func (t *TEM) ConcentrationTime() map[int]int {
 	cnt := make(map[int]int, len(t.TEC))
 	var climb func(int, int)
 	climb = func(i, c int) {

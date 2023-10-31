@@ -81,15 +81,20 @@ func (r *Real) getBinary32(fp string, rowmajor bool) {
 	}
 }
 
-func (r *Real) ResetToGDEF(gdeffp string) {
+func (r *Real) ResetToGDEF(gdeffp string, crop bool) {
 	var err error
-	r.GD, err = ReadGDEF(gdeffp, true)
+	var newgd *Definition
+	r.GD, err = ReadGDEF(gdeffp, false)
 	if err != nil {
 		log.Fatalf("%v", err)
 	}
-	newa := make(map[int]float64, r.GD.Nact)
-	for _, c := range r.GD.Sactives {
-		newa[c] = r.A[c]
+	if crop {
+		newgd = r.GD.CropToActives()
 	}
+	newa := make(map[int]float64, r.GD.Nact)
+	for i, c := range r.GD.Sactives {
+		newa[newgd.Sactives[i]] = r.A[c]
+	}
+	r.GD = newgd
 	r.A = newa
 }

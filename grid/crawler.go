@@ -4,10 +4,17 @@ type Crawler struct {
 	adj map[int][]int
 }
 
-var bufrc = [][]int{{-1, -1}, {0, -1}, {1, -1}, {-1, 0}, {1, 0}, {-1, 1}, {0, 1}, {1, 1}}
+// var bufrc = [][]int{{-1, -1}, {0, -1}, {1, -1}, {-1, 0}, {1, 0}, {-1, 1}, {0, 1}, {1, 1}}
+// var bufrc = [][]int{{0, -1}, {-1, 0}, {1, 0}, {0, 1}}
 
-func (gd *Definition) ToCrawler() *Crawler {
+func (gd *Definition) ToCrawler(cardinalOnly bool) *Crawler {
 	a := make(map[int][]int, gd.Nact)
+	var bufrc [][]int
+	if cardinalOnly {
+		bufrc = [][]int{{0, -1}, {-1, 0}, {1, 0}, {0, 1}}
+	} else {
+		bufrc = [][]int{{-1, -1}, {0, -1}, {1, -1}, {-1, 0}, {1, 0}, {-1, 1}, {0, 1}, {1, 1}}
+	}
 	for _, cid := range gd.Sactives {
 		aa := make([]int, 0, 8)
 		r, c := gd.RowCol(cid)

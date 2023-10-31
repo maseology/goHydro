@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io/ioutil"
+	"math"
 	"strings"
 
 	"github.com/maseology/mmaths"
@@ -38,7 +39,7 @@ func (r *Real) ImportBil(fp string) error {
 		for j := 0; j < r.GD.Ncol; j++ {
 			cid++
 			v64 := float64(v[cid])
-			if v64 == nd {
+			if (math.Log10(math.Abs(v64)) > 30 && math.Log10(math.Abs(nd)) > 30) || v64 == nd || (math.IsNaN(nd) && math.IsNaN(v64)) {
 				continue
 			}
 			r.A[cid] = v64
@@ -48,5 +49,46 @@ func (r *Real) ImportBil(fp string) error {
 		}
 	}
 	r.GD.ResetActives(cids)
+	return nil
+}
+
+func (x *Indx) ImportBil(fp string) error {
+	b, err := ioutil.ReadFile(fp)
+	if err != nil {
+		return fmt.Errorf("ImportBil failed: %v", err)
+	}
+	buf := bytes.NewReader(b)
+	n := len(b) / 4
+	v := make([]int32, n)
+	if err := binary.Read(buf, binary.LittleEndian, v); err != nil {
+		return fmt.Errorf("ImportBil failed: %v", err)
+	}
+
+	// read grid into
+	var nd float64
+	x.GD, nd, err = ReadHdr(strings.ReplaceAll(fp, ".bil", ".hdr"))
+	if err != nil {
+		return fmt.Errorf("ImportBil failed: %v", err)
+	}
+
+	// build grid mapping
+	cid := -1
+	cids := make([]int, 0, n)
+	x.A = make(map[int]int, n)
+	x.GD.Coord = make(map[int]mmaths.Point)
+	for i := 0; i < x.GD.Nrow; i++ {
+		for j := 0; j < x.GD.Ncol; j++ {
+			cid++
+			v64 := float64(v[cid])
+			if (math.Log10(math.Abs(v64)) > 30 && math.Log10(math.Abs(nd)) > 30) || v64 == nd || (math.IsNaN(nd) && math.IsNaN(v64)) {
+				continue
+			}
+			x.A[cid] = int(v64)
+			p := mmaths.Point{X: x.GD.Eorig + x.GD.Cwidth*(float64(j)+0.5), Y: x.GD.Norig - x.GD.Cwidth*(float64(i)+0.5)}
+			x.GD.Coord[cid] = p
+			cids = append(cids, cid)
+		}
+	}
+	x.GD.ResetActives(cids)
 	return nil
 }

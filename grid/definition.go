@@ -757,3 +757,38 @@ func (gd *Definition) Buffer(cid0 int, cardinal, isActive bool) []int {
 	}
 	return i
 }
+
+func (gd *Definition) CropToActives() *Definition {
+
+	rn, rx, cn, cx := 1000000, -1, 1000000, -1
+	for _, cid := range gd.Sactives {
+		r, c := gd.RowCol(cid)
+		if r > rx {
+			rx = r
+		}
+		if r < rn {
+			rn = r
+		}
+		if c > cx {
+			cx = c
+		}
+		if c < cn {
+			cn = c
+		}
+	}
+	nnr, nnc := rx-rn+1, cx-cn+1
+
+	ogd := NewDefinition(gd.Name+"-cropped", nnr, nnc, gd.Cwidth)
+	_, _, ogd.Eorig, ogd.Norig = gd.CellOriginUL(gd.CellID(rn, cn))
+	ogd.Nact = gd.Nact
+	ogd.Sactives = make([]int, ogd.Nact)
+	ogd.act = make(map[int]bool, nnr*nnc)
+	for i, cid := range gd.Sactives {
+		r, c := gd.RowCol(cid)
+		cidn := ogd.CellID(r-rn, c-cn)
+		ogd.Sactives[i] = cidn
+		ogd.act[cidn] = true
+	}
+
+	return ogd
+}
