@@ -51,15 +51,24 @@ func (x *Indx) NewShortGD(bfp, gdfp string, rowmajor bool) {
 	x.getBinaryShort(bfp, rowmajor)
 }
 
-// NewIMAP constructor
-func (x *Indx) NewIMAP(imap map[int]int) {
-	if x.GD == nil {
-		log.Fatalf(" Indx.NewIMAP: grid definition needs defining\n")
-	}
-	x.A = make(map[int]int, len(imap))
+// // NewIMAP constructor
+// func (x *Indx) NewIMAP(imap map[int]int) {
+// 	if x.GD == nil {
+// 		log.Fatalf(" Indx.NewIMAP: grid definition needs defining\n")
+// 	}
+// 	x.A = make(map[int]int, len(imap))
+// 	for k, v := range imap {
+// 		x.A[k] = v
+// 	}
+// }
+
+// ToIndx
+func (gd *Definition) ToIndx(imap map[int]int) *Indx {
+	x := Indx{GD: gd, A: make(map[int]int, len(imap))}
 	for k, v := range imap {
 		x.A[k] = v
 	}
+	return &x
 }
 
 // LoadGDef loads grid definition
@@ -162,46 +171,4 @@ func (x *Indx) getBinary(fp string, rowmajor bool) {
 		fmt.Println(x.GD.Nact, x.GD.Nrow*x.GD.Ncol, x.GD.Nact*4, x.GD.Nrow*x.GD.Ncol*4)
 		log.Fatalf(" Indx.getBinary: grid does not match definition length %d", n)
 	}
-}
-
-// ToASC creates an ascii-grid of Indx.
-func (x *Indx) ToASC(fp string, ignoreActives bool) error {
-	t, err := mmio.NewTXTwriter(fp)
-	if err != nil {
-		return fmt.Errorf("Indx ToASC: %v", err)
-	}
-	defer t.Close()
-	x.GD.ToASCheader(t)
-	if x.GD.Nact > 0 && ignoreActives {
-		m := make(map[int]bool, x.GD.Nact)
-		for _, c := range x.GD.Sactives {
-			m[c] = true
-		}
-		c := 0
-		for i := 0; i < x.GD.Nrow; i++ {
-			for j := 0; j < x.GD.Ncol; j++ {
-				if _, ok := m[c]; ok {
-					t.Write(fmt.Sprintf("%d ", x.A[c]))
-				} else {
-					t.Write("-9999 ")
-				}
-				c++
-			}
-			t.Write("\n")
-		}
-	} else {
-		c := 0
-		for i := 0; i < x.GD.Nrow; i++ {
-			for j := 0; j < x.GD.Ncol; j++ {
-				if v, ok := x.A[c]; ok {
-					t.Write(fmt.Sprintf("%d ", v))
-				} else {
-					t.Write("-9999 ")
-				}
-				c++
-			}
-			t.Write("\n")
-		}
-	}
-	return nil
 }
