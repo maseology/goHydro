@@ -16,8 +16,14 @@ type SWS struct {
 func CollectSWS(swsFP string, gd *Definition) *SWS {
 
 	var gsws Indx
-	gsws.LoadGDef(gd)
-	gsws.New(swsFP, false)
+	if gd == nil {
+		gsws.ImportBil(swsFP)
+		gd = gsws.GD
+	} else {
+		gsws.LoadGDef(gd)
+		gsws.New(swsFP, false)
+	}
+
 	cs := gsws.A
 	sc := make(map[int][]int, len(gsws.UniqueValues()))
 	for c, s := range cs {
@@ -39,17 +45,28 @@ func CollectSWS(swsFP string, gd *Definition) *SWS {
 		if err != nil {
 			log.Fatalf(" Loader.readSWS: error reading %s: %v\n", topoFP, err)
 		}
-		// dsws = make(map[int]int, len(d)) // note: swsids not contained within dsws drain to farfield
+		// OLD
+		// // dsws = make(map[int]int, len(d)) // note: swsids not contained within dsws drain to farfield
+		// // for _, ln := range d {
+		// // 	dsws[int(ln[1])] = int(ln[2]) // linkID,upstream_swsID,downstream_swsID
+		// // }
+		// dsws = make(map[int]int, nsws) // note: swsids not contained within dsws drain to farfield
+		// usws = make(map[int][]int, nsws)
 		// for _, ln := range d {
-		// 	dsws[int(ln[1])] = int(ln[2]) // linkID,upstream_swsID,downstream_swsID
+		// 	if _, ok := sc[int(ln[1])]; ok {
+		// 		if _, ok := sc[int(ln[2])]; ok {
+		// 			dsws[int(ln[1])] = int(ln[2]) // linkID,upstream_swsID,downstream_swsID
+		// 			usws[int(ln[2])] = append(usws[int(ln[2])], int(ln[1]))
+		// 		}
+		// 	}
 		// }
 		dsws = make(map[int]int, nsws) // note: swsids not contained within dsws drain to farfield
 		usws = make(map[int][]int, nsws)
 		for _, ln := range d {
-			if _, ok := sc[int(ln[1])]; ok {
-				if _, ok := sc[int(ln[2])]; ok {
-					dsws[int(ln[1])] = int(ln[2]) // linkID,upstream_swsID,downstream_swsID
-					usws[int(ln[2])] = append(usws[int(ln[2])], int(ln[1]))
+			if _, ok := sc[int(ln[0])]; ok {
+				if _, ok := sc[int(ln[1])]; ok {
+					dsws[int(ln[0])] = int(ln[1]) // sid,dsid,dcid
+					usws[int(ln[1])] = append(usws[int(ln[1])], int(ln[0]))
 				}
 			}
 		}
