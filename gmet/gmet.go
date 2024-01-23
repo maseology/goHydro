@@ -22,28 +22,28 @@ type GMET struct {
 	Snams     []string    // station Names (or 'Dat' parameter names)
 }
 
-func (g *GMET) CheckAndPrint() {
-	fmt.Printf("\n  N stations %d\n", g.Nsta)
-	fmt.Printf("  N timesteps %d\n", g.Nts)
-	fmt.Printf("  startdate: %v\n", g.Ts[0])
-	fmt.Printf("  end date: %v\n\n", g.Ts[g.Nts-1])
-	g.check()
+func (g *GMET) CheckAndPrint(timestepsec float64) {
+	fmt.Printf("    n stations %d\n", g.Nsta)
+	fmt.Printf("    n timesteps %d\n", g.Nts)
+	fmt.Printf("    startdate: %v\n", g.Ts[0])
+	fmt.Printf("    end date: %v\n", g.Ts[g.Nts-1])
+	g.check(timestepsec)
 }
 
-func (g *GMET) check() bool {
+func (g *GMET) check(timestepsec float64) bool {
 	if len(g.Sids) != g.Nsta {
 		log.Fatalf("GMET.check Error: nsta\n")
 	}
 	if len(g.Ts) != g.Nts {
 		log.Fatalf("GMET.check Error: nts\n")
 	}
-	ndays := g.Ts[g.Nts-1].Sub(g.Ts[0]).Seconds()/86400. + 1
+	ndays := g.Ts[g.Nts-1].Sub(g.Ts[0]).Seconds()/timestepsec + 1
 	if g.Nts != int(ndays) {
 		log.Fatalf("GMET.check Error: nts!=ndays\n")
 	}
 
 	for i := 0; i < g.Nts-1; i++ {
-		if g.Ts[i+1].Sub(g.Ts[i]).Seconds() != 86400. {
+		if g.Ts[i+1].Sub(g.Ts[i]).Seconds() != timestepsec {
 			log.Fatalf("GMET.check consecutive date error: %s %s\n", g.Ts[i], g.Ts[i+1])
 		}
 	}

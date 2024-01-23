@@ -4,9 +4,13 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"io/ioutil"
+	"image"
+	"image/png"
+	"math"
+	"os"
 
 	"github.com/maseology/mmio"
+	"gonum.org/v1/plot/palette/moreland"
 )
 
 // ToASC creates an ascii-grid of Indx.
@@ -66,8 +70,48 @@ func (x *Indx) ToBinary(fp string) error {
 	if err := binary.Write(buf, binary.LittleEndian, a); err != nil {
 		return fmt.Errorf("Indx.ToBinary() failed1: %v", err)
 	}
-	if err := ioutil.WriteFile(fp, buf.Bytes(), 0644); err != nil { // see: https://en.wikipedia.org/wiki/File_system_permissions
+	if err := os.WriteFile(fp, buf.Bytes(), 0644); err != nil { // see: https://en.wikipedia.org/wiki/File_system_permissions
 		return fmt.Errorf("Indx.ToBinary() failed2: %v", err)
 	}
+	return nil
+}
+
+func (r *Real) ToPNG(fp string) error {
+	cmap := moreland.Kindlmann()
+
+	w, h := r.GD.Ncol, r.GD.Nrow
+	img := image.NewRGBA(image.Rectangle{image.Point{0, 0}, image.Point{w, h}})
+	rn, rx := math.MaxFloat64, -math.MaxFloat64
+	for x := 0; x < w; x++ {
+		for y := 0; y < h; y++ {
+			c := r.GD.CellID(y, x)
+			if rac, ok := r.A[c]; ok {
+				if rac < rn {
+					rn = rac
+				}
+				if rac > rx {
+					rx = rac
+				}
+			} //else {
+			// 	img.Set(x, y, color.Transparent)
+			// }
+		}
+	}
+	// fmt.Printf("  image value range: [%.3f,%.3f]\n", rn, rx)
+	cmap.SetMin(rn)
+	cmap.SetMax(rx)
+	for _, c := range r.GD.Sactives {
+		y, x := r.GD.RowCol(c)
+		col, err := cmap.At(r.A[c])
+		if err != nil {
+			return err
+		}
+		img.Set(x, y, col)
+	}
+	f, err := os.Create(fp)
+	if err != nil {
+		return err
+	}
+	png.Encode(f, img)
 	return nil
 }

@@ -3,6 +3,7 @@ package grid
 import (
 	"bufio"
 	"encoding/binary"
+	"encoding/gob"
 	"fmt"
 	"io"
 	"log"
@@ -16,6 +17,7 @@ import (
 	"github.com/maseology/mmaths"
 	"github.com/maseology/mmaths/slice"
 	"github.com/maseology/mmio"
+	"github.com/wroge/wgs84"
 )
 
 // Definition struct of a uniform grid
@@ -413,6 +415,37 @@ func (gd *Definition) CellCentroid(cid int) []float64 {
 
 	r, c, sc, sr := gd.CellOriginUL(cid)
 	return []float64{sc + gd.cwidths[c]/2., sr - gd.cheights[r]/2.}
+}
+
+func (gd *Definition) CellCentroids() map[int][]float64 {
+	m := make(map[int][]float64, gd.Nact)
+	for _, c := range gd.Sactives {
+		m[c] = gd.CellCentroid(c)
+	}
+	return m
+}
+
+func (gd *Definition) CellCentroidsLatLong(epsg int, saveToGob bool) (m map[int][]float64) {
+	if _, ok := mmio.FileExists(gd.Name + ".LatLong.gob"); saveToGob && ok {
+		f, _ := os.Open(gd.Name + ".LatLong.gob")
+		enc := gob.NewDecoder(f)
+		enc.Decode(&m)
+		f.Close()
+	} else {
+		m = make(map[int][]float64, gd.Nact)
+		for _, c := range gd.Sactives {
+			cxy := gd.CellCentroid(c)
+			longitude, latitude, _ := wgs84.From(wgs84.EPSG().Code(epsg))(cxy[0], cxy[1], 0)
+			m[c] = []float64{latitude, longitude}
+		}
+		if saveToGob {
+			f, _ := os.Create(gd.Name + ".LatLong.gob")
+			enc := gob.NewEncoder(f)
+			enc.Encode(m)
+			f.Close()
+		}
+	}
+	return
 }
 
 func (gd *Definition) CellPerimeter(cid int) [][]float64 {

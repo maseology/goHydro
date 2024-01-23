@@ -25,8 +25,8 @@ func (g *GMET) Append(g1 *GMET) bool {
 		}
 		return false
 	default:
-		g.check()
-		g1.check()
+		g.check(86400.)
+		g1.check(86400.)
 
 		ndays := func(d time.Duration) int { return int(d.Seconds() / 86400.) }
 
