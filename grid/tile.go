@@ -59,15 +59,20 @@ func (t *Tile) Scale(lat float64) float64 {
 
 // ToTiles take a Real grid and builds a set of raster/image tiles for webmapping
 func (r *Real) ToTiles(zoomMin, zoomMax, epsg int, outDir string) {
-	fmt.Printf("Building image tiles to directory: '%v'\n    input cell size: %f\n", outDir, r.GD.Cwidth)
-	mzoom := make(map[int]float64, zoomMax-zoomMin+1)
+	fmt.Printf("Building image tiles to directory: '%v'\n   input cell size: %.3fm\n", outDir, r.GD.Cwidth)
+	mzoom, minzoom := make(map[int]float64, zoomMax-zoomMin+1), r.GD.Cwidth
 	for z := zoomMin; z <= zoomMax; z++ {
 		mzoom[z] = 156543.03 * math.Cos(44.) / math.Pow(2, float64(z))
 		fmt.Printf("   pixel size at zoom %d: %.3fm\n", z, mzoom[z])
+		if mzoom[z] < minzoom {
+			minzoom = mzoom[z]
+		}
 	}
+	mbrngs := BufferRings(int(math.Floor(r.GD.Cwidth / minzoom)))
 
 	fmt.Printf(" > converting grid coordinates.. ")
 	tt := time.Now()
+	ttt := time.Now()
 	mmio.MakeDir(outDir)
 	mtls := make(map[Tile][]int)
 	lls := r.GD.CellCentroidsLatLong(epsg, true)
@@ -135,23 +140,54 @@ func (r *Real) ToTiles(zoomMin, zoomMax, epsg int, outDir string) {
 		}
 
 		latUL, longUL, latLR, longLR := t.ToExtent()
-		for _, c := range cs {
-			ll := lls[c]
-			x := gcell(longUL, longLR, ll[1])
-			y := resolution - gcell(latLR, latUL, ll[0]) - 1
-			a[x][y] += r.A[c]
-			n[x][y]++
-		}
-		for i := 0; i < resolution; i++ {
-			for j := 0; j < resolution; j++ {
-				if n[i][j] > 0 {
-					a[i][j] /= n[i][j]
-				} else {
+		if mzoom[t.Z] > r.GD.Cwidth {
+			for _, c := range cs {
+				ll := lls[c]
+				x := gcell(longUL, longLR, ll[1])
+				y := resolution - gcell(latLR, latUL, ll[0]) - 1
+				a[x][y] += r.A[c]
+				n[x][y]++
+			}
+			for i := 0; i < resolution; i++ {
+				for j := 0; j < resolution; j++ {
+					if n[i][j] > 0 {
+						a[i][j] /= n[i][j]
+					} else {
+						a[i][j] = -9999.
+					}
+				}
+			}
+		} else {
+			for i := 0; i < resolution; i++ {
+				for j := 0; j < resolution; j++ {
 					a[i][j] = -9999.
 				}
 			}
+			xys := make(map[int][]int, len(cs))
+			for _, c := range cs {
+				ll := lls[c]
+				x := gcell(longUL, longLR, ll[1])
+				y := resolution - gcell(latLR, latUL, ll[0]) - 1
+				xys[c] = []int{x, y}
+				a[x][y] = r.A[c]
+			}
+			b := int(math.Ceil(r.GD.Cwidth / mzoom[t.Z]))
+			for bb := 1; bb <= b; bb++ {
+				for c, xy := range xys {
+					for _, mn := range mbrngs[bb] {
+						xx, yy := xy[0]+mn[0], xy[1]+mn[1]
+						if xx < 0 || yy < 0 || xx >= resolution || yy >= resolution {
+							continue
+						}
+						if a[xx][yy] == -9999 {
+							a[xx][yy] = r.A[c]
+						}
+					}
+				}
+			}
 		}
+
 		saveImg(a, fmt.Sprintf("%s/%d/%d/%d.png", outDir, t.Z, t.X, t.Y))
 	}
-	fmt.Printf("%v\n", time.Since(tt))
+	fmt.Printf("%v\nTOTAL TIME: %v/m", time.Since(tt), time.Since(ttt))
 }

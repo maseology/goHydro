@@ -17,7 +17,7 @@ import (
 	"github.com/maseology/mmaths"
 	"github.com/maseology/mmaths/slice"
 	"github.com/maseology/mmio"
-	"github.com/wroge/wgs84"
+	"github.com/maseology/wgs84"
 )
 
 // Definition struct of a uniform grid

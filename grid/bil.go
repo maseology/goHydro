@@ -93,6 +93,30 @@ func (x *Indx) ImportBil(fp string) error {
 	return nil
 }
 
+func (x *Real) ToBil(fp string) error {
+	a, c := make([]float32, x.GD.Ncells()), 0
+	for i := 0; i < x.GD.Nrow; i++ {
+		for j := 0; j < x.GD.Ncol; j++ {
+			cid := x.GD.CellID(i, j)
+			if xac, ok := x.A[cid]; ok {
+				a[c] = float32(xac)
+			} else {
+				a[c] = -9999.
+			}
+			c++
+		}
+	}
+
+	buf := new(bytes.Buffer)
+	if err := binary.Write(buf, binary.LittleEndian, a); err != nil {
+		return fmt.Errorf("Real.ToBil() failed1: %v", err)
+	}
+	if err := os.WriteFile(fp, buf.Bytes(), 0644); err != nil { // see: https://en.wikipedia.org/wiki/File_system_permissions
+		return fmt.Errorf("Real.ToBil() failed2: %v", err)
+	}
+	return nil
+}
+
 func (x *Indx) ToBil(fp string) error {
 	a, c := make([]int32, x.GD.Ncells()), 0
 	for i := 0; i < x.GD.Nrow; i++ {

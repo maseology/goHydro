@@ -1,15 +1,15 @@
 package routing
 
 import (
-	"io/ioutil"
 	"log"
+	"os"
 
 	tp "github.com/maseology/mmaths/topology"
 	geojson "github.com/paulmach/go.geojson"
 )
 
 func LoadNetwork(fp string) []*tp.Node {
-	fstreams, err := ioutil.ReadFile(fp)
+	fstreams, err := os.ReadFile(fp)
 	if err != nil {
 		log.Fatalf("%v\n", err)
 	}
@@ -25,18 +25,19 @@ func LoadNetwork(fp string) []*tp.Node {
 		switch f.Geometry.Type {
 		case "LineString":
 			ff := f.Geometry.LineString
+			dim := len(ff[0])
 			nds = append(nds, &tp.Node{
 				S: func() []float64 {
-					a := make([]float64, len(ff)*2)
+					a := make([]float64, len(ff)*dim)
 					for i, c := range ff {
-						for d := 0; d < 2; d++ {
-							a[i*2+d] = c[d]
+						for d := 0; d < dim; d++ {
+							a[i*dim+d] = c[d]
 						}
 					}
 					return a
 				}(),
 				I: []int{
-					2, // dimension
+					dim, // dimension
 					int(f.Properties["segmentID"].(float64)),
 					int(f.Properties["downID"].(float64)),
 					int(f.Properties["treeID"].(float64)),
@@ -45,7 +46,7 @@ func LoadNetwork(fp string) []*tp.Node {
 				},
 			})
 			if nds[nf].I[1] != nf {
-				panic("TODO: indexing assumption not valid")
+				panic("TODO: LineString indexing assumption not valid")
 			}
 			nf += 1
 		case "MultiLineString":
@@ -71,13 +72,12 @@ func LoadNetwork(fp string) []*tp.Node {
 					},
 				})
 				if nds[i].I[1] != i {
-					panic("TODO: indexing assumption not valid")
+					panic("TODO: MultiLineString indexing assumption not valid")
 				}
 			}
 		default:
 			log.Fatalf("Routing.LoadNetwork: unsupported type, given %v\n", f.Geometry.Type)
 		}
-
 	}
 
 	// topological sort
