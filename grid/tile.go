@@ -111,7 +111,7 @@ func (r *Real) ToTiles(zoomMin, zoomMax, epsg int, outDir string) {
 	cmap.SetMin(rn)
 	cmap.SetMax(rx)
 
-	fmt.Printf(" > building %d tiles.. ", len(mtls))
+	fmt.Printf(" > building %s tiles.. ", mmio.Thousands(int64(len(mtls))))
 	tt = time.Now()
 	saveImg := func(a [][]float64, fp string) {
 		img := image.NewRGBA(image.Rectangle{image.Point{0, 0}, image.Point{resolution, resolution}})
