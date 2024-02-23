@@ -84,6 +84,9 @@ func (t *TEM) SubSet(fromid int) (*TEM, []int) {
 		tss[c] = t.TEC[c]
 		uss[c] = t.USlp[c]
 	}
+	if len(uids) == 1 && uids[0] < 0 {
+		return &TEM{TEC: tss, USlp: uss}, nil
+	}
 	return &TEM{TEC: tss, USlp: uss}, uids
 }
 

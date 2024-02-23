@@ -3,7 +3,7 @@ package tem
 import (
 	"bytes"
 	"encoding/binary"
-	"io/ioutil"
+	"os"
 
 	"github.com/maseology/goHydro/grid"
 	"github.com/maseology/mmaths"
@@ -329,7 +329,7 @@ func writeInts(fp string, m map[int]int, nc int) {
 	if err := binary.Write(buf, binary.LittleEndian, i32); err != nil {
 		panic(err)
 	}
-	if err := ioutil.WriteFile(fp, buf.Bytes(), 0644); err != nil { // see: https://en.wikipedia.org/wiki/File_system_permissions
+	if err := os.WriteFile(fp, buf.Bytes(), 0644); err != nil { // see: https://en.wikipedia.org/wiki/File_system_permissions
 		panic(err)
 	}
 }

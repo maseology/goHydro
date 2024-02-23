@@ -98,3 +98,19 @@ func (r *Real) ResetToGDEF(gdeffp string, crop bool) {
 	r.GD = newgd
 	r.A = newa
 }
+
+func (r *Real) Crop(xn, xx, yn, yx float64, buffer int) {
+	newgd, rn, cn := r.GD.Crop(xn, xx, yn, yx, buffer)
+	newa, cid := make(map[int]float64, newgd.Ncells()), 0
+	for i := 0; i < newgd.Nrow; i++ {
+		for j := 0; j < newgd.Ncol; j++ {
+			ocid := r.GD.CellID(i+rn, j+cn)
+			if v, ok := r.A[ocid]; ok {
+				newa[cid] = v
+			}
+			cid++
+		}
+	}
+	r.GD = newgd
+	r.A = newa
+}

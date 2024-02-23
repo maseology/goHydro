@@ -3,7 +3,6 @@ package grid
 import (
 	"bufio"
 	"encoding/binary"
-	"encoding/gob"
 	"fmt"
 	"io"
 	"log"
@@ -425,25 +424,12 @@ func (gd *Definition) CellCentroids() map[int][]float64 {
 	return m
 }
 
-func (gd *Definition) CellCentroidsLatLong(epsg int, saveToGob bool) (m map[int][]float64) {
-	if _, ok := mmio.FileExists(gd.Name + ".LatLong.gob"); saveToGob && ok {
-		f, _ := os.Open(gd.Name + ".LatLong.gob")
-		enc := gob.NewDecoder(f)
-		enc.Decode(&m)
-		f.Close()
-	} else {
-		m = make(map[int][]float64, gd.Nact)
-		for _, c := range gd.Sactives {
-			cxy := gd.CellCentroid(c)
-			longitude, latitude, _ := wgs84.From(wgs84.EPSG().Code(epsg))(cxy[0], cxy[1], 0)
-			m[c] = []float64{latitude, longitude}
-		}
-		if saveToGob {
-			f, _ := os.Create(gd.Name + ".LatLong.gob")
-			enc := gob.NewEncoder(f)
-			enc.Encode(m)
-			f.Close()
-		}
+func (gd *Definition) CellCentroidsLatLongs(epsg int) (m map[int][]float64) {
+	m = make(map[int][]float64, gd.Nact)
+	for _, c := range gd.Sactives {
+		cxy := gd.CellCentroid(c)
+		longitude, latitude, _ := wgs84.From(wgs84.EPSG().Code(epsg))(cxy[0], cxy[1], 0)
+		m[c] = []float64{latitude, longitude}
 	}
 	return
 }
@@ -824,4 +810,37 @@ func (gd *Definition) CropToActives() *Definition {
 	}
 
 	return ogd
+}
+
+func (gd *Definition) Crop(xn, xx, yn, yx float64, buffer int) (*Definition, int, int) {
+	rn, rx, cn, cx := -1, -1, -1, -1
+	for c := 0; c < gd.Nrow; c++ {
+		x := float64(c)*gd.Cwidth + gd.Eorig
+		if cn < 0 && x > xn {
+			cn = c - 1
+		}
+		if cx < 0 && x > xx {
+			cx = c
+			break
+		}
+	}
+	for r := gd.Ncol - 1; r >= 0; r-- {
+		y := gd.Norig - float64(r)*gd.Cwidth
+		if rx < 0 && y > yn {
+			rx = r + 1
+		}
+		if rn < 0 && y > yx {
+			rn = r
+			break
+		}
+	}
+	cn -= buffer
+	cx += buffer
+	rn -= buffer
+	rx += buffer
+	nnr, nnc := rx-rn+1, cx-cn+1
+
+	ogd := NewDefinition(gd.Name+"-cropped", nnr, nnc, gd.Cwidth)
+	_, _, ogd.Eorig, ogd.Norig = gd.CellOriginUL(gd.CellID(rn, cn))
+	return ogd, rn, cn
 }
