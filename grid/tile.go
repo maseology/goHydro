@@ -70,7 +70,7 @@ func (t *Tile) Scale(lat float64) float64 {
 
 func (gd *Definition) BuildTileSet(zoomMin, zoomMax, epsg int, outDir string) (tset TileSet) {
 	ttt := time.Now()
-	gobFP := mmio.GetFileDir(outDir) + "/" + gd.Name + ".TileSet.gob"
+	gobFP := outDir + gd.Name + ".TileSet.gob"
 	if _, ok := mmio.FileExists(gobFP); ok {
 		f, _ := os.Open(gobFP)
 		enc := gob.NewDecoder(f)
@@ -159,7 +159,7 @@ func (gd *Definition) BuildTileSet(zoomMin, zoomMax, epsg int, outDir string) (t
 		fmt.Printf(" > saving to %s.. ", gobFP)
 		f, _ := os.Create(gobFP)
 		enc := gob.NewEncoder(f)
-		enc.Encode(m)
+		enc.Encode(tset)
 		f.Close()
 		fmt.Printf("%v\n", time.Since(tt))
 	}
