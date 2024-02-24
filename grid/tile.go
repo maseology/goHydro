@@ -8,6 +8,7 @@ import (
 	"log"
 	"math"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/maseology/mmio"
@@ -133,23 +134,22 @@ func (gd *Definition) BuildTileSet(zoomMin, zoomMax, epsg int, outDir string) (t
 				// 		tset.Cxr[k][ii] = []int{cid}
 				// 	}
 				// }
-				type result struct{ i, c int }
-				ch := make(chan result, 128)
-				go func() {
-					for i := 0; i < resolution; i++ {
-						lat := latUL - (latUL-latLR)/fres*(float64(i)+.5)
-						for j := 0; j < resolution; j++ {
-							lng := (longLR-longUL)/fres*(float64(j)+.5) + longUL
-							e, n, _ := wgs84.To(wgs84.EPSG().Code(epsg))(lng, lat, 0)
-							cid := gd.PointToCellID(e, n)
-							ii := i*resolution + j
-							ch <- result{ii, cid}
-						}
+				var wg sync.WaitGroup
+				comp := func(i, j int) {
+					lat := latUL - (latUL-latLR)/fres*(float64(i)+.5)
+					lng := (longLR-longUL)/fres*(float64(j)+.5) + longUL
+					e, n, _ := wgs84.To(wgs84.EPSG().Code(epsg))(lng, lat, 0)
+					cid := gd.PointToCellID(e, n)
+					ii := i*resolution + j
+					tset.Cxr[k][ii] = []int{cid}
+					wg.Done()
+				}
+				for i := 0; i < resolution; i++ {
+					wg.Add(resolution)
+					for j := 0; j < resolution; j++ {
+						go comp(i, j)
 					}
-					close(ch)
-				}()
-				for res := range ch {
-					tset.Cxr[k][res.i] = []int{res.c}
+					wg.Wait()
 				}
 			}
 		}
