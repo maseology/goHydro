@@ -16,7 +16,6 @@ import (
 	"github.com/maseology/mmaths"
 	"github.com/maseology/mmaths/slice"
 	"github.com/maseology/mmio"
-	"github.com/maseology/wgs84"
 )
 
 // Definition struct of a uniform grid
@@ -49,6 +48,119 @@ func NewDefinition(nam string, nr, nc int, UniformCellSize float64) *Definition 
 			p := mmaths.Point{X: gd.Eorig + UniformCellSize*(float64(j)+0.5), Y: gd.Norig - UniformCellSize*(float64(i)+0.5)}
 			gd.Coord[cid] = p
 			cid++
+		}
+	}
+	return &gd
+}
+
+func BuildDefinitionFromPoints(nam string, cxy map[int][]float64) *Definition {
+	var gd Definition
+	gd.Name = nam
+
+	angle := func(p0, p1 []float64) float64 { return math.Atan2(p1[1]-p0[1], p1[0]-p0[0]) }
+
+	rot := angle(cxy[0], cxy[1])
+	if math.Abs(rot) < 0.001 {
+		gd.Rotation = 0.
+		panic("grid.Definition.BuildDefinitionFromPoints (non-rotation) TODO")
+	} else {
+		isclose := func(f0, f1 float64) bool { return math.Abs((f1-f0)/f1) < .01 }
+		dist := func(p0, p1 []float64) float64 {
+			return math.Sqrt((p0[0]-p1[0])*(p0[0]-p1[0]) + (p0[1]-p1[1])*(p0[1]-p1[1]))
+		}
+
+		ew0 := dist(cxy[0], cxy[1])
+		// aew0 := math.Abs(ew0)
+		// if cxy[1][1] < cxy[0][1] {
+		// 	ew0 *= -1
+		// }
+		for i := 1; i < len(cxy); i++ {
+			if !isclose(dist(cxy[i-1], cxy[i]), dist(cxy[i], cxy[i+1])) {
+				gd.Ncol = i + 1
+				break
+			}
+		}
+		if math.Mod(float64(len(cxy)), float64(gd.Ncol)) != 0. {
+			panic("grid.Definition.BuildDefinitionFromPoints ERROR: point distribution is not square")
+		}
+		gd.Nrow = len(cxy) / gd.Ncol
+		gd.Nact = gd.Nrow * gd.Ncol
+		if gd.Nact != len(cxy) {
+			panic("grid.Definition.BuildDefinitionFromPoints ERROR: cell count error")
+		}
+		gd.Rotation = angle(cxy[0], cxy[gd.Ncol-1]) // refine angle
+		gd.Sactives = make([]int, gd.Nact)
+		gd.act = make(map[int]bool, gd.Nact)
+		for i := 0; i < gd.Nact; i++ {
+			gd.Sactives[i] = i
+			gd.act[i] = true
+		}
+		nw0 := dist(cxy[0], cxy[gd.Ncol])
+		isuniform := true
+		// if !isclose(ew0, nw0) { // commented out as ew0 != nw0 for lat-longs
+		// 	isuniform = false
+		// 	panic("grid.Definition.BuildDefinitionFromPoints isclose ERROR1")
+		// }
+		rotate := func(rot, x, y float64) (xp, yp float64) {
+			xp = x*math.Cos(rot) - y*math.Sin(rot)
+			yp = x*math.Sin(rot) + y*math.Cos(rot)
+			return
+		}
+
+		xp, yp := rotate(gd.Rotation, -ew0/2, nw0/2)
+		gd.Eorig, gd.Norig = cxy[0][0]+xp, cxy[0][1]+yp //  assumes no grid refinements at boundaries
+		for i := 0; i < gd.Nrow; i++ {
+			for j := 1; j < gd.Ncol; j++ {
+				jj := i*gd.Ncol + j
+				d1 := dist(cxy[jj-1], cxy[jj])
+				if !isclose(d1, ew0) {
+					isuniform = false
+					panic("grid.Definition.BuildDefinitionFromPoints isclose ERROR2 cols")
+				}
+			}
+		}
+		for j := 0; j < gd.Ncol; j++ {
+			for i := 1; i < gd.Nrow; i++ {
+				d1 := dist(cxy[(i-1)*gd.Ncol+j], cxy[i*gd.Ncol+j])
+				if !isclose(d1, nw0) {
+					isuniform = false
+					panic("grid.Definition.BuildDefinitionFromPoints isclose ERROR3 rows")
+				}
+			}
+		}
+		if isuniform {
+			gd.Cwidth = -1
+			gd.cwidths, gd.cheights = []float64{ew0}, []float64{nw0}
+			gd.Coord = make(map[int]mmaths.Point, gd.Nact)
+			cid, porig := 0, mmaths.Point{X: gd.Eorig, Y: gd.Norig}
+			for i := 0; i < gd.Nrow; i++ {
+				for j := 0; j < gd.Ncol; j++ {
+					p := mmaths.Point{X: ew0*(float64(j)+0.5) + gd.Eorig, Y: gd.Norig - nw0*(float64(i)+0.5)}
+					gd.Coord[cid] = p.Rotate(gd.Rotation, porig)
+					cid++
+				}
+			}
+			lst := []string{"cid,lat,lng"}
+			for c := 0; c < cid; c++ {
+				lst = append(lst, fmt.Sprintf("%d,%f,%f", c, gd.Coord[c].Y, gd.Coord[c].X))
+			}
+			lst = append(lst, fmt.Sprintf("%d,%f,%f", -1, gd.Norig, gd.Eorig))
+			mmio.WriteLines(fmt.Sprintf("M:/_gdfef-test/%s.csv", gd.Name), lst)
+			// For j = 0 To _ncol
+			// With OrderedXYs(_nrow * (_ncol + 1) + j).Clone
+			// 	.Rotate(-_rotation, _origin)
+			// 	_ec(j) = .X
+			// End With
+			// Next
+			// For i = 0 To _nrow
+			// 	With OrderedXYs(i * (_ncol + 1) + _ncol).Clone
+			// 		.Rotate(-_rotation, _origin)
+			// 		_nc(i) = .Y
+			// 	End With
+			// Next
+		} else {
+			gd.cwidths, gd.cheights = make([]float64, gd.Ncol), make([]float64, gd.Nrow)
+			panic("grid.Definition.BuildDefinitionFromPoints non-uniform girds not supported")
 		}
 	}
 	return &gd
@@ -104,6 +216,7 @@ func ReadGDEF(fp string, print bool) (*Definition, error) {
 			errfunc("NC", err)
 		}
 		cs, err := strconv.ParseFloat(a[5], 64)
+		_ = cs
 		if err != nil {
 			if a[5][0] == 85 { // 85 = acsii code for 'U'
 				uni = true
@@ -141,9 +254,6 @@ func ReadGDEF(fp string, print bool) (*Definition, error) {
 	gd, isuniform, err := parseHeader(a, print)
 	if err != nil {
 		return nil, err
-	}
-	if gd.Rotation != 0. {
-		return nil, fmt.Errorf("ReadGDEF error: rotation no yet supported")
 	}
 	if !isuniform {
 		// slst := make([]float64, gd.Nrow+gd.Ncol)
@@ -208,6 +318,9 @@ func ReadGDEF(fp string, print bool) (*Definition, error) {
 		for i := 0; i < gd.Nrow; i++ {
 			for j := 0; j < gd.Ncol; j++ {
 				p := mmaths.Point{X: gd.Eorig + gd.Cwidth*(float64(j)+0.5), Y: gd.Norig - gd.Cwidth*(float64(i)+0.5)}
+				if gd.Rotation != 0 {
+					p = p.Rotate(gd.Rotation, mmaths.Point{X: gd.Eorig, Y: gd.Norig})
+				}
 				gd.Coord[cid] = p
 				cid++
 			}
@@ -407,6 +520,12 @@ func (gd *Definition) CellOriginUL(cid int) (r, c int, x0, y0 float64) {
 }
 
 func (gd *Definition) CellCentroid(cid int) []float64 {
+	if len(gd.Coord) > 0 {
+		if p, ok := gd.Coord[cid]; ok {
+			return []float64{p.X, p.Y}
+		}
+	}
+
 	if len(gd.cheights) == 0 { // uniform cells
 		r, c := gd.RowCol(cid)
 		return []float64{gd.Eorig + (float64(c)+.5)*gd.Cwidth, gd.Norig - (float64(r)+.5)*gd.Cwidth}
@@ -418,20 +537,16 @@ func (gd *Definition) CellCentroid(cid int) []float64 {
 
 func (gd *Definition) CellCentroids() map[int][]float64 {
 	m := make(map[int][]float64, gd.Nact)
-	for _, c := range gd.Sactives {
-		m[c] = gd.CellCentroid(c)
+	if len(gd.Coord) > 0 {
+		for c, p := range gd.Coord {
+			m[c] = []float64{p.X, p.Y}
+		}
+	} else {
+		for _, c := range gd.Sactives {
+			m[c] = gd.CellCentroid(c)
+		}
 	}
 	return m
-}
-
-func (gd *Definition) CellCentroidsLatLongs(epsg int) (m map[int][]float64) {
-	m = make(map[int][]float64, gd.Nact)
-	for _, c := range gd.Sactives {
-		cxy := gd.CellCentroid(c)
-		longitude, latitude, _ := wgs84.From(wgs84.EPSG().Code(epsg))(cxy[0], cxy[1], 0)
-		m[c] = []float64{latitude, longitude}
-	}
-	return
 }
 
 func (gd *Definition) CellPerimeter(cid int) [][]float64 {
@@ -502,6 +617,13 @@ func (gd *Definition) PointToCellID(x, y float64) int {
 
 // PointToRowCol returns the row and column grid cell that contains the xy coordinates
 func (gd *Definition) PointToRowCol(x, y float64) (row, col int) {
+	if gd.Rotation != 0 {
+		panic("rotated grids not supported")
+	}
+	if gd.Cwidth < 0 {
+		panic("non-uniform grid not supported")
+	}
+
 	var wg sync.WaitGroup
 	wg.Add(2)
 
