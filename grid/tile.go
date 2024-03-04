@@ -136,66 +136,6 @@ func (gd *Definition) BuildTileSet(zoomMin, zoomMax, epsg int, outDir string) (t
 				return o
 			}()
 		}
-		// // fres := float64(resolution)
-		// // gcell := func(l, h, v float64) int { return int(math.Floor((v - l) / (h - l) * fres)) }
-		// k := -1
-		// for t, cs := range m {
-		// 	k++
-		// 	tset.Tiles[k] = t
-		// 	if mzoom[t.Z] > gd.Cwidth {
-		// 		tset.Cids[k] = cs
-		// 	} else {
-		// 		var bsc []int
-		// 		for _, c := range cs {
-		// 			bsc = append(bsc, c)
-		// 			for _, bc := range gd.Buffer(c, false, true) {
-		// 				if bc >= 0 {
-		// 					bsc = append(bsc, bc)
-		// 				}
-		// 			}
-		// 		}
-		// 		tset.Cids[k] = slice.Distinct(bsc)
-		// 	}
-		// 	// tset.Cxr[k] = make([][]int, resolution*resolution)
-		// 	// latUL, longUL, latLR, longLR := t.ToExtent()
-		// 	// if mzoom[t.Z] > gd.Cwidth {
-		// 	// 	for _, c := range cs {
-		// 	// 		ll := longlats[c]
-		// 	// 		x := gcell(longUL, longLR, ll[0])
-		// 	// 		y := resolution - gcell(latLR, latUL, ll[1]) - 1
-		// 	// 		ii := x*resolution + y
-		// 	// 		tset.Cxr[k][ii] = append(tset.Cxr[k][ii], c)
-		// 	// 	}
-		// 	// } else {
-		// 	// 	// for i := 0; i < resolution; i++ {
-		// 	// 	// 	lat := latUL - (latUL-latLR)/fres*(float64(i)+.5)
-		// 	// 	// 	for j := 0; j < resolution; j++ {
-		// 	// 	// 		lng := (longLR-longUL)/fres*(float64(j)+.5) + longUL
-		// 	// 	// 		e, n, _ := wgs84.To(wgs84.EPSG().Code(epsg))(lng, lat, 0)
-		// 	// 	// 		cid := gd.PointToCellID(e, n)
-		// 	// 	// 		ii := j*resolution + i
-		// 	// 	// 		tset.Cxr[k][ii] = []int{cid}
-		// 	// 	// 	}
-		// 	// 	// }
-		// 	// 	var wg sync.WaitGroup
-		// 	// 	comp := func(i, j int) {
-		// 	// 		lat := latUL - (latUL-latLR)/fres*(float64(i)+.5)
-		// 	// 		lng := (longLR-longUL)/fres*(float64(j)+.5) + longUL
-		// 	// 		e, n, _ := wgs84.To(wgs84.EPSG().Code(epsg))(lng, lat, 0)
-		// 	// 		cid := gd.PointToCellID(e, n)
-		// 	// 		ii := i*resolution + j
-		// 	// 		tset.Cxr[k][ii] = []int{cid}
-		// 	// 		wg.Done()
-		// 	// 	}
-		// 	// 	for i := 0; i < resolution; i++ {
-		// 	// 		wg.Add(resolution)
-		// 	// 		for j := 0; j < resolution; j++ {
-		// 	// 			go comp(i, j)
-		// 	// 		}
-		// 	// 		wg.Wait()
-		// 	// 	}
-		// 	// }
-		// }
 		fmt.Printf("%v\n", time.Since(tt))
 
 		tt = time.Now()
@@ -209,76 +149,6 @@ func (gd *Definition) BuildTileSet(zoomMin, zoomMax, epsg int, outDir string) (t
 	fmt.Printf("TOTAL TIME: %v\n", time.Since(ttt))
 	return
 }
-
-// ////////////////////////////////////////////////
-// ////////////////////////////////////////////////
-// ////////////////////////////////////////////////
-// ////////////////////////////////////////////////
-
-// func getdLatLongXR(r *Real, epsg int, outDir string) (m map[int][]float64) {
-// 	gobFP := mmio.GetFileDir(outDir) + "/" + r.GD.Name + ".LatLong.gob"
-// 	if _, ok := mmio.FileExists(gobFP); ok {
-// 		f, _ := os.Open(gobFP)
-// 		enc := gob.NewDecoder(f)
-// 		enc.Decode(&m)
-// 		f.Close()
-// 	} else {
-// 		m = r.GD.CellCentroidsLongLats(epsg)
-// 		f, _ := os.Create(gobFP)
-// 		enc := gob.NewEncoder(f)
-// 		enc.Encode(m)
-// 		f.Close()
-// 	}
-// 	return
-// }
-
-// func getTileSet(gd *Definition, latlongs map[int][]float64, zoomMin, zoomMax int, tileDir string, saveToGob bool) (m map[Tile][]int) {
-// 	gobFP := mmio.GetFileDir(tileDir) + "/" + gd.Name + ".Tiles.gob"
-// 	if _, ok := mmio.FileExists(gobFP); saveToGob && ok {
-// 		f, _ := os.Open(gobFP)
-// 		enc := gob.NewDecoder(f)
-// 		enc.Decode(&m)
-// 		f.Close()
-// 		zn, zx := 24, 0
-// 		for t := range m {
-// 			mmio.MakeDir(fmt.Sprintf("%s/%d/%d", tileDir, t.Z, t.X))
-// 			if t.Z > zx {
-// 				zx = t.Z
-// 			}
-// 			if t.Z < zn {
-// 				zn = t.Z
-// 			}
-// 		}
-// 		if zn != zoomMin || zx != zoomMax {
-// 			log.Fatalf("Error: %s does not match zoom levels specified. Need to re-create gob\n", gobFP)
-// 		}
-// 	} else {
-// 		m = make(map[Tile][]int)
-// 		for _, c := range gd.Sactives {
-// 			for z := zoomMin; z <= zoomMax; z++ {
-// 				var t Tile
-// 				t.FromLatLong(latlongs[c][0], latlongs[c][1], z)
-// 				mmio.MakeDir(fmt.Sprintf("%s/%d/%d", tileDir, z, t.X))
-// 				m[t] = append(m[t], c)
-// 			}
-// 		}
-// 		// lst := make([]string, 0, len(m)+1)
-// 		// lst = append(lst, "z,x,y,latitude,longitude")
-// 		// for t := range m {
-// 		// 	lat, long := t.ToLatLong()
-// 		// 	lst = append(lst, fmt.Sprintf("%d,%d,%d,%f,%f", t.Z, t.X, t.Y, lat, long))
-// 		// }
-// 		// mmio.LinesToAscii("tiles.csv", lst)
-// 		// os.Exit(22)
-// 		if saveToGob {
-// 			f, _ := os.Create(gobFP)
-// 			enc := gob.NewEncoder(f)
-// 			enc.Encode(m)
-// 			f.Close()
-// 		}
-// 	}
-// 	return
-// }
 
 // ToTiles take a Real grid and builds a set of raster/image tiles for webmapping
 func (r *Real) ToTiles(minVal, maxVal float64, zoomMin, zoomMax, epsg int, tileDir string) {
@@ -343,7 +213,6 @@ func (r *Real) ToTiles(minVal, maxVal float64, zoomMin, zoomMax, epsg int, tileD
 		}
 
 		latUL, longUL, latLR, longLR := t.ToExtent()
-		// var xys spatial.XYsearch
 		if mzoom[t.Z] > r.GD.Cwidth { // aggregate
 			for _, c := range tset.Cids[k] {
 				ll := tset.Clnglat[c]
@@ -364,38 +233,6 @@ func (r *Real) ToTiles(minVal, maxVal float64, zoomMin, zoomMax, epsg int, tileD
 				}
 			}
 		} else {
-			// // pts := make([][]float64, len(tset.Cids[k]))
-			// // for i, c := range tset.Cids[k] {
-			// // 	// if ll, ok := tset.Clnglat[c]; ok {
-			// // 	// 	pts[i] = ll
-			// // 	// }
-			// // 	pts[i] = tset.Clnglat[c]
-			// // }
-			// // xys.New(pts)
-			// // for i := 0; i < resolution; i++ {
-			// // 	lat := latUL - (latUL-latLR)/fres*(float64(i)+.5)
-			// // 	for j := 0; j < resolution; j++ {
-			// // 		lng := (longLR-longUL)/fres*(float64(j)+.5) + longUL
-			// // 		cc, _ := xys.ClosestIDs([]float64{lng, lat}, .01)
-			// // 		if len(cc) == 0 {
-			// // 			a[i][j] = -9999
-			// // 		} else {
-			// // 			if _, ok := r.A[cc[0]]; !ok {
-			// // 				print("")
-			// // 			}
-			// // 			a[i][j] = r.A[cc[0]]
-			// // 		}
-			// // 	}
-			// // }
-			// for i := 0; i < resolution; i++ {
-			// 	lat := latUL - (latUL-latLR)/fres*(float64(i)+.5)
-			// 	for j := 0; j < resolution; j++ {
-			// 		lng := (longLR-longUL)/fres*(float64(j)+.5) + longUL
-			// 		e, n, _ := wgs84.To(wgs84.EPSG().Code(epsg))(lng, lat, 0)
-			// 		cid := r.GD.PointToCellID(e, n)
-			// 		a[j][i] = r.A[cid]
-			// 	}
-			// }
 			for i := 0; i < resolution; i++ {
 				for j := 0; j < resolution; j++ {
 					a[i][j] = -9999.
