@@ -21,10 +21,10 @@ import (
 // Definition struct of a uniform grid
 type Definition struct {
 	Coord                          map[int]mmaths.Point
-	act                            map[int]bool
-	cwidths, cheights              []float64 // variable cell widths and heights
-	Sactives                       []int     // an ordered slice of active cell IDs
-	Eorig, Norig, Rotation, Cwidth float64   // Xul; Yul; grid rotation about ULorigin; cell width
+	Act                            map[int]int // [cellID]activeID
+	cwidths, cheights              []float64   // variable cell widths and heights
+	Sactives                       []int       // an ordered slice of active cell IDs
+	Eorig, Norig, Rotation, Cwidth float64     // Xul; Yul; grid rotation about ULorigin; cell width
 	Nrow, Ncol, Nact               int
 	Name                           string
 }
@@ -36,10 +36,10 @@ func NewDefinition(nam string, nr, nc int, UniformCellSize float64) *Definition 
 	gd.Nrow, gd.Ncol, gd.Nact = nr, nc, nr*nc
 	gd.Cwidth = UniformCellSize
 	gd.Sactives = make([]int, gd.Nact)
-	gd.act = make(map[int]bool, gd.Nact)
+	gd.Act = make(map[int]int, gd.Nact)
 	for i := 0; i < gd.Nact; i++ {
 		gd.Sactives[i] = i
-		gd.act[i] = true
+		gd.Act[i] = i
 	}
 	gd.Coord = make(map[int]mmaths.Point, gd.Nact)
 	cid := 0
@@ -90,10 +90,10 @@ func BuildDefinitionFromPoints(nam string, cxy map[int][]float64) *Definition {
 		}
 		gd.Rotation = angle(cxy[0], cxy[gd.Ncol-1]) // refine angle
 		gd.Sactives = make([]int, gd.Nact)
-		gd.act = make(map[int]bool, gd.Nact)
+		gd.Act = make(map[int]int, gd.Nact)
 		for i := 0; i < gd.Nact; i++ {
 			gd.Sactives[i] = i
-			gd.act[i] = true
+			gd.Act[i] = i
 		}
 		nw0 := dist(cxy[0], cxy[gd.Ncol])
 		isuniform := true
@@ -307,11 +307,11 @@ func ReadGDEF(fp string, print bool) (*Definition, error) {
 			fmt.Printf("  (no active cells)\n")
 		}
 		gd.Sactives = make([]int, cx)
-		gd.act = make(map[int]bool, cx)
+		gd.Act = make(map[int]int, cx)
 		gd.Nact = cx
 		for i := 0; i < cx; i++ {
 			gd.Sactives[i] = i
-			gd.act[i] = true
+			gd.Act[i] = i
 		}
 		gd.Coord = make(map[int]mmaths.Point, cx)
 		cid := 0
@@ -331,12 +331,12 @@ func ReadGDEF(fp string, print bool) (*Definition, error) {
 			return nil, fmt.Errorf("fatal error: EOF not reached when expected")
 		}
 		gd.Sactives = []int{}
-		gd.act = make(map[int]bool, cx)
+		gd.Act = make(map[int]int, cx)
 		for _, b := range b1 {
 			for i := uint(0); i < 8; i++ {
 				if b&(1<<i)>>i == 1 {
 					gd.Sactives = append(gd.Sactives, cn)
-					gd.act[cn] = true
+					gd.Act[cn] = gd.Nact
 					gd.Nact++
 				}
 				cn++
@@ -355,7 +355,7 @@ func ReadGDEF(fp string, print bool) (*Definition, error) {
 		cid := 0
 		for i := 0; i < gd.Nrow; i++ {
 			for j := 0; j < gd.Ncol; j++ {
-				if _, ok := gd.act[cid]; ok {
+				if _, ok := gd.Act[cid]; ok {
 					p := mmaths.Point{X: gd.Eorig + gd.Cwidth*(float64(j)+0.5), Y: gd.Norig - gd.Cwidth*(float64(i)+0.5)}
 					gd.Coord[cid] = p
 				}
@@ -431,24 +431,25 @@ func ReadHdr(fp string) (*Definition, float64, error) {
 
 // IsActive returns whether a cell ID is of an active cell
 func (gd *Definition) IsActive(cid int) bool {
-	return gd.act[cid]
+	_, ok := gd.Act[cid]
+	return ok
 }
 
 func (gd *Definition) ResetActives(cids []int) {
 	gd.Nact = len(cids)
-	gd.act = make(map[int]bool, gd.Nact)
+	gd.Act = make(map[int]int, gd.Nact)
 	gd.Sactives = make([]int, gd.Nact)
 	copy(gd.Sactives, cids)
 	sort.Ints(gd.Sactives)
-	for _, c := range cids {
-		gd.act[c] = true
+	for i, c := range gd.Sactives {
+		gd.Act[c] = i
 	}
 }
 
 // // Actives returns a slice of active cell IDs
 // func (gd *Definition) Actives() []int {
 // 	out, i := make([]int, gd.Nact), 0
-// 	for k, v := range gd.act {
+// 	for k, v := range gd.Act {
 // 		if v {
 // 			out[i] = k
 // 			i++
@@ -859,7 +860,7 @@ func (gd *Definition) LineToCellIDs(x0, y0, x1, y1 float64) []int {
 
 func (gd *Definition) Buffers(cardinal, isActive bool) map[int][]int {
 	o := make(map[int][]int, gd.Nact)
-	if gd.act == nil {
+	if gd.Act == nil {
 		isActive = false
 	}
 	for _, c := range gd.Sactives {
@@ -923,12 +924,12 @@ func (gd *Definition) CropToActives() *Definition {
 	_, _, ogd.Eorig, ogd.Norig = gd.CellOriginUL(gd.CellID(rn, cn))
 	ogd.Nact = gd.Nact
 	ogd.Sactives = make([]int, ogd.Nact)
-	ogd.act = make(map[int]bool, nnr*nnc)
+	ogd.Act = make(map[int]int, nnr*nnc)
 	for i, cid := range gd.Sactives {
 		r, c := gd.RowCol(cid)
 		cidn := ogd.CellID(r-rn, c-cn)
 		ogd.Sactives[i] = cidn
-		ogd.act[cidn] = true
+		ogd.Act[cidn] = i
 	}
 
 	return ogd

@@ -80,7 +80,7 @@ func (gd *Definition) ToASCheader(t *mmio.TXTwriter) {
 }
 
 // ToHDR creates an ESRI-grid based on grid definition header
-func (gd *Definition) ToHDR(fp string, nbands int) error {
+func (gd *Definition) ToHDR(fp string, nbands, nbits int) error {
 	t, err := mmio.NewTXTwriter(fp)
 	if err != nil {
 		return fmt.Errorf(" Definition.ToASC: %v", err)
@@ -93,7 +93,7 @@ func (gd *Definition) ToHDR(fp string, nbands int) error {
 	t.WriteLine(fmt.Sprintf("yllcorner %f", gd.Norig-float64(gd.Nrow)*gd.Cwidth))
 	t.WriteLine(fmt.Sprintf("cellsize %f", gd.Cwidth))
 	t.WriteLine(fmt.Sprintf("nodata_value %d", -32768))
-	t.WriteLine(fmt.Sprintf("nbits %d", 16))
+	t.WriteLine(fmt.Sprintf("nbits %d", nbits))
 	t.WriteLine(fmt.Sprintf("pixeltype %s", "signedint"))
 	t.WriteLine(fmt.Sprintf("byteorder %s", "lsbfirst"))
 	t.WriteLine(fmt.Sprintf("layout %s", "bip"))

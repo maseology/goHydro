@@ -55,7 +55,7 @@ func (r *Real) ImportAsc(fp string) error {
 	r.A, r.GD.Sactives = make(map[int]float64, na), make([]int, na)
 	r.GD.Coord = make(map[int]mmaths.Point)
 	r.GD.Nact = na
-	r.GD.act = make(map[int]bool, na)
+	r.GD.Act = make(map[int]int, na)
 	for i := 0; i < r.GD.Nrow; i++ {
 		for j := 0; j < r.GD.Ncol; j++ {
 			cid++
@@ -65,7 +65,7 @@ func (r *Real) ImportAsc(fp string) error {
 			r.A[cid] = d[cid]
 			r.GD.Coord[cid] = mmaths.Point{X: r.GD.Eorig + r.GD.Cwidth*(float64(j)+0.5), Y: r.GD.Norig - r.GD.Cwidth*(float64(i)+0.5)}
 			r.GD.Sactives[naa] = cid
-			r.GD.act[cid] = true
+			r.GD.Act[cid] = naa
 			naa++
 		}
 	}

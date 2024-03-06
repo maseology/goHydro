@@ -18,17 +18,17 @@ func GetForcings(mids []int, intvl float64, offset int, ncfp, prfx string) Forci
 		var err error
 		switch mmio.GetExtension(fp) {
 		case ".nc":
-			vars := []string{"precipitation_amount"}
-			// vars := []string{
-			// 	// "air_temperature",
-			// 	// "air_pressure",
-			// 	// "relative_humidity",
-			// 	// "wind_speed",
-			// 	"water_potential_evaporation_amount",
-			// 	"rainfall_amount",
-			// 	// "snowfall_amount",
-			// 	"surface_snow_melt_amount",
-			// }
+			// vars := []string{"precipitation_amount"}
+			vars := []string{
+				// "air_temperature",
+				// "air_pressure",
+				// "relative_humidity",
+				// "wind_speed",
+				"water_potential_evaporation_amount",
+				"rainfall_amount",
+				// "snowfall_amount",
+				"surface_snow_melt_amount",
+			}
 			g, err = gmet.LoadNC(fp, prfx, vars)
 		case ".csv":
 			g, err = gmet.LoadCsv(fp, "precipitation_amount")
@@ -103,13 +103,11 @@ func GetForcings(mids []int, intvl float64, offset int, ncfp, prfx string) Forci
 	}()
 
 	// collect data
-	pre := g.GetAllData("precipitation_amount")
-	// rf := g.GetAllData("rainfall_amount")
-	// sm := g.GetAllData("surface_snow_melt_amount")
-	// eao := g.GetAllData("water_potential_evaporation_amount")
+	// pre := g.GetAllData("precipitation_amount")
+	rf := g.GetAllData("rainfall_amount")
+	sm := g.GetAllData("surface_snow_melt_amount")
+	eao := g.GetAllData("water_potential_evaporation_amount")
 
-	ys := make([][]float64, len(mids))
-	// es, el :=  make([][]float64, len(mids)), .001
 	min0 := func(x float64, s string, m int, t time.Time) float64 {
 		if math.IsNaN(x) {
 			fmt.Printf("   > %s Nan (%d): %v -- set to zero\n", s, m, t)
@@ -121,35 +119,38 @@ func GetForcings(mids []int, intvl float64, offset int, ncfp, prfx string) Forci
 		return x / 1000. // to [m]
 	}
 
+	ys := make([][]float64, len(mids))
+	es, el := make([][]float64, len(mids)), .001
 	for ii, s := range mids {
 		if i, ok := mmid[s]; ok {
 			ya := make([]float64, nts)
-			// ea := make([]float64, nts)
+			ea := make([]float64, nts)
 			for j, t := range ts {
 				jj := xt[j] + offset // offset to end of timestep
-				if jj >= 0 && jj < len(pre[i]) {
-					ya[j] = min0(pre[i][jj], "pre", s, t)
-					// ya[j] = min0(rf[i][jj], "rf", s, t) + min0(sm[i][jj], "sm", s, t)
-				}
-				// if jj >= 0 && eao[i][jj] >= 0. {
-				// 	ea[j] = eao[i][jj] / 1000. // to [m]
-				// 	el = ea[j]
-				// } else {
-				// 	ea[j] = el // infilling with last
+				// if jj >= 0 && jj < len(pre[i]) {
+				// 	ya[j] = min0(pre[i][jj], "pre", s, t)
 				// }
+				if jj >= 0 && jj < len(rf[i]) {
+					ya[j] = min0(rf[i][jj], "rf", s, t) + min0(sm[i][jj], "sm", s, t)
+				}
+				if jj >= 0 && eao[i][jj] >= 0. {
+					ea[j] = eao[i][jj] / 1000. // to [m]
+					el = ea[j]
+				} else {
+					ea[j] = el // infilling with last
+				}
 			}
 			ys[ii] = ya
-			// es[ii] = ea
+			es[ii] = ea
 		} else {
 			panic("loadForcings error: met index does not contain sws index")
 		}
 	}
 
 	frc := Forcing{
-		T:  ts,
-		Ya: ys,
-		// Ea: es,
-		// XR:          cixr,
+		T:           ts,
+		Ya:          ys,
+		Ea:          es,
 		IntervalSec: intvl,
 	}
 

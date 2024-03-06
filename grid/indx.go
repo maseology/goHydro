@@ -3,6 +3,7 @@ package grid
 import (
 	"fmt"
 	"log"
+	"path/filepath"
 
 	"github.com/maseology/mmaths"
 	"github.com/maseology/mmio"
@@ -15,7 +16,11 @@ type Indx struct {
 }
 
 // New constructor
-func (x *Indx) New(fp string, rowmajor bool) {
+func (x *Indx) New(fp string) {
+	flen, ok := mmio.FileExists(fp)
+	if !ok {
+		log.Fatalf(" Indx.New: file not found %s", fp)
+	}
 	if x.GD == nil {
 		if _, b := mmio.FileExists(fp + ".gdef"); b {
 			fmt.Println(" loading: " + fp + ".gdef")
@@ -24,32 +29,53 @@ func (x *Indx) New(fp string, rowmajor bool) {
 			log.Fatalf(" Indx.New: no grid definition loaded %s", fp)
 		}
 	}
-	x.getBinary(fp, rowmajor)
-}
 
-// NewGD constructor
-func (x *Indx) NewGD(bfp, gdfp string) {
-	x.getGDef(gdfp)
-	x.getBinary(bfp, true)
-}
-
-// NewShort constructor
-func (x *Indx) NewShort(fp string, rowmajor bool) {
-	if x.GD == nil {
-		if _, b := mmio.FileExists(fp + ".gdef"); b {
-			x.getGDef(fp + ".gdef")
-		} else {
-			log.Fatalf(" Indx.NewShort: no grid definition loaded")
+	switch filepath.Ext(fp) {
+	case ".bil":
+		nc := int64(x.GD.Ncells())
+		switch flen {
+		case nc * 2:
+			x.getBinaryShort(fp, true)
+		case nc * 4:
+			x.getBinary(fp, true)
+		default:
+			panic(" Indx.New: bil size ERROR")
 		}
+	case ".indx":
+		switch flen {
+		case int64(x.GD.Nact) * 4:
+			x.getBinary(fp, true)
+		default:
+			panic(" Indx.New: todo")
+		}
+	default:
+		log.Fatalf("Indx.New ERROR: unsupported file format: " + fp)
 	}
-	x.getBinaryShort(fp, rowmajor)
 }
 
-// NewShortGD constructor
-func (x *Indx) NewShortGD(bfp, gdfp string, rowmajor bool) {
-	x.getGDef(gdfp)
-	x.getBinaryShort(bfp, rowmajor)
-}
+// // NewGD constructor
+// func (x *Indx) NewGD(bfp, gdfp string) {
+// 	x.getGDef(gdfp)
+// 	x.getBinary(bfp, true)
+// }
+
+// // NewShort constructor
+// func (x *Indx) NewShort(fp string, rowmajor bool) {
+// 	if x.GD == nil {
+// 		if _, b := mmio.FileExists(fp + ".gdef"); b {
+// 			x.getGDef(fp + ".gdef")
+// 		} else {
+// 			log.Fatalf(" Indx.NewShort: no grid definition loaded")
+// 		}
+// 	}
+// 	x.getBinaryShort(fp, rowmajor)
+// }
+
+// // NewShortGD constructor
+// func (x *Indx) NewShortGD(bfp, gdfp string, rowmajor bool) {
+// 	x.getGDef(gdfp)
+// 	x.getBinaryShort(bfp, rowmajor)
+// }
 
 // // NewIMAP constructor
 // func (x *Indx) NewIMAP(imap map[int]int) {
@@ -61,44 +87,6 @@ func (x *Indx) NewShortGD(bfp, gdfp string, rowmajor bool) {
 // 		x.A[k] = v
 // 	}
 // }
-
-// ToIndx
-func (gd *Definition) ToIndx(imap map[int]int) *Indx {
-	x := Indx{GD: gd, A: make(map[int]int, len(imap))}
-	for k, v := range imap {
-		x.A[k] = v
-	}
-	return &x
-}
-
-// LoadGDef loads grid definition
-func (x *Indx) LoadGDef(gd *Definition) {
-	x.GD = gd
-}
-
-// Nvalues returns the size of the Indx
-func (x *Indx) Nvalues() int {
-	return len(x.A)
-}
-
-// Value returns the value of a given cell ID
-func (x *Indx) Value(cid int) int {
-	if v, ok := x.A[cid]; ok {
-		return v
-	}
-	log.Fatalf("Indx.Value: no value assigned to cell ID %d", cid)
-	return -1
-}
-
-// UniqueValues returns the value of a given cell ID
-func (x *Indx) UniqueValues() []int {
-	c, i := make([]int, len(x.A)), 0
-	for _, v := range x.A {
-		c[i] = v
-		i++
-	}
-	return mmaths.UniqueInts(c)
-}
 
 func (x *Indx) getGDef(fp string) {
 	var err error
@@ -171,4 +159,42 @@ func (x *Indx) getBinary(fp string, rowmajor bool) {
 		fmt.Println(x.GD.Nact, x.GD.Nrow*x.GD.Ncol, x.GD.Nact*4, x.GD.Nrow*x.GD.Ncol*4)
 		log.Fatalf(" Indx.getBinary: grid does not match definition length %d", n)
 	}
+}
+
+// ToIndx
+func (gd *Definition) ToIndx(imap map[int]int) *Indx {
+	x := Indx{GD: gd, A: make(map[int]int, len(imap))}
+	for k, v := range imap {
+		x.A[k] = v
+	}
+	return &x
+}
+
+// // LoadGDef loads grid definition
+// func (x *Indx) LoadGDef(gd *Definition) {
+// 	x.GD = gd
+// }
+
+// Nvalues returns the size of the Indx
+func (x *Indx) Nvalues() int {
+	return len(x.A)
+}
+
+// Value returns the value of a given cell ID
+func (x *Indx) Value(cid int) int {
+	if v, ok := x.A[cid]; ok {
+		return v
+	}
+	log.Fatalf("Indx.Value: no value assigned to cell ID %d", cid)
+	return -1
+}
+
+// UniqueValues returns the value of a given cell ID
+func (x *Indx) UniqueValues() []int {
+	c, i := make([]int, len(x.A)), 0
+	for _, v := range x.A {
+		c[i] = v
+		i++
+	}
+	return mmaths.UniqueInts(c)
 }

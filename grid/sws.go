@@ -20,8 +20,8 @@ func CollectSWS(swsFP string, gd *Definition) *SWS {
 		gsws.ImportBil(swsFP)
 		gd = gsws.GD
 	} else {
-		gsws.LoadGDef(gd)
-		gsws.New(swsFP, false)
+		gsws.GD = gd
+		gsws.New(swsFP) //, false)
 	}
 
 	cs := gsws.A
