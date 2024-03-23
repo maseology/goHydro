@@ -4,6 +4,7 @@ import (
 	"encoding/gob"
 	"fmt"
 	"image"
+	"image/color"
 	"image/png"
 	"math"
 	"os"
@@ -258,6 +259,117 @@ func (r *Real) ToTiles(minVal, maxVal float64, zoomMin, zoomMax, epsg int, tileD
 						}
 						if a[xx][yy] == -9999 {
 							a[xx][yy] = r.A[c]
+						}
+					}
+				}
+			}
+		}
+
+		saveImg(a, fmt.Sprintf("%s/%d/%d/%d.png", tileDir, t.Z, t.X, t.Y))
+	}
+	fmt.Printf("%v\nTOTAL TIME: %v\n", time.Since(tt), time.Since(ttt))
+}
+
+// ToTiles take a categorical grid and builds a set of raster/image tiles for webmapping
+func (g *Indx) ToTiles(cmap map[int]color.RGBA, zoomMin, zoomMax, epsg int, tileDir string) {
+	fmt.Printf("Building image tiles to directory: %s | input cell size: %.3fm\n", tileDir, g.GD.Cwidth)
+
+	ttt := time.Now()
+	mmio.MakeDir(tileDir)
+
+	tset := g.GD.BuildTileSet(zoomMin, zoomMax, epsg, mmio.GetFileDir(tileDir)+"/")
+	mzoom, minzoom := make(map[int]float64, zoomMax-zoomMin+1), g.GD.Cwidth
+	fmt.Printf("  pixel sizes at latidude %.3f:\n", maxLat)
+	for z := zoomMin; z <= zoomMax; z++ {
+		mzoom[z] = 156543.03 * math.Cos(maxLat) / math.Pow(2, float64(z)) // https://wiki.openstreetmap.org/wiki/Slippy_map_tilenames#Resolution_and_Scale
+		fmt.Printf("   pixel size at zoom %d: %.3fm\n", z, mzoom[z])
+		if mzoom[z] < minzoom {
+			minzoom = mzoom[z]
+		}
+	}
+
+	fmt.Printf(" > building %s tiles.. ", mmio.Thousands(int64(len(tset.Tiles))))
+	tt := time.Now()
+	saveImg := func(a [][]int, fp string) {
+		img := image.NewRGBA(image.Rectangle{image.Point{0, 0}, image.Point{resolution, resolution}})
+		for x := 0; x < resolution; x++ {
+			for y := 0; y < resolution; y++ {
+				if a[x][y] != -9999. {
+					if col, ok := cmap[a[x][y]]; ok {
+						img.Set(x, y, col)
+					} else {
+						panic("indx.saveImg set ERROR")
+					}
+				}
+			}
+		}
+		f, _ := os.Create(fp)
+		png.Encode(f, img)
+	}
+
+	fres, cellRad := float64(resolution), g.GD.Cwidth // math.Sqrt(2*g.GD.Cwidth*g.GD.Cwidth)
+	gcell := func(l, h, v float64) int { return int(math.Floor((v - l) / (h - l) * fres)) }
+	mbrngs := BufferRingsSquare(int(math.Ceil(cellRad / minzoom)))
+	for k, t := range tset.Tiles {
+		mmio.MakeDir(fmt.Sprintf("%s/%d/%d", tileDir, t.Z, t.X))
+		m, a := make([][]map[int]int, resolution), make([][]int, resolution)
+		for i := 0; i < resolution; i++ {
+			m[i] = make([]map[int]int, resolution)
+			a[i] = make([]int, resolution)
+		}
+
+		latUL, longUL, latLR, longLR := t.ToExtent()
+		if mzoom[t.Z] > g.GD.Cwidth { // aggregate
+			for _, c := range tset.Cids[k] {
+				ll := tset.Clnglat[c]
+				x := gcell(longUL, longLR, ll[0])
+				y := resolution - gcell(latLR, latUL, ll[1]) - 1
+				if x >= 0 && y >= 0 && x < resolution && y < resolution {
+					m[x][y][g.A[c]]++
+				}
+			}
+			for i := 0; i < resolution; i++ {
+				for j := 0; j < resolution; j++ {
+					if len(m[i][j]) > 0 {
+						k1, n1 := -1, -1
+						for k, n := range m[i][j] {
+							if n > n1 {
+								n1 = n
+								k1 = k
+							}
+						}
+						a[i][j] = k1
+					} else {
+						a[i][j] = -9999.
+					}
+				}
+			}
+		} else {
+			for i := 0; i < resolution; i++ {
+				for j := 0; j < resolution; j++ {
+					a[i][j] = -9999
+				}
+			}
+			xys := make(map[int][]int, len(tset.Cids[k]))
+			for _, c := range tset.Cids[k] {
+				ll := tset.Clnglat[c]
+				x := gcell(longUL, longLR, ll[0])
+				y := resolution - gcell(latLR, latUL, ll[1]) - 1
+				xys[c] = []int{x, y}
+				if x >= 0 && y >= 0 && x < resolution && y < resolution {
+					a[x][y] = g.A[c]
+				}
+			}
+			b := int(math.Ceil(cellRad / mzoom[t.Z]))
+			for bb := 1; bb <= b; bb++ {
+				for c, xy := range xys {
+					for _, mn := range mbrngs[bb] {
+						xx, yy := xy[0]+mn[0], xy[1]+mn[1]
+						if xx < 0 || yy < 0 || xx >= resolution || yy >= resolution {
+							continue
+						}
+						if a[xx][yy] == -9999 {
+							a[xx][yy] = g.A[c]
 						}
 					}
 				}

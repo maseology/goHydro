@@ -53,24 +53,82 @@ func (r *Real) ImportBil(fp string) error {
 }
 
 func (x *Indx) ImportBil(fp string) error {
-	b, err := os.ReadFile(fp)
-	if err != nil {
-		return fmt.Errorf("ImportBil failed: %v", err)
-	}
-	buf := bytes.NewReader(b)
-	n := len(b) / 4
-	v := make([]int32, n)
-	if err := binary.Read(buf, binary.LittleEndian, v); err != nil {
-		return fmt.Errorf("ImportBil failed: %v", err)
-	}
-
 	// read grid into
+	var err error
 	var nd float64
 	x.GD, nd, err = ReadHdr(strings.ReplaceAll(fp, ".bil", ".hdr"))
 	if err != nil {
 		return fmt.Errorf("ImportBil failed: %v", err)
 	}
 
+	b, err := os.ReadFile(fp)
+	if err != nil {
+		return fmt.Errorf("ImportBil failed: %v", err)
+	}
+	buf, n := bytes.NewReader(b), len(b)
+	switch n {
+	case x.GD.Nact:
+		return x.readBil8(buf, n)
+	case x.GD.Nact * 2:
+		return x.readBil16(buf, n/2)
+	case x.GD.Nact * 4:
+		return x.readBil32(buf, nd, n/4)
+	default:
+		panic("ImportBil: TODO")
+	}
+}
+
+func (x *Indx) readBil8(buf *bytes.Reader, n int) error {
+	v := make([]byte, n)
+	if err := binary.Read(buf, binary.LittleEndian, v); err != nil {
+		return fmt.Errorf("ImportBil readBil8 failed: %v", err)
+	}
+	// build grid mapping
+	cid := -1
+	cids := make([]int, 0, n)
+	x.A = make(map[int]int, n)
+	x.GD.Coord = make(map[int]mmaths.Point)
+	for i := 0; i < x.GD.Nrow; i++ {
+		for j := 0; j < x.GD.Ncol; j++ {
+			cid++
+			x.A[cid] = int(v[cid])
+			p := mmaths.Point{X: x.GD.Eorig + x.GD.Cwidth*(float64(j)+0.5), Y: x.GD.Norig - x.GD.Cwidth*(float64(i)+0.5)}
+			x.GD.Coord[cid] = p
+			cids = append(cids, cid)
+		}
+	}
+	x.GD.ResetActives(cids)
+	return nil
+}
+
+func (x *Indx) readBil16(buf *bytes.Reader, n int) error {
+	v := make([]int16, n)
+	if err := binary.Read(buf, binary.LittleEndian, v); err != nil {
+		return fmt.Errorf("ImportBil readBil16 failed: %v", err)
+	}
+	// build grid mapping
+	cid := -1
+	cids := make([]int, 0, n)
+	x.A = make(map[int]int, n)
+	x.GD.Coord = make(map[int]mmaths.Point)
+	for i := 0; i < x.GD.Nrow; i++ {
+		for j := 0; j < x.GD.Ncol; j++ {
+			cid++
+			x.A[cid] = int(v[cid])
+			p := mmaths.Point{X: x.GD.Eorig + x.GD.Cwidth*(float64(j)+0.5), Y: x.GD.Norig - x.GD.Cwidth*(float64(i)+0.5)}
+			x.GD.Coord[cid] = p
+			cids = append(cids, cid)
+		}
+	}
+	x.GD.ResetActives(cids)
+	return nil
+}
+
+func (x *Indx) readBil32(buf *bytes.Reader, nodata float64, n int) error {
+	v := make([]int32, n)
+	if err := binary.Read(buf, binary.LittleEndian, v); err != nil {
+		return fmt.Errorf("ImportBil readBil32 failed: %v", err)
+	}
 	// build grid mapping
 	cid := -1
 	cids := make([]int, 0, n)
@@ -80,7 +138,7 @@ func (x *Indx) ImportBil(fp string) error {
 		for j := 0; j < x.GD.Ncol; j++ {
 			cid++
 			v64 := float64(v[cid])
-			if (math.Log10(math.Abs(v64)) > 30 && math.Log10(math.Abs(nd)) > 30) || v64 == nd || (math.IsNaN(nd) && math.IsNaN(v64)) {
+			if (math.Log10(math.Abs(v64)) > 30 && math.Log10(math.Abs(nodata)) > 30) || v64 == nodata || (math.IsNaN(nodata) && math.IsNaN(v64)) {
 				continue
 			}
 			x.A[cid] = int(v64)
