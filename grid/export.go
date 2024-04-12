@@ -83,7 +83,7 @@ func (gd *Definition) ToASCheader(t *mmio.TXTwriter) {
 func (gd *Definition) ToHDR(fp string, nbands, nbits int) error {
 	t, err := mmio.NewTXTwriter(fp)
 	if err != nil {
-		return fmt.Errorf(" Definition.ToASC: %v", err)
+		return fmt.Errorf(" Definition.ToHDR: %v", err)
 	}
 	defer t.Close()
 	t.WriteLine(fmt.Sprintf("ncols %d", gd.Ncol))
@@ -92,11 +92,34 @@ func (gd *Definition) ToHDR(fp string, nbands, nbits int) error {
 	t.WriteLine(fmt.Sprintf("xllcorner %f", gd.Eorig))
 	t.WriteLine(fmt.Sprintf("yllcorner %f", gd.Norig-float64(gd.Nrow)*gd.Cwidth))
 	t.WriteLine(fmt.Sprintf("cellsize %f", gd.Cwidth))
-	t.WriteLine(fmt.Sprintf("nodata_value %d", -32768))
+	t.WriteLine(fmt.Sprintf("nodata_value %d", -9999))
 	t.WriteLine(fmt.Sprintf("nbits %d", nbits))
 	t.WriteLine(fmt.Sprintf("pixeltype %s", "signedint"))
-	t.WriteLine(fmt.Sprintf("byteorder %s", "lsbfirst"))
-	t.WriteLine(fmt.Sprintf("layout %s", "bip"))
+	t.WriteLine(fmt.Sprintf("byteorder %s", "i"))
+	t.WriteLine(fmt.Sprintf("layout %s", "bil"))
+	// t.WriteLine(fmt.Sprintf("byteorder %s", "lsbfirst"))
+	// t.WriteLine(fmt.Sprintf("layout %s", "bip"))
+	return nil
+}
+
+// ToHDRfloat creates an ESRI-grid based on grid definition header for float arrays
+func (gd *Definition) ToHDRfloat(fp string, nbands, nbits int) error {
+	t, err := mmio.NewTXTwriter(fp)
+	if err != nil {
+		return fmt.Errorf(" Definition.ToHToHDRfloatDR: %v", err)
+	}
+	defer t.Close()
+	t.WriteLine(fmt.Sprintf("ncols %d", gd.Ncol))
+	t.WriteLine(fmt.Sprintf("nrows %d", gd.Nrow))
+	t.WriteLine(fmt.Sprintf("nbands %d", nbands))
+	t.WriteLine(fmt.Sprintf("xllcorner %f", gd.Eorig))
+	t.WriteLine(fmt.Sprintf("yllcorner %f", gd.Norig-float64(gd.Nrow)*gd.Cwidth))
+	t.WriteLine(fmt.Sprintf("cellsize %f", gd.Cwidth))
+	t.WriteLine(fmt.Sprintf("nodata_value %d", -9999))
+	t.WriteLine(fmt.Sprintf("nbits %d", nbits))
+	t.WriteLine(fmt.Sprintf("pixeltype %s", "float"))
+	t.WriteLine(fmt.Sprintf("byteorder %s", "i"))
+	t.WriteLine(fmt.Sprintf("layout %s", "bil"))
 	return nil
 }
 
