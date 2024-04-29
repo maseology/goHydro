@@ -3,23 +3,27 @@ package tem
 import (
 	"log"
 
+	"github.com/maseology/goHydro/grid"
 	"github.com/maseology/mmio"
 )
 
-func (t *TEM) SaveUHDEM(fp string) error {
+func (t *TEM) SaveUHDEM(fp string, gd *grid.Definition) error {
 	nc := len(t.TEC)
 	uc := make([]uhdemReader, nc)
 	mc := make(map[int]bool, nc)
 	ii := 0
 	for i, t := range t.TEC {
+		cntrd := gd.CellCentroid(i)
 		mc[i] = true
 		uc[ii] = uhdemReader{
 			I: int32(i),
 			A: t.A,
 			G: t.G,
 			Z: t.Z,
-			X: -9999.,
-			Y: -9999.,
+			// X: -9999.,
+			// Y: -9999.,
+			X: cntrd[0],
+			Y: cntrd[1],
 		}
 		ii++
 	}
