@@ -34,11 +34,14 @@ func (x *Indx) New(fp string) {
 	case ".bil":
 		nc := int64(x.GD.Ncells())
 		switch flen {
+		case nc:
+			x.getBinaryByte(fp, true)
 		case nc * 2:
 			x.getBinaryShort(fp, true)
 		case nc * 4:
 			x.getBinary(fp, true)
 		default:
+			fmt.Printf("ncells: %d; flen: %d\n", nc, flen)
 			panic(" Indx.New: bil size ERROR")
 		}
 	case ".indx":
@@ -93,6 +96,38 @@ func (x *Indx) getGDef(fp string) {
 	x.GD, err = ReadGDEF(fp, true)
 	if err != nil {
 		log.Fatalf("getGDef: %v", err)
+	}
+}
+
+func (x *Indx) getBinaryByte(fp string, rowmajor bool) {
+	b, n, err := mmio.ReadBinaryBytes(fp, 1)
+	if err != nil {
+		log.Fatalf(" Indx.getBinaryByte(): %v", err)
+	}
+	switch n {
+	case x.GD.Nact:
+		x.A = make(map[int]int, x.GD.Nact)
+		for i, cid := range x.GD.Sactives {
+			x.A[cid] = int(b[0][i])
+		}
+	case x.GD.Nrow * x.GD.Ncol:
+		x.A = make(map[int]int, x.GD.Nrow*x.GD.Ncol)
+		if rowmajor {
+			for i := 0; i < n; i++ {
+				x.A[i] = int(b[0][i])
+			}
+		} else {
+			c, nr, nc := 0, x.GD.Nrow, x.GD.Ncol
+			for j := 0; j < nc; j++ {
+				for i := 0; i < nr; i++ {
+					x.A[i*nc+j] = int(b[0][c])
+					c++
+				}
+			}
+		}
+	default:
+		fmt.Println(x.GD.Nact, x.GD.Nrow*x.GD.Ncol, x.GD.Nact*4, x.GD.Nrow*x.GD.Ncol*4)
+		log.Fatalf(" Indx.getBinaryByte: grid does not match definition length %d", n)
 	}
 }
 
