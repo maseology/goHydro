@@ -349,7 +349,7 @@ func ReadGDEF(fp string, print bool) (*Definition, error) {
 			return nil, fmt.Errorf("fatal error(s): ReadGDEF:\n   number of cells found (%d) not equal to total (%d): %v", cn, cx, err)
 		}
 		if gd.Nact > 0 && print {
-			fmt.Printf("  %s active cells\n", mmio.Thousands(int64(gd.Nact))) //11,118,568
+			fmt.Printf("  %s\tactive cells\n", mmio.Thousands(int64(gd.Nact))) //11,118,568
 		}
 		gd.Coord = make(map[int]mmaths.Point, gd.Nact)
 		cid := 0
@@ -609,6 +609,28 @@ func (gd *Definition) NullInt32(nodatavalue int32) []int32 {
 		o[i] = nodatavalue
 	}
 	return o
+}
+
+func (gd *Definition) ExtentToCellIDs(ext mmaths.Extent) []int {
+	var wg sync.WaitGroup
+	wg.Add(2)
+	var iul, jul, ilr, jlr int
+	go func() {
+		iul, jul = gd.PointToRowCol(ext.Xn, ext.Yx)
+		wg.Done()
+	}()
+	go func() {
+		ilr, jlr = gd.PointToRowCol(ext.Xx, ext.Yn)
+		wg.Done()
+	}()
+	wg.Wait()
+	cids := []int{}
+	for i := iul; i <= ilr; i++ {
+		for j := jul; j <= jlr; j++ {
+			cids = append(cids, gd.CellID(i, j))
+		}
+	}
+	return cids
 }
 
 // PointToCellID returns the cell id that contains the xy coordinates
