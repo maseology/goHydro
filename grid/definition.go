@@ -638,6 +638,14 @@ func (gd *Definition) PointToCellID(x, y float64) int {
 	return gd.CellID(gd.PointToRowCol(x, y))
 }
 
+func (gd *Definition) PointToActiveCellID(x, y float64) int {
+	cid := gd.CellID(gd.PointToRowCol(x, y))
+	if gd.IsActive(cid) {
+		return cid
+	}
+	return -1
+}
+
 // PointToRowCol returns the row and column grid cell that contains the xy coordinates
 func (gd *Definition) PointToRowCol(x, y float64) (row, col int) {
 	if gd.Rotation != 0 {
