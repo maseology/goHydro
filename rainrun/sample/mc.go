@@ -10,8 +10,8 @@ import (
 	"github.com/maseology/UTM"
 	rr "github.com/maseology/goHydro/rainrun"
 	"github.com/maseology/goHydro/solirrad"
+	mrg63k3a "github.com/maseology/goRNG/MRG63k3a"
 	"github.com/maseology/montecarlo"
-	mrg63k3a "github.com/maseology/pnrg/MRG63k3a"
 )
 
 // Sample samples a rainrun model

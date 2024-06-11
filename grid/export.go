@@ -1,8 +1,10 @@
 package grid
 
 import (
+	"bytes"
 	"encoding/binary"
 	"fmt"
+	"os"
 
 	"github.com/maseology/mmio"
 )
@@ -182,4 +184,17 @@ func (gd *Definition) ToAscData(fp string, d map[int]float64) error {
 		t.Write("\n")
 	}
 	return nil
+}
+
+func (gd *Definition) ToBIL(fp string, f32 []float32) {
+	buf := new(bytes.Buffer)
+	if err := binary.Write(buf, binary.LittleEndian, f32); err != nil {
+		panic(err)
+	}
+	if err := os.WriteFile(fp, buf.Bytes(), 0644); err != nil { // see: https://en.wikipedia.org/wiki/File_system_permissions
+		panic(err)
+	}
+	if err := gd.ToHDRfloat(mmio.RemoveExtension(fp)+".hdr", 1, 32); err != nil {
+		panic(err)
+	}
 }

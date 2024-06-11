@@ -34,8 +34,10 @@ func Optimize(ifrc *rr.Frc, mdl, logfp string) {
 	switch mdl {
 	case "Atkinson":
 		func() {
+			tt := time.Now()
 			uFinal, _ := glbopt.SCE(ncmplx, 7, rng, genAtkinson, true)
 			// uFinal, _ := glbopt.SurrogateRBF(nrbf, 7, rng, genAtkinson)
+			elpsd := time.Since(tt)
 
 			var m rr.Lumper = &rr.Atkinson{}
 			pFinal := sample.Atkinson(uFinal)
@@ -43,6 +45,7 @@ func Optimize(ifrc *rr.Frc, mdl, logfp string) {
 			su := fmt.Sprintf("sample space:\t%f\n", uFinal)
 			m.New(pFinal...)
 			logger.Println(mmio.FileName(gfrc.FilePath, false))
+			logger.Printf(" optimization time elapsed %v\n", elpsd)
 			logger.Print(sp + su)
 			logger.Println("\n" + rr.EvalPNG(m, gfrc, mdl))
 		}()
@@ -51,21 +54,27 @@ func Optimize(ifrc *rr.Frc, mdl, logfp string) {
 			if gfrc.Timestep <= 0. {
 				log.Fatalf("need to set timestep length for Dawdy O'Donnell simulations")
 			}
+			tt := time.Now()
 			uFinal, _ := glbopt.SCE(ncmplx, 6, rng, genDawdyODonnell, true)
 			// uFinal, _ := glbopt.SurrogateRBF(nrbf, 6, rng, genDawdyODonnell)
+			elpsd := time.Since(tt)
 
 			var m rr.Lumper = &rr.DawdyODonnell{}
 			pFinal := sample.DawdyODonnell(uFinal, gfrc.Timestep)
 			sp := fmt.Sprintf("\nfinal parameters: %v\n", pFinal)
 			su := fmt.Sprintf("sample space:\t%f\n", uFinal)
+			m.New(pFinal...)
 			logger.Println(mmio.FileName(gfrc.FilePath, false))
+			logger.Printf(" optimization time elapsed %v\n", elpsd)
 			logger.Print(sp + su)
 			logger.Println("\n" + rr.EvalPNG(m, gfrc, mdl))
 		}()
 	case "GR4J":
 		func() {
+			tt := time.Now()
 			uFinal, _ := glbopt.SCE(ncmplx, 4, rng, genGR4J, true)
 			// uFinal, _ := glbopt.SurrogateRBF(nrbf, 4, rng, genGR4J)
+			elpsd := time.Since(tt)
 
 			var m rr.Lumper = &rr.GR4J{}
 			pFinal := sample.GR4J(uFinal)
@@ -74,6 +83,7 @@ func Optimize(ifrc *rr.Frc, mdl, logfp string) {
 			fmt.Print(sp + su)
 			m.New(pFinal...)
 			logger.Println(mmio.FileName(gfrc.FilePath, false))
+			logger.Printf(" optimization time elapsed %v\n", elpsd)
 			logger.Print(sp + su)
 			logger.Println("\n" + rr.EvalPNG(m, gfrc, mdl))
 			// var m rr.Lumper = &rr.GR4J{}
@@ -89,8 +99,10 @@ func Optimize(ifrc *rr.Frc, mdl, logfp string) {
 				// log.Fatalf("need to set timestep length for HBV simulations")
 				gfrc.Timestep = 86400.
 			}
+			tt := time.Now()
 			uFinal, _ := glbopt.SCE(ncmplx, 9, rng, genHBV, true)
 			// uFinal, _ := glbopt.SurrogateRBF(nrbf, 9, rng, genHBV)
+			elpsd := time.Since(tt)
 
 			var m rr.Lumper = &rr.HBV{}
 			pFinal := sample.HBV(uFinal, gfrc.Timestep)
@@ -98,13 +110,16 @@ func Optimize(ifrc *rr.Frc, mdl, logfp string) {
 			su := fmt.Sprintf("sample space:\t\t%f\n", uFinal)
 			m.New(pFinal...)
 			logger.Println(mmio.FileName(gfrc.FilePath, false))
+			logger.Printf(" optimization time elapsed %v\n", elpsd)
 			logger.Print(sp + su)
 			logger.Println("\n" + rr.EvalPNG(m, gfrc, mdl))
 		}()
 	case "ManabeGW":
 		func() { // check
+			tt := time.Now()
 			uFinal, _ := glbopt.SCE(ncmplx, 5, rng, genManabeGW, true)
 			// uFinal, _ := glbopt.SurrogateRBF(nrbf, 5, rng, genManabeGW)
+			elpsd := time.Since(tt)
 
 			var m rr.Lumper = &rr.ManabeGW{}
 			pFinal := sample.ManabeGW(uFinal)
@@ -112,13 +127,16 @@ func Optimize(ifrc *rr.Frc, mdl, logfp string) {
 			su := fmt.Sprintf("sample space:\t\t%f\n", uFinal)
 			m.New(pFinal...)
 			logger.Println(mmio.FileName(gfrc.FilePath, false))
+			logger.Printf(" optimization time elapsed %v\n", elpsd)
 			logger.Print(sp + su)
 			logger.Println("\n" + rr.EvalPNG(m, gfrc, mdl))
 		}()
 	case "MultiLayerCapacitance":
 		func() { // check
+			tt := time.Now()
 			uFinal, _ := glbopt.SCE(ncmplx, 9, rng, genMultiLayerCapacitance, true)
 			// uFinal, _ := glbopt.SurrogateRBF(nrbf, 9, rng, genMultiLayerCapacitance)
+			elpsd := time.Since(tt)
 
 			var m rr.Lumper = &rr.MultiLayerCapacitance{}
 			pFinal := sample.MultiLayerCapacitance(uFinal)
@@ -126,13 +144,16 @@ func Optimize(ifrc *rr.Frc, mdl, logfp string) {
 			su := fmt.Sprintf("sample space:\t\t%f\n", uFinal)
 			m.New(pFinal...)
 			logger.Println(mmio.FileName(gfrc.FilePath, false))
+			logger.Printf(" optimization time elapsed %v\n", elpsd)
 			logger.Print(sp + su)
 			logger.Println("\n" + rr.EvalPNG(m, gfrc, mdl))
 		}()
 	case "Quinn":
 		func() { // check
+			tt := time.Now()
 			uFinal, _ := glbopt.SCE(ncmplx, 11, rng, genQuinn, true)
 			// uFinal, _ := glbopt.SurrogateRBF(nrbf, 11, rng, genQuinn)
+			elpsd := time.Since(tt)
 
 			var m rr.Lumper = &rr.Quinn{}
 			pFinal := sample.Quinn(uFinal)
@@ -140,13 +161,16 @@ func Optimize(ifrc *rr.Frc, mdl, logfp string) {
 			su := fmt.Sprintf("sample space:\t\t%f\n", uFinal)
 			m.New(pFinal...)
 			logger.Println(mmio.FileName(gfrc.FilePath, false))
+			logger.Printf(" optimization time elapsed %v\n", elpsd)
 			logger.Print(sp + su)
 			logger.Println("\n" + rr.EvalPNG(m, gfrc, mdl))
 		}()
 	case "SIXPAR":
 		func() { // check
+			tt := time.Now()
 			uFinal, _ := glbopt.SCE(ncmplx, 6, rng, genSIXPAR, true)
 			// uFinal, _ := glbopt.SurrogateRBF(nrbf, 6, rng, genSIXPAR)
+			elpsd := time.Since(tt)
 
 			var m rr.Lumper = &rr.SIXPAR{}
 			pFinal := sample.SIXPAR(uFinal)
@@ -154,13 +178,16 @@ func Optimize(ifrc *rr.Frc, mdl, logfp string) {
 			su := fmt.Sprintf("sample space:\t\t%f\n", uFinal)
 			m.New(pFinal...)
 			logger.Println(mmio.FileName(gfrc.FilePath, false))
+			logger.Printf(" optimization time elapsed %v\n", elpsd)
 			logger.Print(sp + su)
 			logger.Println("\n" + rr.EvalPNG(m, gfrc, mdl))
 		}()
 	case "SPLR":
 		func() { // check (negative AET??)
+			tt := time.Now()
 			uFinal, _ := glbopt.SCE(ncmplx, 6, rng, genSPLR, true)
 			// uFinal, _ := glbopt.SurrogateRBF(nrbf, 6, rng, genSPLR)
+			elpsd := time.Since(tt)
 
 			var m rr.Lumper = &rr.SPLR{}
 			pFinal := sample.SPLR(uFinal)
@@ -168,6 +195,7 @@ func Optimize(ifrc *rr.Frc, mdl, logfp string) {
 			su := fmt.Sprintf("sample space:\t\t%f\n", uFinal)
 			m.New(pFinal...)
 			logger.Println(mmio.FileName(gfrc.FilePath, false))
+			logger.Printf(" optimization time elapsed %v\n", elpsd)
 			logger.Print(sp + su)
 			logger.Println("\n" + rr.EvalPNG(m, gfrc, mdl))
 		}()

@@ -4,6 +4,7 @@ import "math"
 
 // ThornthwaiteMather monthly waterbudget model
 // see: Alley, W.M., 1984. Onthe the Treatment of Evapotranspiration, Soil Moisture Accounting, and Aquifer Recharge in Monthly Water Balance Models. Water Resources Research 20(8): 1137-1149.
+// Thornthwaite, C.W., and J.R. Mather 1955. The Water Balance, Publications in Climatology VIII(1): 1-104, Drexel Institute of Climatology, Centerton, New Jersey.
 // variant of the Thornthwaite and Mather (1955) model.  Referred as the type T model by Alley (1984)
 type ThornthwaiteMather struct {
 	sto, cap, surp, lambda float64

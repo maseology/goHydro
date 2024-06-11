@@ -11,7 +11,7 @@ import (
 	rr "github.com/maseology/goHydro/rainrun"
 	"github.com/maseology/goHydro/rainrun/sample"
 	"github.com/maseology/goHydro/solirrad"
-	mrg63k3a "github.com/maseology/goPRNG/MRG63k3a"
+	mrg63k3a "github.com/maseology/goRNG/MRG63k3a"
 	mmplt "github.com/maseology/mmPlot"
 	"github.com/maseology/mmio"
 	"github.com/maseology/objfunc"
