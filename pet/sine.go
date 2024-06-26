@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-// SineCurve returns (0.,1.) with summer solstice at 1.
+// SineCurve returns (0,1) with summer solstice at 1.
 func SineCurve(dt time.Time) float64 {
 	const offset_days = 15.
 	doy := float64(dt.YearDay()) - offset_days
