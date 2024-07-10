@@ -755,7 +755,7 @@ func (gd *Definition) LineToCellIDs(x0, y0, x1, y1 float64) []int {
 		var dists []float64
 		appendPoint := func(ln *mmaths.LineSegment) {
 			if p, dist := ln0.Intersection2D(ln); !math.IsNaN(dist) {
-				intersectionPoints = append(intersectionPoints, &p)
+				intersectionPoints = append(intersectionPoints, p)
 				dists = append(dists, dist)
 			}
 		}
@@ -886,6 +886,11 @@ func (gd *Definition) LineToCellIDs(x0, y0, x1, y1 float64) []int {
 	}
 	o = slice.Distinct(o)
 	return o
+}
+
+func (gd *Definition) PolygonToCellIDs(vertices [][]float64) ([]int, int) {
+	var pr PolygonRasterizer
+	return pr.InteriorCellIDs(gd, vertices) // cids, ncells
 }
 
 func (gd *Definition) Buffers(cardinal, isActive bool) map[int][]int {
