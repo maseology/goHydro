@@ -41,7 +41,7 @@ func inputDataCheck(r, s, t float64) error {
 	if s > 1. || s < 0. {
 		return fmt.Errorf("fatal error in snowfall = %f", s)
 	}
-	if t < -60. || t > 50. {
+	if t < -65. || t > 50. {
 		return fmt.Errorf("fatal error in temperature = %f", t)
 	}
 	return nil
