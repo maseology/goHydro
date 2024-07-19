@@ -239,14 +239,14 @@ func ReadGDEF(fp string, print bool) (*Definition, error) {
 
 		gd := Definition{Eorig: oe, Norig: on, Rotation: rot, Cwidth: cs, Nrow: int(nr), Ncol: int(nc)}
 		if print {
-			fmt.Printf("\n opened %s\n", fp)
-			fmt.Printf("  xul\t\t%.1f\n", oe)
-			fmt.Printf("  yul\t\t%.1f\n", on)
-			fmt.Printf("  rotation\t%f\n", rot)
-			fmt.Printf("  nrows\t\t%d\n", nr)
-			fmt.Printf("  ncols\t\t%d\n", nc)
-			fmt.Printf("  cell size\t%.3f\n", cs)
-			fmt.Printf("  is uniform:\t%t\n", uni)
+			fmt.Printf("\n   opening %s\n", fp)
+			fmt.Printf("    xul\t\t%.1f\n", oe)
+			fmt.Printf("    yul\t\t%.1f\n", on)
+			fmt.Printf("    rotation\t%f\n", rot)
+			fmt.Printf("    nrows\t%d\n", nr)
+			fmt.Printf("    ncols\t%d\n", nc)
+			fmt.Printf("    cell size\t%.3f\n", cs)
+			fmt.Printf("    is uniform:\t%t\n", uni)
 		}
 
 		return gd, uni, nil
@@ -304,7 +304,7 @@ func ReadGDEF(fp string, print bool) (*Definition, error) {
 			return nil, fmt.Errorf("fatal error: read actives failed: %v", err)
 		}
 		if print {
-			fmt.Printf("  (no active cells)\n")
+			fmt.Printf("    (no active cells)\n")
 		}
 		gd.Sactives = make([]int, cx)
 		gd.Act = make(map[int]int, cx)
@@ -349,7 +349,7 @@ func ReadGDEF(fp string, print bool) (*Definition, error) {
 			return nil, fmt.Errorf("fatal error(s): ReadGDEF:\n   number of cells found (%d) not equal to total (%d): %v", cn, cx, err)
 		}
 		if gd.Nact > 0 && print {
-			fmt.Printf("  %s\tactive cells\n", mmio.Thousands(int64(gd.Nact))) //11,118,568
+			fmt.Printf("    %s\tactive cells\n", mmio.Thousands(int64(gd.Nact))) //11,118,568
 		}
 		gd.Coord = make(map[int]mmaths.Point, gd.Nact)
 		cid := 0
