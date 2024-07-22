@@ -429,6 +429,19 @@ func ReadHdr(fp string) (*Definition, float64, error) {
 	}, nd, nil
 }
 
+func (gd *Definition) IsSimilar(gd1 *Definition) bool {
+	if gd.Ncol != gd1.Ncol {
+		return false
+	}
+	if gd.Nrow != gd1.Nrow {
+		return false
+	}
+	if gd.CellArea() != gd1.CellArea() {
+		return false
+	}
+	return true
+}
+
 // IsActive returns whether a cell ID is of an active cell
 func (gd *Definition) IsActive(cid int) bool {
 	_, ok := gd.Act[cid]
