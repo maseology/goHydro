@@ -13,9 +13,19 @@ type SIXPAR struct {
 }
 
 // New SIXPAR constructor
-// [upCap, lowCap, upK, lowK, z, x]
+// [UM, LM, UK, LK, Z, X]
 func (m *SIXPAR) New(p ...float64) {
-	// for TWOPAR, set pLM=0, variables pLK, pZ, pX, will have no impact
+	// for TWOPAR, set LM=0, variables LK, Z, X will have no impact
+	if len(p) == 0 {
+		println(" ** Warning: default SIXPAR parameters being assigned **")
+		p = make([]float64, 12)
+		p[0] = 10. // UM
+		p[1] = 20. // LM
+		p[2] = .5  // UK
+		p[3] = .1  // LK
+		p[4] = 50. // Z
+		p[5] = 3.  // X
+	}
 	m.up.new(p[0], p[2])  // upper reservoir: fast subsurface flow (interflow)
 	m.low.new(p[1], p[3]) // update lower reservoir: slow subsurface flow (baseflow)
 	m.beta = p[1] * p[3]
@@ -25,13 +35,19 @@ func (m *SIXPAR) New(p ...float64) {
 
 // Update state for daily inputs
 func (m *SIXPAR) Update(p, ep float64) (float64, float64, float64) {
+	if ep > p {
+		ep = p
+	}
 	pn := p - ep // net precipitation less ET
 	var lt float64
 	if m.low.cap > 0. {
 		lt = 1. - m.low.storageFraction()
+		if lt < 0 {
+			lt = 0.
+		}
 	}
 	ut := m.up.storageFraction()
-	g := math.Min(m.beta*ut*(1.+m.z*math.Pow(lt, m.x)), m.up.sto) // percolation from upper reservoir to lower reservoir (PDt=0 if pLM=0)
+	g := math.Min(m.beta*ut*(1.+m.z*math.Pow(lt, m.x)), m.up.sto) // percolation from upper reservoir to lower reservoir (PDt=0 if LM=0)
 	q := m.up.overflow(pn - g)                                    // add rainfall and remove percolation from upper reservoir, remainder becomes saturation excess overland runoff
 	m.low.update(g)                                               // add percolation to lower reservoir
 	// add baseflow to runoff and update reservoirs

@@ -26,7 +26,7 @@ type Frc struct {
 
 type Dset struct{ Q, Tx, Tn, rf, sf, sm, pa, Ep float64 }
 
-func (d *Dset) Yeild() float64 { return d.rf + d.sm }
+func (d *Dset) Yield() float64 { return d.rf + d.sm }
 
 func (d *Dset) Runoff() float64 { return d.Q }
 
@@ -41,7 +41,7 @@ func ReadOWRC(csvfp string, cakm2, latitude float64) ([]time.Time, []Dset) {
 	}
 	defer f.Close()
 
-	recs := mmio.LoadCSV(io.Reader(f),1) // "Date","Flow","Flag","Tx","Tn","Rf","Sf","Sm","Pa"
+	recs := mmio.LoadCSV(io.Reader(f), 1) // "Date","Flow","Flag","Tx","Tn","Rf","Sf","Sm","Pa"
 	o, ts := make([]Dset, 0), make([]time.Time, 0)
 	si := solirrad.New(latitude, 0., 0.)
 	for rec := range recs {
@@ -69,9 +69,11 @@ func ReadOWRC(csvfp string, cakm2, latitude float64) ([]time.Time, []Dset) {
 				b = 0.0025
 				c = 2.5
 			)
-			tx, tn, pa := g(3), g(4), g(8)*1000.
+			// tx, tn, pa := g(3), g(4), g(8)*1000.
+			tx, tn, pa := g(3), g(4), 101300.
 			if tx < tn {
 				fmt.Printf(" tx<tn %.1f !< %.1f\n", tx, tn)
+				tx, tn = tn, tx
 			}
 			return func(Kg float64) float64 {
 				const (
@@ -82,6 +84,9 @@ func ReadOWRC(csvfp string, cakm2, latitude float64) ([]time.Time, []Dset) {
 				return pet.Makkink(Kg, tm, pa, alpha, beta)
 			}(si.GlobalFromPotential(tx, tn, a, b, c, doy)) * 1000. // mm/d
 		}()
+		if ep < 0 {
+			panic("ep less than 0")
+		}
 
 		ts = append(ts, t)
 		o = append(o, Dset{ // "Date","Flow","Flag","Tx","Tn","Rf","Sf","Sm","Pa"
@@ -91,7 +96,7 @@ func ReadOWRC(csvfp string, cakm2, latitude float64) ([]time.Time, []Dset) {
 			rf: g(5),
 			sf: g(6),
 			sm: g(7),
-			pa: g(8),
+			// pa: g(8),
 			Ep: ep,
 		})
 	}

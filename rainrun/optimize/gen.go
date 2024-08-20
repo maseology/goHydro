@@ -12,7 +12,7 @@ func eval(m rr.Lumper) float64 { // evaluate model
 	o := make([]float64, gfrc.Ndt)
 	s := make([]float64, gfrc.Ndt)
 	for i, v := range gfrc.D {
-		y := v.Yeild()
+		y := v.Yield()
 		_, r, _ := m.Update(y, v.Ep)
 		o[i] = v.Q
 		s[i] = r
@@ -66,7 +66,8 @@ func genHBV(u []float64) float64 {
 	m.New(sample.HBV(u, gfrc.Timestep)...)
 	f := eval(m)
 	if math.IsNaN(f) {
-		log.Fatalf("Objective function error, u: %v\n", u)
+		// log.Fatalf("Objective function error, u: %v\n", u)
+		return 1000.
 	}
 	return f
 }
@@ -76,7 +77,8 @@ func genManabeGW(u []float64) float64 {
 	m.New(sample.ManabeGW(u)...)
 	f := eval(m)
 	if math.IsNaN(f) {
-		log.Fatalf("Objective function error, u: %v\n", u)
+		// log.Fatalf("Objective function error, u: %v\n", u)
+		return 1000.
 	}
 	return f
 }
@@ -86,7 +88,8 @@ func genMultiLayerCapacitance(u []float64) float64 {
 	m.New(sample.MultiLayerCapacitance(u)...)
 	f := eval(m)
 	if math.IsNaN(f) {
-		log.Fatalf("Objective function error, u: %v\n", u)
+		// log.Fatalf("Objective function error, u: %v\n", u)
+		return 1000.
 	}
 	return f
 }
@@ -106,7 +109,8 @@ func genSIXPAR(u []float64) float64 {
 	m.New(sample.SIXPAR(u)...)
 	f := eval(m)
 	if math.IsNaN(f) {
-		log.Fatalf("Objective function error, u: %v\n", u)
+		// log.Fatalf("Objective function error, u: %v\n", u)
+		return 1000.
 	}
 	return f
 }

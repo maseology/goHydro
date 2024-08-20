@@ -9,12 +9,29 @@ import (
 // used in early formulations of TOPMODEL, neglecting capillary fringe
 type Quinn struct {
 	intc, imp, sz, grav                  manabe
+	bf                                   res
 	fimp, n, fc, zr, ksat, f, alpha, Zwt float64
 }
 
 // New Quinn constructor
 // [intercepCap, impStoCap, gwCap, fImp, ksat, rootZoneDepth, porosity, fieldCap, f, alpha, zwt]
 func (m *Quinn) New(p ...float64) {
+	if len(p) == 0 {
+		println(" ** Warning: default Quinn parameters being assigned **")
+		p = make([]float64, 12)
+		p[0] = .8
+		p[1] = .5
+		p[2] = 2.
+		p[3] = .05
+		p[4] = 1e-5
+		p[5] = 300.
+		p[6] = .3
+		p[7] = .1
+		p[8] = 1.
+		p[9] = 1.
+		p[10] = 50.
+		p[11] = .95
+	}
 	if fracCheck(p[3]) || p[7] > p[6] || p[4] < 0. {
 		panic("Quinn model input error")
 	}
@@ -30,26 +47,31 @@ func (m *Quinn) New(p ...float64) {
 	m.f = p[8]
 	m.alpha = p[9]
 	m.Zwt = p[10] // setting as long-term average depth to watertable
+	m.bf.new(0., 1.-p[11])
 }
 
 // Update state for daily inputs
 func (m *Quinn) Update(p, ep float64) (float64, float64, float64) {
 	var q float64
 	pn, ae := p, ep
+
 	// interception
 	if m.intc.cap > 0. {
-		a1, p1, _ := m.intc.update(pn, ep, 0.0)
+		a1, p1, _ := m.intc.update(pn, ep, 0.)
 		pn = p1
 		ae -= a1
 	}
+
 	// impervious area
 	a2, q2, _ := m.imp.update(pn, ae, 0.0)
 	q += q2 * m.fimp
 	ae -= a2 * m.fimp
+
 	// pervious area (root zone and gravity reservoir); no Hortonian mechanism
 	etsz := ae * (1. - m.sz.storageFraction()) // soilzone manabe already accounts for impervious coverage
 	a3, q3, g3 := m.sz.update(pn*(1.-m.fimp), etsz, m.ksat)
 	ae -= a3
+
 	_, q4, _ := m.grav.update(q3+g3, 0.0, 0.0) // excess moved to gravity storage
 	q += q4 * (1. - m.fimp)                    // add saturation excess runoff
 
@@ -67,6 +89,9 @@ func (m *Quinn) Update(p, ep float64) (float64, float64, float64) {
 	// totals
 	_, _, g := m.grav.update(0.0, 0.0, math.Min(m.grav.sto, m.alpha*m.ksat*math.Exp(-m.f*m.Zwt))) // recharge [L/TS]; setting pf = 0 and alpha sets qv = kv
 	a := ep - ae                                                                                  // returns AET
+
+	m.bf.update(g)
+	q += m.bf.decayExp()
 	return a, q, g
 }
 

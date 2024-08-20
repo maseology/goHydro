@@ -143,20 +143,23 @@ func ManabeGW(u []float64) []float64 {
 	return []float64{capacity, fexposed, minSto, perc, k}
 }
 
-// MultiLayerCapacitance (9)
+// MultiLayerCapacitance (10)
 func MultiLayerCapacitance(u []float64) []float64 {
 	cv := mm.LinearTransform(0., 1., u[0])
 	x1 := mm.LinearTransform(0., soildepth, u[1])
-	uj0, uj1 := jointdist.Nested2(u[2], u[3])
-	x2 := mm.LinearTransform(0., n, uj1)
-	fc := mm.LinearTransform(0., n, uj0)
+	// uj0, uj1 := jointdist.Nested2(u[2], u[3])
+	// x2 := mm.LinearTransform(0., n, uj1)
+	// fc := mm.LinearTransform(0., n, uj0)
+	x2 := mm.LinearTransform(0., n, u[2])
+	fc := mm.LinearTransform(0., 1., u[3])
 	a := mm.LinearTransform(0., 100., u[4])
 	b := mm.LinearTransform(0., 1., u[5])
 	l := jointdist.SumToOne(u[6], u[7], u[8])
-	return []float64{cv, x1, x2, fc, a, b, l[0], l[1], l[2]}
+	k := mm.LinearTransform(.85, 1., u[9])
+	return []float64{cv, x1, x2, fc, a, b, l[0], l[1], l[2], k}
 }
 
-// Quinn (11)
+// Quinn (12)
 func Quinn(u []float64) []float64 {
 	intCap := mm.LinearTransform(0., 1000., u[0])
 	impCap := mm.LinearTransform(0., 1000., u[1])
@@ -169,26 +172,28 @@ func Quinn(u []float64) []float64 {
 	f := mm.LinearTransform(0., 1., u[8])
 	alpha := mm.LinearTransform(0., 1., u[9])
 	zwt := mm.LinearTransform(0., 10., u[10])
-	return []float64{intCap, impCap, gwCap, fImp, ksat, rootZoneDepth, porosity, fieldCap, f, alpha, zwt}
+	k := mm.LinearTransform(.85, 1., u[11])
+	return []float64{intCap, impCap, gwCap, fImp, ksat, rootZoneDepth, porosity, fieldCap, f, alpha, zwt, k}
 }
 
 // SIXPAR (6)
 func SIXPAR(u []float64) []float64 {
-	upCap := mm.LinearTransform(0., 1e5, u[0])
-	lowCap := mm.LogLinearTransform(1e-5, 1., u[1])
+	upCap := mm.LinearTransform(0., 1000., u[0])
+	lowCap := mm.LinearTransform(0., 1e5, u[1])
 	upK := mm.LogLinearTransform(1e-5, 1., u[2])
 	lowK := mm.LogLinearTransform(1e-5, 1., u[3])
-	z := mm.LinearTransform(0., 1., u[4])
-	x := mm.LinearTransform(0., 1., u[5])
+	z := mm.LinearTransform(0., 100., u[4])
+	x := mm.LinearTransform(0., 10., u[5])
 	return []float64{upCap, lowCap, upK, lowK, z, x}
 }
 
-// SPLR (5)
+// SPLR (6)
 func SPLR(u []float64) []float64 {
-	r12 := mm.LinearTransform(0., 10., u[0])
-	r23 := mm.LinearTransform(0., 1., u[1])
+	r12 := mm.LinearTransform(.5, 1., u[0])
+	r23 := mm.LinearTransform(.5, 1., u[1])
 	k1 := mm.LinearTransform(0., 1., u[2])
 	k2 := mm.LinearTransform(0., 1., u[3])
 	k3 := mm.LinearTransform(0., 1., u[4])
-	return []float64{r12, r23, k1, k2, k3}
+	x := mm.LinearTransform(0., 1., u[5])
+	return []float64{r12, r23, k1, k2, k3, x}
 }

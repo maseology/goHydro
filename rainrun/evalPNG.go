@@ -16,7 +16,7 @@ func EvalPNG(m Lumper, frc *Frc, prfx string) string {
 	ys, es, as, rs, gs, qs := 0., 0., 0., 0., 0., 0.
 	tt := time.Now()
 	for i, v := range frc.D {
-		y := v.Yeild()
+		y := v.Yield()
 		a, r, g := m.Update(y, v.Ep)
 		o[i] = v.Q
 		s[i] = r

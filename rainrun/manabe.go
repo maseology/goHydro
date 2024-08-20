@@ -39,10 +39,7 @@ func (m *manabe) updateCapacity(changeFactor float64) {
 // Update state
 func (m *manabe) update(p, ep, perc float64) (float64, float64, float64) {
 	q := m.overflow(p)
-	if m.sto == 0. {
-		return 0., q, 0.
-	}
-	if ep < mingtzero && perc < mingtzero {
+	if m.sto == 0. || (ep < mingtzero && perc < mingtzero) {
 		return 0., q, 0.
 	}
 	a, g := m.lossDirect(ep, perc)

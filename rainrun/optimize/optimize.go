@@ -21,7 +21,7 @@ const (
 
 var gfrc *rr.Frc // global forcing data
 
-var minimizer = func(o, s []float64) float64 { return 1. - objfunc.NSE(o, s) }
+var minimizer = func(o, s []float64) float64 { return 1. - objfunc.KGE(o, s) }
 
 // Optimize a single or set of rainrun models
 func Optimize(ifrc *rr.Frc, mdl, logfp string) {
@@ -134,8 +134,8 @@ func Optimize(ifrc *rr.Frc, mdl, logfp string) {
 	case "MultiLayerCapacitance":
 		func() { // check
 			tt := time.Now()
-			uFinal, _ := glbopt.SCE(ncmplx, 9, rng, genMultiLayerCapacitance, true)
-			// uFinal, _ := glbopt.SurrogateRBF(nrbf, 9, rng, genMultiLayerCapacitance)
+			uFinal, _ := glbopt.SCE(ncmplx, 10, rng, genMultiLayerCapacitance, true)
+			// uFinal, _ := glbopt.SurrogateRBF(nrbf, 10, rng, genMultiLayerCapacitance)
 			elpsd := time.Since(tt)
 
 			var m rr.Lumper = &rr.MultiLayerCapacitance{}
@@ -151,8 +151,8 @@ func Optimize(ifrc *rr.Frc, mdl, logfp string) {
 	case "Quinn":
 		func() { // check
 			tt := time.Now()
-			uFinal, _ := glbopt.SCE(ncmplx, 11, rng, genQuinn, true)
-			// uFinal, _ := glbopt.SurrogateRBF(nrbf, 11, rng, genQuinn)
+			uFinal, _ := glbopt.SCE(ncmplx, 12, rng, genQuinn, true)
+			// uFinal, _ := glbopt.SurrogateRBF(nrbf, 12, rng, genQuinn)
 			elpsd := time.Since(tt)
 
 			var m rr.Lumper = &rr.Quinn{}
