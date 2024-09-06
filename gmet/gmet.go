@@ -23,11 +23,11 @@ type GMET struct {
 }
 
 func (g *GMET) CheckAndPrint(timestepsec float64) {
+	g.check(timestepsec)
 	fmt.Printf("    n stations %d\n", g.Nsta)
 	fmt.Printf("    n timesteps %d\n", g.Nts)
 	fmt.Printf("    startdate: %v\n", g.Ts[0])
 	fmt.Printf("    end date: %v\n", g.Ts[g.Nts-1])
-	g.check(timestepsec)
 }
 
 func (g *GMET) check(timestepsec float64) bool {
@@ -45,6 +45,19 @@ func (g *GMET) check(timestepsec float64) bool {
 	for i := 0; i < g.Nts-1; i++ {
 		if g.Ts[i+1].Sub(g.Ts[i]).Seconds() != timestepsec {
 			log.Fatalf("GMET.check consecutive date error: %s %s\n", g.Ts[i], g.Ts[i+1])
+		}
+	}
+
+	tnow := time.Now()
+	for {
+		if g.Ts[g.Nts-1].After(tnow) {
+			g.Nts--
+			g.Ts = g.Ts[:g.Nts]
+			for i := range g.Nsta {
+				g.Dat[i] = g.Dat[i][:g.Nts]
+			}
+		} else {
+			break
 		}
 	}
 	return true
