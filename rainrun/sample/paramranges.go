@@ -197,3 +197,21 @@ func SPLR(u []float64) []float64 {
 	x := mm.LinearTransform(0., 1., u[5])
 	return []float64{r12, r23, k1, k2, k3, x}
 }
+
+// SPLR (6)
+func Tank(u []float64) []float64 {
+	u11, u12 := jointdist.Nested2(u[0], u[1])
+	z11 := mm.LinearTransform(0., 1., u11)
+	z12 := mm.LinearTransform(0., 1., u12)
+	z2 := mm.LinearTransform(0., 1., u[2])
+	z3 := mm.LinearTransform(0., 1., u[3])
+	a11 := mm.LinearTransform(0., 1., u[4])
+	a12 := mm.LinearTransform(0., 1., u[5])
+	a2 := mm.LinearTransform(0., 1., u[6])
+	a3 := mm.LinearTransform(0., 1., u[7])
+	a4 := mm.LinearTransform(0., 1., u[8])
+	b1 := mm.LinearTransform(0., 1., u[9])
+	b2 := mm.LinearTransform(0., 1., u[10])
+	b3 := mm.LinearTransform(0., 1., u[11])
+	return []float64{z11, z12, z2, z3, a11, a12, a2, a3, a4, b1, b2, b3}
+}

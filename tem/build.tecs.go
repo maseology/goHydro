@@ -18,8 +18,8 @@ func buildTECs(r grid.Real, bufs map[int][]int) map[int]TEC {
 				}
 			}
 		}
-		g, a := gridSlopeAspectTarboton(bufz, c, r.GD.Ncol, r.GD.Cwidth)
-		tec[c] = TEC{Z: z, G: g, A: a}
+		s, a := gridSlopeAspectTarboton(bufz, c, r.GD.Ncol, r.GD.Cwidth)
+		tec[c] = TEC{Z: z, G: s, A: a}
 	}
 	return tec
 }

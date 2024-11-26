@@ -124,3 +124,13 @@ func genSPLR(u []float64) float64 {
 	}
 	return f
 }
+
+func genTank(u []float64) float64 {
+	var m rr.Lumper = &rr.Tank{}
+	m.New(sample.Tank(u)...)
+	f := eval(m)
+	if math.IsNaN(f) {
+		log.Fatalf("Objective function error, u: %v\n", u)
+	}
+	return f
+}

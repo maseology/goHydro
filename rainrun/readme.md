@@ -13,6 +13,7 @@ this go package contains a variety of lumped-parameter, catchment-based continuo
 * The Quinn simple storage model (Quinn and Beven, 1993)
 * The SIXPAR/TWOPAR model (Gupta and Sorooshian, 1983; Duan et.al., 1992)
 * The simple parallel linear reservoir model (Buytaert and Beven, 2011)
+* The Tank Model (Sugawara, 1995)
 
 ## References
 
@@ -41,5 +42,7 @@ Quinn P.F., K.J. Beven, 1993. Spatial and temporal predictions of soil moisture 
 Seibert, J. and J.J. McDonnell, 2010. Land-cover impacts on streamflow: a change-detection modelling approach that incorporates parameter uncertainty. Hydrological Sciences Journal 55(3): 316-332.
 
 Struthers, I., C. Hinz, M. Sivapalan, G. Deutschmann, F. Beese, R. Meissner, 2003. Modelling the water balance of a free-draining lysimeter using the downward approach. Hydrological Processes (17): 2151-2169.
+
+Sugawara, M. (1995). Tank model. In: V.P. Singh (Ed.), Computer models of watershed hydrology. Water Resources Publications, Highlands Ranch, Colorado.
 
 Wittenberg H., M. Sivapalan, 1999. Watershed groundwater balance equation using streamflow recession analysis and baseflow separation. Journal of Hydrology 219: 20-33.

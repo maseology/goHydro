@@ -89,7 +89,7 @@ func (r *Real) ResetToGDEF(gdeffp string, crop bool) {
 		log.Fatalf("%v", err)
 	}
 	if crop {
-		newgd = r.GD.CropToActives()
+		newgd, _ = r.GD.CropToActives()
 	}
 	newa := make(map[int]float64, r.GD.Nact)
 	for i, c := range r.GD.Sactives {

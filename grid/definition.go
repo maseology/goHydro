@@ -948,7 +948,7 @@ func (gd *Definition) Buffer(cid0 int, cardinal, isActive bool) []int {
 	return i
 }
 
-func (gd *Definition) CropToActives() *Definition {
+func (gd *Definition) CropToActives() (*Definition, map[int]int) {
 
 	rn, rx, cn, cx := 1000000, -1, 1000000, -1
 	for _, cid := range gd.Sactives {
@@ -973,14 +973,16 @@ func (gd *Definition) CropToActives() *Definition {
 	ogd.Nact = gd.Nact
 	ogd.Sactives = make([]int, ogd.Nact)
 	ogd.Act = make(map[int]int, nnr*nnc)
+	xr := make(map[int]int, nnr*nnc)
 	for i, cid := range gd.Sactives {
 		r, c := gd.RowCol(cid)
 		cidn := ogd.CellID(r-rn, c-cn)
 		ogd.Sactives[i] = cidn
 		ogd.Act[cidn] = i
+		xr[cid] = cidn
 	}
 
-	return ogd
+	return ogd, xr
 }
 
 func (gd *Definition) Crop(xn, xx, yn, yx float64, buffer int) (*Definition, int, int) {

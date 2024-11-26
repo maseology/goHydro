@@ -199,6 +199,23 @@ func Optimize(ifrc *rr.Frc, mdl, logfp string) {
 			logger.Print(sp + su)
 			logger.Println("\n" + rr.EvalPNG(m, gfrc, mdl))
 		}()
+	case "Tank":
+		func() {
+			tt := time.Now()
+			uFinal, _ := glbopt.SCE(ncmplx, 12, rng, genTank, true)
+			// uFinal, _ := glbopt.SurrogateRBF(nrbf, 12, rng, genTank)
+			elpsd := time.Since(tt)
+
+			var m rr.Lumper = &rr.Tank{}
+			pFinal := sample.Tank(uFinal)
+			sp := fmt.Sprintf("\nfinal parameters: %v\n", pFinal)
+			su := fmt.Sprintf("sample space:\t\t%f\n", uFinal)
+			m.New(pFinal...)
+			logger.Println(mmio.FileName(gfrc.FilePath, false))
+			logger.Printf(" optimization time elapsed %v\n", elpsd)
+			logger.Print(sp + su)
+			logger.Println("\n" + rr.EvalPNG(m, gfrc, mdl))
+		}()
 	default:
 		fmt.Println("unrecognized model:" + mdl)
 	}
