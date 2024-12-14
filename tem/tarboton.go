@@ -45,7 +45,7 @@ func gridSlopeAspectTarboton(bufz map[int]float64, cid0, ncol int, cw float64) (
 		}
 		s1 := (e0 - e1) / cw
 		s2 := (e1 - e2) / cw
-		r := math.Atan(s2 / s1)
+		r := math.Atan2(s2, s1) // math.Atan(s2 / s1)
 		s := math.Sqrt(s1*s1 + s2*s2)
 		if r < 0 {
 			r = 0
