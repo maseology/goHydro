@@ -978,6 +978,7 @@ func (gd *Definition) CropToActives() (*Definition, map[int]int) {
 		r, c := gd.RowCol(cid)
 		cidn := ogd.CellID(r-rn, c-cn)
 		ogd.Sactives[i] = cidn
+		ogd.Coord[cidn] = gd.Coord[cid]
 		ogd.Act[cidn] = i
 		xr[cid] = cidn
 	}

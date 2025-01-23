@@ -1,4 +1,4 @@
-package routing
+package drainnetwork
 
 import tp "github.com/maseology/mmaths/topology"
 

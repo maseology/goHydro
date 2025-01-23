@@ -2,22 +2,46 @@ package convolution
 
 import "math"
 
-// Triangular similar to the HBV MAXBAS transfer function with the option of skewing the mode
-// ref: Seibert, J. and J.J. McDonnell, 2010. Land-cover impacts on streamflow: a change-detection modelling approach that incorporates parameter uncertainty. Hydrological Sciences Journal 55(3), pp. 316-332.
-// parameter Base is the trangular base and is in terms of number of timesteps (may not necessarily be discrete)
-// parameter Skew represents a percentage along the triangular base; 50% represents a centered mode (i.e., equilateral triangle)
-// ouput is in the form of percent effective runoff passing the calibration gauge for every discrete timestep
+// Triangular density distribution f(x)
+// [a,b] mode m
 // see page 301 in Law, A.M., 2007. Simulation Modeling & Analysis, 4th ed. McGraw-Hill. 768 pp.
-func Triangular(base, skew, lag float64) []float64 {
-	if base < 0. || lag < 0. || skew < 0. || skew > 1. {
-		panic("Triangular input error")
+func Triangular(a, b, m float64) []float64 {
+	bi := int(b)
+	if b-float64(bi) > .5 {
+		bi++
 	}
-	a, b, m := lag, base+lag, skew*base+lag
-	bi := int(b) - 1
+	ttf := make([]float64, bi)
+	if bi == 1 {
+		ttf[0] = 1.
+	} else {
+		s := 0.
+		for i := range bi {
+			x := float64(i) + .5 // midpoint
+			if x >= a && x <= m {
+				ttf[i] = 2 * (x - a) / (b - a) / (m - a)
+			} else if x > m && x <= b {
+				ttf[i] = 2 * (b - x) / (b - a) / (b - m)
+			} else {
+				ttf[i] = 0.
+			}
+			s += ttf[i]
+		}
+		if s != 1. {
+			for i := 0; i < bi; i++ {
+				ttf[i] /= s
+			}
+		}
+	}
+	return ttf
+}
+
+// TriangularCDF cumulative distribution F(x)
+func TriangularCDF(a, b, m float64) []float64 {
+	bi := int(b)
 	if b-float64(bi) > 0. {
 		bi++
 	}
-	ttf := make([]float64, bi, bi)
+	ttf := make([]float64, bi)
 	if bi == 1 {
 		ttf[0] = 1.
 	} else {
