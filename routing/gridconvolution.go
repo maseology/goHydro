@@ -10,13 +10,13 @@ import (
 	"github.com/maseology/mmaths/slice"
 )
 
-type Convroute struct {
+type GridConvolution struct {
 	W, Z float64
 	I    int
 }
 
-// func BuildFromTEM(dem *tem.TEM, thrsh, theta float64, maxrad int) [][]Convroute {
-func BuildFromTEM(dem *tem.TEM, alpha, fmax float64, maxrad int) [][]Convroute {
+// func BuildFromTEM(dem *tem.TEM, thrsh, theta float64, maxrad int) [][]GridConvolution {
+func BuildFromTEM(dem *tem.TEM, alpha, fmax float64, maxrad int) [][]GridConvolution {
 	// maxrad is the "reach" i.e., the number of cells upstream and downstream to collect
 	// thrsh and theta are model parameters relating slope to convolution transfer function shape
 	cids, ds := dem.DownslopeContributingAreaIDs(-1)
@@ -82,7 +82,7 @@ func BuildFromTEM(dem *tem.TEM, alpha, fmax float64, maxrad int) [][]Convroute {
 	}
 
 	base := maxrad*2 + 1
-	o := make([][]Convroute, len(cids))
+	o := make([][]GridConvolution, len(cids))
 	slpcoll := make([]float64, len(cids))
 	cccc := 0
 	for a, c := range cids {
@@ -106,11 +106,11 @@ func BuildFromTEM(dem *tem.TEM, alpha, fmax float64, maxrad int) [][]Convroute {
 		if outlet {
 			na++
 		}
-		o[a] = make([]Convroute, 0, na)
+		o[a] = make([]GridConvolution, 0, na)
 		s := 0.
 		for cc, r := range rads {
 			s += tri[maxrad+r]
-			o[a] = append(o[a], Convroute{tri[maxrad+r], dem.TEC[cc].Z, xr[cc]})
+			o[a] = append(o[a], GridConvolution{tri[maxrad+r], dem.TEC[cc].Z, xr[cc]})
 		}
 		if outlet {
 			w := 0.
@@ -118,7 +118,7 @@ func BuildFromTEM(dem *tem.TEM, alpha, fmax float64, maxrad int) [][]Convroute {
 				w += tri[i+maxrad]
 			}
 			s += w
-			o[a] = append(o[a], Convroute{w, dem.TEC[c].Z - 1., -1})
+			o[a] = append(o[a], GridConvolution{w, dem.TEC[c].Z - 1., -1})
 		}
 		sort.Slice(o[a], func(i, j int) bool {
 			return o[a][i].Z < o[a][j].Z
