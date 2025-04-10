@@ -31,9 +31,6 @@ func NewTrapezoid(Cd, b, t float64) *RatingCurve {
 		aq[i] = twothirds*Cd*sqrt2g*(b-.2*h)*math.Pow(h, 1.5) + eightfifteehths*Cd*sqrt2g*t*math.Pow(h, 2.5) // rectangle + triangle
 		i++
 	}
-
-	println(ah[n-1])
-
 	return &RatingCurve{aq, aa, aw, ah}
 }
 

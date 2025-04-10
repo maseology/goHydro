@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"maps"
 	"math"
 	"os"
 	"sort"
@@ -37,20 +38,48 @@ func NewDefinition(nam string, nr, nc int, UniformCellSize float64) *Definition 
 	gd.Cwidth = UniformCellSize
 	gd.Sactives = make([]int, gd.Nact)
 	gd.Act = make(map[int]int, gd.Nact)
-	for i := 0; i < gd.Nact; i++ {
+	for i := range gd.Nact {
 		gd.Sactives[i] = i
 		gd.Act[i] = i
 	}
 	gd.Coord = make(map[int]mmaths.Point, gd.Nact)
 	cid := 0
-	for i := 0; i < gd.Nrow; i++ {
-		for j := 0; j < gd.Ncol; j++ {
+	for i := range gd.Nrow {
+		for j := range gd.Ncol {
 			p := mmaths.Point{X: gd.Eorig + UniformCellSize*(float64(j)+0.5), Y: gd.Norig - UniformCellSize*(float64(i)+0.5)}
 			gd.Coord[cid] = p
 			cid++
 		}
 	}
 	return &gd
+}
+
+func (gd *Definition) Copy() Definition {
+
+	coord, act := make(map[int]mmaths.Point, len(gd.Coord)), make(map[int]int, len(gd.Act))
+	maps.Copy(coord, gd.Coord)
+	maps.Copy(act, gd.Act)
+	cwidths, cheights := make([]float64, len(gd.cwidths)), make([]float64, len(gd.cheights))
+	copy(cwidths, gd.cwidths)
+	copy(cheights, gd.cheights)
+	sactives := make([]int, len(gd.Sactives))
+	copy(sactives, gd.Sactives)
+
+	return Definition{
+		Coord:    coord,
+		Act:      act,
+		cwidths:  cwidths,
+		cheights: cheights,
+		Sactives: sactives,
+		Eorig:    gd.Eorig,
+		Norig:    gd.Norig,
+		Rotation: gd.Rotation,
+		Cwidth:   gd.Cwidth,
+		Nrow:     gd.Nrow,
+		Ncol:     gd.Ncol,
+		Nact:     gd.Nact,
+		Name:     gd.Name,
+	}
 }
 
 func BuildDefinitionFromPoints(nam string, cxy map[int][]float64) *Definition {
@@ -167,8 +196,8 @@ func BuildDefinitionFromPoints(nam string, cxy map[int][]float64) *Definition {
 }
 
 // ReadGDEF imports a grid definition file
-func ReadGDEF(fp string, print bool) (*Definition, error) {
-	file, err := os.Open(fp)
+func ReadGDEF(gdeffp string, print bool) (*Definition, error) {
+	file, err := os.Open(gdeffp)
 	if err != nil {
 		return nil, fmt.Errorf("ReadGDEF: %v", err)
 	}
@@ -239,7 +268,7 @@ func ReadGDEF(fp string, print bool) (*Definition, error) {
 
 		gd := Definition{Eorig: oe, Norig: on, Rotation: rot, Cwidth: cs, Nrow: int(nr), Ncol: int(nc)}
 		if print {
-			fmt.Printf("\n   opening %s\n", fp)
+			fmt.Printf("\n   opening %s\n", gdeffp)
 			fmt.Printf("    xul\t\t%.1f\n", oe)
 			fmt.Printf("    yul\t\t%.1f\n", on)
 			fmt.Printf("    rotation\t%f\n", rot)
@@ -457,6 +486,21 @@ func (gd *Definition) ResetActives(cids []int) {
 	for i, c := range gd.Sactives {
 		gd.Act[c] = i
 	}
+}
+
+func (gd *Definition) RemoveActives(rmcids []int) {
+	drm := make(map[int]int, len(rmcids))
+	for _, rm := range rmcids {
+		drm[rm]++
+	}
+	newSactives := make([]int, 0, len(gd.Sactives)-len(drm))
+	for _, c := range gd.Sactives {
+		if _, ok := drm[c]; ok {
+			continue
+		}
+		newSactives = append(newSactives, c)
+	}
+	gd.ResetActives(newSactives)
 }
 
 // // Actives returns a slice of active cell IDs

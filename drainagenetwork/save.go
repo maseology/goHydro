@@ -1,9 +1,9 @@
-package drainnetwork
+package drainagenetwork
 
 import (
 	"fmt"
-	"io/ioutil"
 	"log"
+	"os"
 	"strconv"
 
 	"github.com/maseology/mmaths/topology"
@@ -57,7 +57,7 @@ func SaveVertices(nodes []*topology.Node, fp string, fNames []string) {
 	if err != nil {
 		log.Fatalf("routing.Print: %v\n", err)
 	}
-	if err := ioutil.WriteFile(fp, rawJSON, 0644); err != nil {
+	if err := os.WriteFile(fp, rawJSON, 0644); err != nil {
 		log.Fatalf("routing.Print: %v\n", err)
 	}
 }
@@ -94,7 +94,7 @@ func SaveSegments(nodes []*topology.Node, fp string, fNames []string) {
 	if err != nil {
 		log.Fatalf("routing.Print: %v\n", err)
 	}
-	if err := ioutil.WriteFile(fp, rawJSON, 0644); err != nil {
+	if err := os.WriteFile(fp, rawJSON, 0644); err != nil {
 		log.Fatalf("routing.Print: %v\n", err)
 	}
 }

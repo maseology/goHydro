@@ -38,7 +38,7 @@ func CollectSWS(swsFP string, gd *Definition) *SWS {
 	// collect topology
 	var dsws map[int]int
 	var usws map[int][]int
-	topoFP := mmio.RemoveExtension(swsFP) + ".topo"
+	topoFP := mmio.RemoveExtension(swsFP) + "-topo.csv"
 	nsws := len(sc)
 	if _, ok := mmio.FileExists(topoFP); ok {
 		d, err := mmio.ReadCSV(topoFP, 1)

@@ -1,4 +1,4 @@
-package drainnetwork
+package drainagenetwork
 
 import tp "github.com/maseology/mmaths/topology"
 
