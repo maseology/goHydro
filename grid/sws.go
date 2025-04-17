@@ -43,7 +43,7 @@ func CollectSWS(swsFP string, gd *Definition) *SWS {
 	if _, ok := mmio.FileExists(topoFP); ok {
 		d, err := mmio.ReadCSV(topoFP, 1)
 		if err != nil {
-			log.Fatalf(" Loader.readSWS: error reading %s: %v\n", topoFP, err)
+			log.Fatalf(" grid.CollectSWS: error reading %s: %v\n", topoFP, err)
 		}
 		// OLD
 		// // dsws = make(map[int]int, len(d)) // note: swsids not contained within dsws drain to farfield
@@ -72,7 +72,7 @@ func CollectSWS(swsFP string, gd *Definition) *SWS {
 		}
 	} else {
 		// fmt.Printf(" warning: sws topology (*.topo) not found\n")
-		log.Fatalf(" BuildRTR error: sws topology (*.topo) not found: %s", topoFP)
+		log.Fatalf(" grid.CollectSWS error: sws topology (*.topo) not found: %s", topoFP)
 	}
 
 	return &SWS{
