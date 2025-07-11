@@ -96,6 +96,30 @@ func MakkinkCCFGR4J(u []float64) []float64 {
 	return append(ugr4j, append(uccf, mak...)...)
 }
 
+// HMETS (9)
+func HMETS(u []float64) []float64 {
+	eteff := mm.LinearTransform(.5, 2., u[0])
+	fimp := mm.LinearTransform(0., 1., u[1])
+
+	LVcap := mm.LinearTransform(0., soildepth, u[2])
+	LPcap := mm.LinearTransform(0., soildepth, u[3])
+
+	cr := mm.LinearTransform(0., 1., u[4])
+
+	sy := u[5] // mm: proportion of vadose zone storage that allows free drainage
+	ph := u[6] // mm: proportion of free drainage dedicated to Hypodermic flow, the rest to recharge
+	cv := mm.LinearTransform(0., 1., sy*ph)
+	cvp := mm.LinearTransform(0., 1., sy*(1.-ph))
+	cp := mm.LinearTransform(0., 1., u[7])
+
+	sralpha := mm.LogLinearTransform(1e-4, 171., u[8])
+	srbeta := mm.LogLinearTransform(1e-4, 50., u[9])
+	dralpha := mm.LogLinearTransform(1e-4, 171., u[10])
+	drbeta := mm.LogLinearTransform(1e-4, 50., u[11])
+
+	return []float64{eteff, fimp, LVcap, LPcap, cr, cv, cvp, cp, sralpha, srbeta, dralpha, drbeta}
+}
+
 // HBV (9)
 func HBV(u []float64, ts float64) []float64 {
 	fc := mm.LinearTransform(0., soildepth, u[0])

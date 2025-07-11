@@ -14,3 +14,7 @@ func (cv *Convolution) Update(qIn float64) float64 {
 	}
 	return qOut
 }
+
+func (cv *Convolution) Weights() []float64 {
+	return cv.w
+}

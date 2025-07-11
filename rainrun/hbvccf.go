@@ -29,8 +29,9 @@ func (m *CCFHBV) New(p ...float64) {
 	m.k0, m.k1, m.k2 = p[4], p[5], p[6] // fast, slow, and baseflow recession coefficients
 	m.perc = p[7]                       // upper-to-lower zone percolation, assuming percolation rate = Ksat
 	m.lakefrac = 0.                     //p[9]                   // lake fraction
-
-	m.maxbas = convolution.NewTTF(p[8], 0.5, 0.) // MAXBAS: triangular weighted transfer function
+	cnv := convolution.NewTriangularConvolution(p[8], 0.5, 0.)
+	qt := cnv.Weights()
+	m.maxbas = &maxbas{QT: qt, SQ: make([]float64, len(qt)+1)} // MAXBAS: triangular weighted transfer function
 
 	// Cold-content snow melt funciton
 	tindex, ddfc, baseT, tsf := p[9], p[10], p[11], p[12]

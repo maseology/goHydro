@@ -72,6 +72,17 @@ func genHBV(u []float64) float64 {
 	return f
 }
 
+func genHMETS(u []float64) float64 {
+	var m rr.Lumper = &rr.HMETS{}
+	m.New(sample.HMETS(u)...)
+	f := eval(m)
+	if math.IsNaN(f) {
+		// log.Fatalf("Objective function error, u: %v\n", u)
+		return 1000.
+	}
+	return f
+}
+
 func genManabeGW(u []float64) float64 {
 	var m rr.Lumper = &rr.ManabeGW{}
 	m.New(sample.ManabeGW(u)...)

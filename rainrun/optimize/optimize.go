@@ -21,11 +21,12 @@ const (
 
 var gfrc *rr.Frc // global forcing data
 
-var minimizer = func(o, s []float64) float64 { return 1. - objfunc.KGE(o, s) }
+var minimizer = func(o, s []float64) float64 { return 1. - objfunc.NSE(o, s) }
 
 // Optimize a single or set of rainrun models
-func Optimize(ifrc *rr.Frc, mdl, logfp string) {
-	logger := mmio.GetInstance(logfp)
+func Optimize(ifrc *rr.Frc, mdl string) {
+	fprfx := mmio.RemoveExtension(ifrc.FilePath) + "." + mdl
+	logger := mmio.GetInstance(fprfx + ".log")
 
 	gfrc = ifrc
 	rng := rand.New(mrg63k3a.New())
@@ -47,7 +48,7 @@ func Optimize(ifrc *rr.Frc, mdl, logfp string) {
 			logger.Println(mmio.FileName(gfrc.FilePath, false))
 			logger.Printf(" optimization time elapsed %v\n", elpsd)
 			logger.Print(sp + su)
-			logger.Println("\n" + rr.EvalPNG(m, gfrc, mdl))
+			logger.Println("\n" + rr.EvalPNG(m, gfrc, fprfx))
 		}()
 	case "DawdyODonnell":
 		func() {
@@ -67,7 +68,7 @@ func Optimize(ifrc *rr.Frc, mdl, logfp string) {
 			logger.Println(mmio.FileName(gfrc.FilePath, false))
 			logger.Printf(" optimization time elapsed %v\n", elpsd)
 			logger.Print(sp + su)
-			logger.Println("\n" + rr.EvalPNG(m, gfrc, mdl))
+			logger.Println("\n" + rr.EvalPNG(m, gfrc, fprfx))
 		}()
 	case "GR4J":
 		func() {
@@ -85,13 +86,23 @@ func Optimize(ifrc *rr.Frc, mdl, logfp string) {
 			logger.Println(mmio.FileName(gfrc.FilePath, false))
 			logger.Printf(" optimization time elapsed %v\n", elpsd)
 			logger.Print(sp + su)
-			logger.Println("\n" + rr.EvalPNG(m, gfrc, mdl))
-			// var m rr.Lumper = &rr.GR4J{}
-			// ss := sampler.NewSet(sample.GR4J()) //////////////////////////////////  TO FIX
-			// pFinal := ss.Sample(uFinal)
-			// fmt.Printf("\nfinal parameters: %v\n", pFinal)
-			// m.New(pFinal...)
-			// rr.EvalPNG(m)
+			logger.Println("\n" + rr.EvalPNG(m, gfrc, fprfx))
+		}()
+	case "HMETS":
+		func() {
+			tt := time.Now()
+			uFinal, _ := glbopt.SCE(ncmplx, 12, rng, genHMETS, true)
+			elpsd := time.Since(tt)
+
+			var m rr.Lumper = &rr.HMETS{}
+			pFinal := sample.HMETS(uFinal)
+			sp := fmt.Sprintf("\nfinal parameters:\t%.3e\n", pFinal)
+			su := fmt.Sprintf("sample space:\t\t%f\n", uFinal)
+			m.New(pFinal...)
+			logger.Println(mmio.FileName(gfrc.FilePath, false))
+			logger.Printf(" optimization time elapsed %v\n", elpsd)
+			logger.Print(sp + su)
+			logger.Println("\n" + rr.EvalPNG(m, gfrc, fprfx))
 		}()
 	case "HBV":
 		func() {
@@ -112,7 +123,7 @@ func Optimize(ifrc *rr.Frc, mdl, logfp string) {
 			logger.Println(mmio.FileName(gfrc.FilePath, false))
 			logger.Printf(" optimization time elapsed %v\n", elpsd)
 			logger.Print(sp + su)
-			logger.Println("\n" + rr.EvalPNG(m, gfrc, mdl))
+			logger.Println("\n" + rr.EvalPNG(m, gfrc, fprfx))
 		}()
 	case "ManabeGW":
 		func() { // check
@@ -129,7 +140,7 @@ func Optimize(ifrc *rr.Frc, mdl, logfp string) {
 			logger.Println(mmio.FileName(gfrc.FilePath, false))
 			logger.Printf(" optimization time elapsed %v\n", elpsd)
 			logger.Print(sp + su)
-			logger.Println("\n" + rr.EvalPNG(m, gfrc, mdl))
+			logger.Println("\n" + rr.EvalPNG(m, gfrc, fprfx))
 		}()
 	case "MultiLayerCapacitance":
 		func() { // check
@@ -146,7 +157,7 @@ func Optimize(ifrc *rr.Frc, mdl, logfp string) {
 			logger.Println(mmio.FileName(gfrc.FilePath, false))
 			logger.Printf(" optimization time elapsed %v\n", elpsd)
 			logger.Print(sp + su)
-			logger.Println("\n" + rr.EvalPNG(m, gfrc, mdl))
+			logger.Println("\n" + rr.EvalPNG(m, gfrc, fprfx))
 		}()
 	case "Quinn":
 		func() { // check
@@ -163,7 +174,7 @@ func Optimize(ifrc *rr.Frc, mdl, logfp string) {
 			logger.Println(mmio.FileName(gfrc.FilePath, false))
 			logger.Printf(" optimization time elapsed %v\n", elpsd)
 			logger.Print(sp + su)
-			logger.Println("\n" + rr.EvalPNG(m, gfrc, mdl))
+			logger.Println("\n" + rr.EvalPNG(m, gfrc, fprfx))
 		}()
 	case "SIXPAR":
 		func() { // check
@@ -180,7 +191,7 @@ func Optimize(ifrc *rr.Frc, mdl, logfp string) {
 			logger.Println(mmio.FileName(gfrc.FilePath, false))
 			logger.Printf(" optimization time elapsed %v\n", elpsd)
 			logger.Print(sp + su)
-			logger.Println("\n" + rr.EvalPNG(m, gfrc, mdl))
+			logger.Println("\n" + rr.EvalPNG(m, gfrc, fprfx))
 		}()
 	case "SPLR":
 		func() { // check (negative AET??)
@@ -197,7 +208,7 @@ func Optimize(ifrc *rr.Frc, mdl, logfp string) {
 			logger.Println(mmio.FileName(gfrc.FilePath, false))
 			logger.Printf(" optimization time elapsed %v\n", elpsd)
 			logger.Print(sp + su)
-			logger.Println("\n" + rr.EvalPNG(m, gfrc, mdl))
+			logger.Println("\n" + rr.EvalPNG(m, gfrc, fprfx))
 		}()
 	case "Tank":
 		func() {
@@ -214,7 +225,7 @@ func Optimize(ifrc *rr.Frc, mdl, logfp string) {
 			logger.Println(mmio.FileName(gfrc.FilePath, false))
 			logger.Printf(" optimization time elapsed %v\n", elpsd)
 			logger.Print(sp + su)
-			logger.Println("\n" + rr.EvalPNG(m, gfrc, mdl))
+			logger.Println("\n" + rr.EvalPNG(m, gfrc, fprfx))
 		}()
 	default:
 		fmt.Println("unrecognized model:" + mdl)

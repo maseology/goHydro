@@ -10,9 +10,11 @@ import (
 // Bergström, S., 1976. Development and application of a conceptual runoff model for Scandinavian catchments. SMHI RHO 7. Norrköping. 134 pp.
 // Bergström, S., 1992. The HBV model - its structure and applications. SMHI RH No 4. Norrköping. 35 pp
 type HBV struct {
-	maxbas                                                      convolution.TF
+	maxbas                                                      *maxbas
 	fc, lp, beta, sm, suz, slz, uzl, k0, k1, k2, perc, lakefrac float64
 }
+
+type maxbas struct{ SQ, QT []float64 }
 
 // New HBV constructor
 // [fc, lp, beta, uzl, k0, k1, k2, ksat, maxbas, lakeCoverFrac]
@@ -25,20 +27,24 @@ func (m *HBV) New(p ...float64) {
 		m.uzl = 10.
 		m.k0, m.k1, m.k2 = .5, .3, .1 // fast, slow, and baseflow recession coefficients
 		m.perc = 1.
-		m.maxbas = convolution.NewTTF(3., 0.5, 0.) // MAXBAS: triangular weighted transfer function
+		cnv := convolution.NewTriangularConvolution(3., 0.5, 0.)
+		qt := cnv.Weights()
+		m.maxbas = &maxbas{QT: qt, SQ: make([]float64, len(qt)+1)} // MAXBAS: triangular weighted transfer function
 		m.lakefrac = 0.
 	} else {
 		// if fracCheck(p[1]) || fracCheck(p[4]) || fracCheck(p[5]) || fracCheck(p[6]) { // || fracCheck(p[9]) {
 		// 	panic("HBV input error")
 		// }
-		m.fc = p[0]                                  // max basin moisture storage
-		m.lp = p[1]                                  // soil moisture parameter
-		m.beta = p[2]                                // soil moisture parameter
-		m.uzl = p[3]                                 // upper zone fast flow limit
-		m.k0, m.k1, m.k2 = p[4], p[5], p[6]          // fast, slow, and baseflow recession coefficients
-		m.perc = p[7]                                // upper-to-lower zone percolation, assuming percolation rate = Ksat
-		m.maxbas = convolution.NewTTF(p[8], 0.5, 0.) // MAXBAS: triangular weighted transfer function
-		m.lakefrac = 0.                              // p[9]                   // lake fraction
+		m.fc = p[0]                         // max basin moisture storage
+		m.lp = p[1]                         // soil moisture parameter
+		m.beta = p[2]                       // soil moisture parameter
+		m.uzl = p[3]                        // upper zone fast flow limit
+		m.k0, m.k1, m.k2 = p[4], p[5], p[6] // fast, slow, and baseflow recession coefficients
+		m.perc = p[7]                       // upper-to-lower zone percolation, assuming percolation rate = Ksat
+		cnv := convolution.NewTriangularConvolution(p[8], 0.5, 0.)
+		qt := cnv.Weights()
+		m.maxbas = &maxbas{QT: qt, SQ: make([]float64, len(qt)+1)} // MAXBAS: triangular weighted transfer function
+		m.lakefrac = 0.                                            // p[9]                   // lake fraction
 	}
 }
 

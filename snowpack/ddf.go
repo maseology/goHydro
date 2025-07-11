@@ -1,6 +1,6 @@
 package snowpack
 
-// DDF degree-day factor smowmelt method
+// DDF degree-day factor snowmelt method
 type DDF struct {
 	snowpack
 	ddf, ddfc float64
