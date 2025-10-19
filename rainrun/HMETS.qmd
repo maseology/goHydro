@@ -1,0 +1,73 @@
+
+# HMETS
+
+> Martel, J., Demeester, K., Brissette, F., Poulin, A., Arsenault, R., 2017. HMETS - a simple and efficient hydrology model for teaching hydrological modelling, flow forecasting and climate change impacts to civil engineering students. International Journal of Engineering Education 34, 1307–1316.
+
+<img src="fig/HMETSpaper-fig01.png" alt="drawing" width="500"/>
+
+*HMETS representation of hydrological processes (Martel et al., 2017)*
+
+<br>
+
+## PET `PET_OUDIN`
+
+(this is used in )
+
+$$ \text{PET} = \frac{S_\text{ET}}{\lambda_v\rho_w}\cdot\max\left[\frac{T_{ave}+5}{100}, \,0\right] $$
+
+### ORMGP uses: `PET_HARGREAVES_1985`
+
+$$ \text{PET} = \frac{S_\text{ET}}{\lambda_v\rho_w}\cdot\max\left[0.0023\cdot\sqrt{T_{max}-T_{min}}\cdot(T_{ave}+17.8),\,0\right] $$
+
+> Note: `PET_HARGREAVES_1985` generally predicts 25% greater PET than `PET_OUDIN`
+
+## Snowpack
+
+### Melt: `POTMELT_HMETS`
+
+$$ M_\text{melt} = M_a\cdot(T-T_f) $$
+
+- $M_a$: is the degree-day melt factor
+
+$$ M_a = \min(M_a^\text{max},\,M_a^\text{min}\cdot(1+\alpha\cdot M_{cumul})) $$
+
+
+- $T_f$: `DD_MELT_TEMP` [°C]
+- $M_a^\text{max}$ and $M_a^\text{min}$: `MAX_MELT_FACTOR` and `MIN_MELT_FACTOR`, respectively [mm/d/°C]
+- $\alpha$: `DD_AGGRADATION` [1/mm]
+- $M_{cumul}$: culmulative melt of existing snowpack
+
+
+### Snowbalance: `SNOBAL_HMETS`
+
+$$ M_{rf} = K_f\cdot(T_{rf}-T_{di})^f $$
+
+- $M_{rf}$: is the degree-day refreeze factor [mm/d/°C]
+- $K_f$: `REFREEZE_FACTOR`
+- $T_{rf}$: `DD_REFREEZE_TEMP`
+- $T_{di}$: is the average of the average daily temperature and the minimum daily temperature
+- $f$: `REFREEZE_EXP`
+
+Snowpack liquid-water retention capacity $(\text{SWI})$:
+
+$$ \text{SWI} = \max(\text{SWI}_\text{min},\,\text{SWI}_\text{max}\cdot(1-\alpha\cdot M_{cumul})) $$
+
+- $\text{SWI}_\text{min}$ and $\text{SWI}_\text{max}$: `SNOW_SWI_MIN` and `SNOW_SWI_MAX`, respectively
+- $\alpha$: `SWI_REDUCT_COEFF`
+
+## Intiltration `INF_HMETS`
+
+$$ M_{inf} = R\cdot\left(1-\alpha\cdot\frac{\phi_{soil}}{\phi_{soil}^\text{max}}\right) $$
+
+- $R$: rainfall/snowmelt rate
+- $\alpha$: `HMETS_RUNOFF_COEFF`
+
+$$ M_{ro}^\text{vadose} = \alpha\cdot M_{inf}\left(\frac{\phi_{soil}}{\phi_{soil}^\text{max}}\right)^2 $$
+
+<br>
+
+Runoff (excess of infiltration) is parse 3 ways (according to Raven source code):
+
+1. *direct* runoff originating from impervious surfaces and moves straight to `SURFACE_WATER`
+1. *"horizontal transfer"*: runoff from pervious areas (i.e., infiltration excess $R-M_{inf}$) to `CONVOLUTION[0]`
+1. *delayed* runoff from vadose zone $(M_{ro}^\text{vadose})$ to `CONVOLUTION[1]`

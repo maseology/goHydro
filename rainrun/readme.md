@@ -8,6 +8,7 @@ this go package contains a variety of lumped-parameter, catchment-based continuo
 * The Dawdy and O'Donnell (1965) model
 * The GR4J model (Perrin et.al., 2003)
 * The HBV model (Bergström, 1976, 1992; Seibert and McDonnell, 2010)
+* The HMETS model (Martel et.al., 2017)
 * The Manabe (1969) simple storage model with an added linear groundwater reservoir
 * The multilayer capacitance model (Struthers et.al., 2003)
 * The Quinn simple storage model (Quinn and Beven, 1993)
@@ -34,6 +35,8 @@ Duan, Q., S. Sorooshian, V. Gupta, 1992. Effective and Efficient Global Optimiza
 Gupta V.K., S. Sorooshian, 1983. Uniqueness and Observability of Conceptual Rainfall-Runoff Model Parameters: The Percolation Process Examined. Water Resources Research 19(1): 269-276.
 
 Manabe, S., 1969. Climate and the Ocean Circulation 1: The Atmospheric Circulation and The Hydrology of the Earth's Surface. Monthly Weather Review 97(11): 739-744.
+
+Martel, J., Demeester, K., Brissette, F., Poulin, A., Arsenault, R., 2017. HMETS - a simple and efficient hydrology model for teaching hydrological modelling, flow forecasting and climate change impacts to civil engineering students. International Journal of Engineering Education 34, 1307–1316.
 
 Perrin C., C. Michel, V. Andreassian, 2003. Improvement of a parsimonious model for streamflow simulation. Journal of Hydrology 279: 275-289.
 
