@@ -59,7 +59,7 @@ func LoadNC(fp, prfx string, vars []string) (*GMET, error) {
 		log.Fatalln(err)
 	}
 	defer nc.Close()
-	fmt.Println("  ", nc.ListVariables()) //[8:])
+	fmt.Println("   ", nc.ListVariables()) //[8:])
 
 	sids := func() []int {
 		svr, err := nc.GetVariable("station_id")
@@ -67,7 +67,7 @@ func LoadNC(fp, prfx string, vars []string) (*GMET, error) {
 			log.Fatalln("station_id", err)
 		}
 		so, has := svr.Values.([]string)
-		fmt.Println("   sample station_id: ", so[0])
+		fmt.Println("    sample station_id: ", so[0])
 		if !has {
 			log.Fatalln("station_id", err)
 		}
