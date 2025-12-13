@@ -705,18 +705,14 @@ func (gd *Definition) PointToActiveCellID(x, y float64) int {
 
 // PointToRowCol returns the row and column grid cell that contains the xy coordinates
 func (gd *Definition) PointToRowCol(x, y float64) (row, col int) {
-	if gd.Rotation != 0 {
-		panic("rotated grids not supported")
-	}
-	if gd.Cwidth < 0 {
-		panic("non-uniform grid not supported")
-	}
-
 	var wg sync.WaitGroup
 	wg.Add(2)
 
 	if gd.Rotation != 0. {
-		log.Fatalf(" Definition.PointToRowCol todo")
+		log.Fatalf(" Definition.PointToRowCol todo: rotated grids not supported")
+	}
+	if gd.Cwidth < 0 {
+		log.Fatalf(" Definition.PointToRowCol todo: non-uniform grid not supported")
 	}
 
 	row = -1
