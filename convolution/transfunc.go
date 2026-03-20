@@ -7,7 +7,7 @@ package convolution
 // parameter Skew represents a percentage along the triangular base; 50% represents a centered mode (i.e., equilateral triangle)
 // output is in the form of percent effective runoff passing the calibration gauge for every discrete timestep
 func NewTriangularConvolution(base, skew, lag float64) *Convolution {
-	if base < 0. || skew < 0. || skew > 1. {
+	if base < 1. || skew < 0. || skew > 1. {
 		panic("NewTriangular input error")
 	}
 	a, b, m := lag, base+lag, skew*base+lag
