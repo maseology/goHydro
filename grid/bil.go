@@ -56,9 +56,13 @@ func (x *Indx) ImportBil(fp string) error {
 	// read grid into
 	var err error
 	var nd float64
-	x.GD, nd, err = ReadHdr(strings.ReplaceAll(fp, ".bil", ".hdr"))
-	if err != nil {
-		return fmt.Errorf("ImportBil failed: %v", err)
+	if x.GD == nil {
+		x.GD, nd, err = ReadHdr(strings.ReplaceAll(fp, ".bil", ".hdr"))
+		if err != nil {
+			return fmt.Errorf("ImportBil failed: %v", err)
+		}
+	} else {
+		nd = -9999
 	}
 
 	b, err := os.ReadFile(fp)
@@ -66,12 +70,13 @@ func (x *Indx) ImportBil(fp string) error {
 		return fmt.Errorf("ImportBil failed: %v", err)
 	}
 	buf, n := bytes.NewReader(b), len(b)
+	nc := x.GD.Ncol * x.GD.Nrow //x.gd.Nact
 	switch n {
-	case x.GD.Nact:
+	case nc:
 		return x.readBil8(buf, n)
-	case x.GD.Nact * 2:
+	case nc * 2:
 		return x.readBil16(buf, n/2)
-	case x.GD.Nact * 4:
+	case nc * 4:
 		return x.readBil32(buf, nd, n/4)
 	default:
 		panic("ImportBil: TODO")
