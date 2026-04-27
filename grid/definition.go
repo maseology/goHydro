@@ -300,7 +300,7 @@ func ReadGDEF(gdeffp string, print bool) (*Definition, error) {
 
 		gd.cwidths, gd.cheights = make([]float64, gd.Ncol), make([]float64, gd.Nrow)
 		gd.cheights[0], _ = strconv.ParseFloat(a[5], 64)
-		for i := 1; i < gd.Nrow; i++ {
+		for i := range gd.Nrow {
 			line, _, err := reader.ReadLine()
 			if err == io.EOF {
 				return nil, fmt.Errorf("ReadTextLines (cell widths): %v", err)
@@ -309,7 +309,7 @@ func ReadGDEF(gdeffp string, print bool) (*Definition, error) {
 			}
 			gd.cheights[i], _ = strconv.ParseFloat(string(line), 64)
 		}
-		for j := 0; j < gd.Ncol; j++ {
+		for j := range gd.Ncol {
 			line, _, err := reader.ReadLine()
 			if err == io.EOF {
 				return nil, fmt.Errorf("ReadTextLines (cell heights): %v", err)
@@ -338,14 +338,14 @@ func ReadGDEF(gdeffp string, print bool) (*Definition, error) {
 		gd.Sactives = make([]int, cx)
 		gd.Act = make(map[int]int, cx)
 		gd.Nact = cx
-		for i := 0; i < cx; i++ {
+		for i := range cx {
 			gd.Sactives[i] = i
 			gd.Act[i] = i
 		}
 		gd.Coord = make(map[int]mmaths.Point, cx)
 		cid := 0
-		for i := 0; i < gd.Nrow; i++ {
-			for j := 0; j < gd.Ncol; j++ {
+		for i := range gd.Nrow {
+			for j := range gd.Ncol {
 				p := mmaths.Point{X: gd.Eorig + gd.Cwidth*(float64(j)+0.5), Y: gd.Norig - gd.Cwidth*(float64(i)+0.5)}
 				if gd.Rotation != 0 {
 					p = p.Rotate(gd.Rotation, mmaths.Point{X: gd.Eorig, Y: gd.Norig})
@@ -382,8 +382,8 @@ func ReadGDEF(gdeffp string, print bool) (*Definition, error) {
 		}
 		gd.Coord = make(map[int]mmaths.Point, gd.Nact)
 		cid := 0
-		for i := 0; i < gd.Nrow; i++ {
-			for j := 0; j < gd.Ncol; j++ {
+		for i := range gd.Nrow {
+			for j := range gd.Ncol {
 				if _, ok := gd.Act[cid]; ok {
 					p := mmaths.Point{X: gd.Eorig + gd.Cwidth*(float64(j)+0.5), Y: gd.Norig - gd.Cwidth*(float64(i)+0.5)}
 					gd.Coord[cid] = p
@@ -669,18 +669,8 @@ func (gd *Definition) NullInt32(nodatavalue int32) []int32 {
 }
 
 func (gd *Definition) ExtentToCellIDs(ext mmaths.Extent) []int {
-	var wg sync.WaitGroup
-	wg.Add(2)
-	var iul, jul, ilr, jlr int
-	go func() {
-		iul, jul = gd.PointToRowCol(ext.Xn, ext.Yx)
-		wg.Done()
-	}()
-	go func() {
-		ilr, jlr = gd.PointToRowCol(ext.Xx, ext.Yn)
-		wg.Done()
-	}()
-	wg.Wait()
+	s := gd.ExtentToRowCols(&ext)
+	iul, jul, ilr, jlr := s[0], s[1], s[2], s[3]
 	cids := []int{}
 	for i := iul; i <= ilr; i++ {
 		for j := jul; j <= jlr; j++ {
@@ -688,6 +678,36 @@ func (gd *Definition) ExtentToCellIDs(ext mmaths.Extent) []int {
 		}
 	}
 	return cids
+}
+
+// ExtentsToRowCols converts extents to a row-col range assuming the same projection
+// returns [in, ix, jn, jx]
+func (gd *Definition) ExtentToRowCols(ext *mmaths.Extent) []int {
+	var wg sync.WaitGroup
+	wg.Add(2)
+	var iul, jul, ilr, jlr int
+	go func() {
+		iul, jul = gd.PointToRowCol(ext.Xn, ext.Yx)
+		if iul < 0 {
+			iul = 0
+		}
+		if jul < 0 {
+			jul = 0
+		}
+		wg.Done()
+	}()
+	go func() {
+		ilr, jlr = gd.PointToRowCol(ext.Xx, ext.Yn)
+		if ilr < 0 {
+			ilr = gd.Nrow - 1
+		}
+		if jlr < 0 {
+			jlr = gd.Ncol - 1
+		}
+		wg.Done()
+	}()
+	wg.Wait()
+	return []int{iul, ilr, jul, jlr}
 }
 
 // PointToCellID returns the cell id that contains the xy coordinates
