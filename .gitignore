@@ -15,6 +15,7 @@
 *.rar
 *.old
 bak/
+*/bak/
 old/
 test/
 doc/
