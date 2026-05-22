@@ -132,7 +132,7 @@ func HBV(u []float64, ts float64) []float64 {
 	perc := mm.LogLinearTransform(1e-9, 100., u[7]) * ts // ksat [m/d]
 	maxbas := mm.LinearTransform(0., 10., u[8])          // days
 	// lakefrac := mm.LinearTransform(0., 1., u[9])
-	return []float64{fc, lp, beta, uzl, k0, k1, k2, perc, maxbas} //, lakefrac}
+	return []float64{0., fc, lp, beta, uzl, k0, k1, k2, perc, maxbas} //, lakefrac}
 }
 
 // CCFHBV (13)

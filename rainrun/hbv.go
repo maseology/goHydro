@@ -10,8 +10,8 @@ import (
 // Bergström, S., 1976. Development and application of a conceptual runoff model for Scandinavian catchments. SMHI RHO 7. Norrköping. 134 pp.
 // Bergström, S., 1992. The HBV model - its structure and applications. SMHI RH No 4. Norrköping. 35 pp
 type HBV struct {
-	maxbas                                                      *maxbas
-	fc, lp, beta, sm, suz, slz, uzl, k0, k1, k2, perc, lakefrac float64
+	maxbas                                                            *maxbas
+	fimp, fc, lp, beta, sm, suz, slz, uzl, k0, k1, k2, perc, lakefrac float64
 }
 
 type maxbas struct{ SQ, QT []float64 }
@@ -31,10 +31,11 @@ func (m *HBV) New(p ...float64) {
 		qt := cnv.Weights()
 		m.maxbas = &maxbas{QT: qt, SQ: make([]float64, len(qt)+1)} // MAXBAS: triangular weighted transfer function
 		m.lakefrac = 0.
-	} else {
+	} else if len(p) == 8 {
 		// if fracCheck(p[1]) || fracCheck(p[4]) || fracCheck(p[5]) || fracCheck(p[6]) { // || fracCheck(p[9]) {
 		// 	panic("HBV input error")
 		// }
+		m.fimp = 0.                         // percent imperviousness
 		m.fc = p[0]                         // max basin moisture storage
 		m.lp = p[1]                         // soil moisture parameter
 		m.beta = p[2]                       // soil moisture parameter
@@ -44,7 +45,22 @@ func (m *HBV) New(p ...float64) {
 		cnv := convolution.NewTriangularConvolution(p[8], 0.5, 0.)
 		qt := cnv.Weights()
 		m.maxbas = &maxbas{QT: qt, SQ: make([]float64, len(qt)+1)} // MAXBAS: triangular weighted transfer function
-		m.lakefrac = 0.                                            // p[9]                   // lake fraction
+	} else {
+		m.fimp = p[0]                       // percent imperviousness
+		m.fc = p[1]                         // max basin moisture storage
+		m.lp = p[2]                         // soil moisture parameter
+		m.beta = p[3]                       // soil moisture parameter
+		m.uzl = p[4]                        // upper zone fast flow limit
+		m.k0, m.k1, m.k2 = p[5], p[6], p[7] // fast, slow, and baseflow recession coefficients
+		m.perc = p[8]                       // upper-to-lower zone percolation, assuming percolation rate = Ksat
+		cnv := convolution.NewTriangularConvolution(p[9], 0.5, 0.)
+		qt := cnv.Weights()
+		m.maxbas = &maxbas{QT: qt, SQ: make([]float64, len(qt)+1)} // MAXBAS: triangular weighted transfer function
+		if len(p) < 11 {
+			m.lakefrac = 0.
+		} else {
+			m.lakefrac = p[10] // lake fraction
+		}
 	}
 }
 
@@ -75,11 +91,13 @@ func (m *HBV) hBVlake(pn, ep float64) float64 {
 }
 
 func (m *HBV) hBVinfiltration(p float64) {
-	i := p * math.Pow(m.sm/m.fc, m.beta)
-	if i > p {
+	pp := (1. - m.fimp) * p
+	m.suz += p - pp
+	i := pp * math.Pow(m.sm/m.fc, m.beta)
+	if i > pp {
 		panic("HBV error, infiltration")
 	}
-	m.sm += p - i // soil zone moisture storage
+	m.sm += pp - i // soil zone moisture storage
 	if m.sm > m.fc {
 		m.suz += m.sm - m.fc // adding excess to upper zone moisture storage
 		m.sm = m.fc
