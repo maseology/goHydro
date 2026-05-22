@@ -1,0 +1,12 @@
+github.com/batchatco/go-native-netcdf v0.0.0-20260314195334-c3bf89299976 h1:DF9e55hXnNjnqOdG+6/agZtprp1Z1yWq5zJ1tmjH4kI=
+github.com/batchatco/go-native-netcdf v0.0.0-20260314195334-c3bf89299976/go.mod h1:9DR4lzem/4OwxigpgjJC4P3KYofnwgppaCdylYB3yqg=
+github.com/batchatco/go-thrower v0.0.0-20200827035905-5cb7337f6be6 h1:gDf4IUqKDnH7F0XdgeYOBx2jlMKF/j9Xm42sISXpwqY=
+github.com/batchatco/go-thrower v0.0.0-20200827035905-5cb7337f6be6/go.mod h1:hJ9Ll7FOzcIr57sd7RHga7StcCVAL0vFBUsNpnGntNg=
+github.com/maseology/mmaths v0.0.0-20260522005725-3155c1a1379d h1:SbE4Dz/+GX5ISN1saUIKTwAV8JyjH6rJr4LZPqb4E6Q=
+github.com/maseology/mmaths v0.0.0-20260522005725-3155c1a1379d/go.mod h1:AetnUWGceRR9IBfnUmp6ygkK59Lhct47Nzw56MxZM94=
+github.com/maseology/mmio v0.0.0-20251118122641-6ac9b143abed h1:ShkgBrQjf90/GGcC1x3DVEt1PYfud1W4oFt96pqaYRE=
+github.com/maseology/mmio v0.0.0-20251118122641-6ac9b143abed/go.mod h1:Dxockk5bQfFsLT83cclSc5jxq5EzFpw5dA9iz/Je9Rk=
+github.com/paulmach/go.geojson v1.5.0 h1:7mhpMK89SQdHFcEGomT7/LuJhwhEgfmpWYVlVmLEdQw=
+github.com/paulmach/go.geojson v1.5.0/go.mod h1:DgdUy2rRVDDVgKqrjMe2vZAHMfhDTrjVKt3LmHIXGbU=
+gonum.org/v1/gonum v0.17.0 h1:VbpOemQlsSMrYmn7T2OUvQ4dqxQXU+ouZFQsZOx50z4=
+gonum.org/v1/gonum v0.17.0/go.mod h1:El3tOrEuMpv2UdMrbNlKEh9vd86bmQ6vqIcDwxEOc1E=
