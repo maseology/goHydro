@@ -81,7 +81,7 @@ func (t *TEM) SubwatershedSplit(gd *grid.Definition, ws, ds map[int]int, area fl
 		sz := len(a)
 		newthrsh := sz / (sz / thrsh)
 		newa := make(map[int]int, sz)
-		ic, _ := mmaths.SortMapInt(concentrationTime(gOrig))
+		ic, _ := mmaths.SortMapInt(concentrationTime(gOrig), false)
 		cc := contributingCellCounts(gOrig)
 		watershed := func(gNew int) {
 			var climb func(int)
