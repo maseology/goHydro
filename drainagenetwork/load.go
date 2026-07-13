@@ -8,7 +8,12 @@ import (
 	geojson "github.com/paulmach/go.geojson"
 )
 
-func LoadNetwork(fp string) []*tp.Node {
+type Basin struct {
+	Name                           string
+	OutletSegID, TreeID, TreeSegID int
+}
+
+func LoadNetwork(fp string) ([]*tp.Node, map[int]Basin) {
 	fstreams, err := os.ReadFile(fp)
 	if err != nil {
 		log.Fatalf("%v\n", err)
@@ -19,18 +24,29 @@ func LoadNetwork(fp string) []*tp.Node {
 	}
 
 	var nds []*tp.Node
-
+	basins := make(map[int]Basin)
 	nf := 0
 	for _, f := range gstreams.Features {
 		switch f.Geometry.Type {
 		case "LineString":
 			ff := f.Geometry.LineString
 			dim := len(ff[0])
+
+			nwsid := f.Properties["WsID"]
+			if nwsid != nil {
+				basins[int(nwsid.(float64))] = Basin{
+					Name:        f.Properties["newWsname"].(string),
+					OutletSegID: int(f.Properties["WsOut"].(float64)),
+					TreeID:      int(f.Properties["treeID"].(float64)),
+					TreeSegID:   int(f.Properties["treesegID"].(float64)),
+				}
+			}
+
 			nds = append(nds, &tp.Node{
 				S: func() []float64 {
 					a := make([]float64, len(ff)*dim)
 					for i, c := range ff {
-						for d := 0; d < dim; d++ {
+						for d := range dim {
 							a[i*dim+d] = c[d]
 						}
 					}
@@ -56,7 +72,7 @@ func LoadNetwork(fp string) []*tp.Node {
 					S: func() []float64 {
 						a := make([]float64, len(ln)*2)
 						for i, c := range ln {
-							for d := 0; d < 2; d++ {
+							for d := range 2 {
 								a[i*2+d] = c[d]
 							}
 						}
@@ -80,6 +96,8 @@ func LoadNetwork(fp string) []*tp.Node {
 		}
 	}
 
+	// basinTableJSON(basins, fp[:len(fp)-8]+".json")
+
 	// topological sort
 	for ius := range nds {
 		ids := nds[ius].I[2]
@@ -90,5 +108,29 @@ func LoadNetwork(fp string) []*tp.Node {
 		nds[ids].US = append(nds[ids].US, nds[ius])
 	}
 
-	return nds
+	return nds, basins
 }
+
+// type basinRow struct {
+// 	WsID   int    `json:"wsID"`
+// 	WsName string `json:"wsName"`
+// 	Outlet int    `json:"outlet"`
+// }
+
+// func basinTableJSON(basins map[int]Basin, filename string) error {
+// 	rows := make([]basinRow, 0, len(basins))
+// 	for wsID, b := range basins {
+// 		rows = append(rows, basinRow{
+// 			WsID:   wsID,
+// 			WsName: b.Name,
+// 			Outlet: b.OutletSegID,
+// 		})
+// 	}
+
+// 	data, err := json.MarshalIndent(rows, "", "  ")
+// 	if err != nil {
+// 		return err
+// 	}
+
+// 	return os.WriteFile(filename, data, 0644)
+// }
