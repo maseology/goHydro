@@ -52,7 +52,7 @@ func (x *Indx) New(fp string) {
 			panic(" Indx.New: todo")
 		}
 	default:
-		log.Fatalf("Indx.New ERROR: unsupported file format: " + fp)
+		log.Fatal("Indx.New ERROR: unsupported file format: " + fp)
 	}
 }
 
